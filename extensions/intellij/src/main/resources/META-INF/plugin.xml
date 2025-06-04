@@ -1,10 +1,13 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.continuedev.continueintellijextension</id>
-    <name>Continue</name>
-    <vendor url="https://www.continue.dev/">continue-dev</vendor>
+    <id>com.yinhai.TA+3AI</id>
+    <name>TA+3AI</name>
+    <vendor url="http://172.20.23.216/">技术研发部-AI开发技术组</vendor>
     <change-notes>
-        <![CDATA[View the latest release notes on <a href="https://github.com/continuedev/continue/releases">GitHub</a>]]></change-notes>
+        <![CDATA[
+        查看最新的 <a href="http://172.20.23.216/ta3-ai-doc/docs/docs/code/README.html">文档</a>
+        ]]>
+    </change-notes>
 
     <depends>com.intellij.modules.platform</depends>
 
@@ -19,7 +22,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <editorFactoryListener
                 implementation="com.github.continuedev.continueintellijextension.autocomplete.AutocompleteEditorListener"/>
-        <toolWindow id="Continue" anchor="right" icon="/tool-window-icon.svg"
+        <toolWindow id="TA+3AI" anchor="right" icon="/tool-window-icon.svg"
                     factoryClass="com.github.continuedev.continueintellijextension.toolWindow.ContinuePluginToolWindowFactory"/>
         <projectService id="ContinuePluginService"
                         serviceImplementation="com.github.continuedev.continueintellijextension.services.ContinuePluginService"/>

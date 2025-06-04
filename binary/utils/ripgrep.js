@@ -83,12 +83,16 @@ async function downloadRipgrep(target, targetDir) {
   // Create temp directory
   fs.mkdirSync(tempDir, { recursive: true });
 
+  console.log(tempDir);
+
   const archivePath = path.join(tempDir, releaseFile);
+
+  console.log(archivePath);
 
   try {
     // Download the ripgrep release
     console.log(`[info] Downloading ripgrep from ${downloadUrl}`);
-    await downloadFile(downloadUrl, archivePath);
+    // await downloadFile(downloadUrl, archivePath);
 
     // Extract the archive
     console.log(`[info] Extracting ripgrep to ${targetDir}`);
@@ -101,7 +105,7 @@ async function downloadRipgrep(target, targetDir) {
     }
 
     // Clean up
-    rimrafSync(tempDir);
+    // rimrafSync(tempDir);
 
     // Return the path to the ripgrep binary
     const binName = platform === "win32" ? "rg.exe" : "rg";
