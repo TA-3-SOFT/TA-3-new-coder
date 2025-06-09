@@ -4,6 +4,7 @@ const { rimrafSync } = require("rimraf");
 const tar = require("tar");
 const { RIPGREP_VERSION, TARGET_TO_RIPGREP_RELEASE } = require("./targets");
 const AdmZip = require("adm-zip");
+const { execSync } = require("child_process");
 
 const RIPGREP_BASE_URL = `https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}`;
 
@@ -15,18 +16,28 @@ const RIPGREP_BASE_URL = `https://github.com/BurntSushi/ripgrep/releases/downloa
  * @returns {Promise<void>}
  */
 async function downloadFile(url, destPath) {
-  // Use the built-in fetch API instead of node-fetch
-  const response = await fetch(url, {
-    redirect: "follow", // Automatically follow redirects
-  });
+  // // Use the built-in fetch API instead of node-fetch
+  // const response = await fetch(url, {
+  //   redirect: "follow", // Automatically follow redirects
+  // });
 
-  if (!response.ok) {
-    throw new Error(`Failed to download file, status code: ${response.status}`);
+  // if (!response.ok) {
+  //   throw new Error(`Failed to download file, status code: ${response.status}`);
+  // }
+
+  // // Get the response as an array buffer and write it to the file
+  // const buffer = await response.arrayBuffer();
+  // fs.writeFileSync(destPath, Buffer.from(buffer));
+
+  try {
+    // -L 跟随重定向，-o 指定输出文件
+    // --fail 下载失败时返回非0
+    // --silent 静默模式
+    // --show-error 显示错误
+    execSync(`curl -L --fail --silent --show-error -o "${destPath}" "${url}"`);
+  } catch (e) {
+    throw new Error(`curl 下载失败: ${e.message}`);
   }
-
-  // Get the response as an array buffer and write it to the file
-  const buffer = await response.arrayBuffer();
-  fs.writeFileSync(destPath, Buffer.from(buffer));
 }
 
 /**
@@ -92,7 +103,7 @@ async function downloadRipgrep(target, targetDir) {
   try {
     // Download the ripgrep release
     console.log(`[info] Downloading ripgrep from ${downloadUrl}`);
-    // await downloadFile(downloadUrl, archivePath);
+    await downloadFile(downloadUrl, archivePath);
 
     // Extract the archive
     console.log(`[info] Extracting ripgrep to ${targetDir}`);
@@ -105,7 +116,7 @@ async function downloadRipgrep(target, targetDir) {
     }
 
     // Clean up
-    // rimrafSync(tempDir);
+    rimrafSync(tempDir);
 
     // Return the path to the ripgrep binary
     const binName = platform === "win32" ? "rg.exe" : "rg";

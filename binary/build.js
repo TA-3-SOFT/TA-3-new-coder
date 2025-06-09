@@ -17,11 +17,11 @@ const build = path.join(__dirname, "build");
 
 function cleanSlate() {
   // Clean slate
-  // rimrafSync(bin);
+  rimrafSync(bin);
   rimrafSync(out);
   rimrafSync(build);
   rimrafSync(path.join(__dirname, "tmp"));
-  // fs.mkdirSync(bin);
+  fs.mkdirSync(bin);
   fs.mkdirSync(out);
   fs.mkdirSync(build);
 }
