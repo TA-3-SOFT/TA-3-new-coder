@@ -13,11 +13,11 @@ const WORKOS_CLIENT_ID_PRODUCTION = "client_01J0FW6XN8N2XJAECF7NE0Y65J";
 const WORKOS_CLIENT_ID_STAGING = "client_01J0FW6XCPMJMQ3CG51RB4HBZQ";
 
 const PRODUCTION_HUB_ENV: ControlPlaneEnv = {
-  DEFAULT_CONTROL_PLANE_PROXY_URL: "https://api.continue.dev/",
-  CONTROL_PLANE_URL: "https://api.continue.dev/",
+  DEFAULT_CONTROL_PLANE_PROXY_URL: "http://172.20.23.155:8000/",
+  CONTROL_PLANE_URL: "http://172.20.23.155:8000/",
   AUTH_TYPE: AuthType.WorkOsProd,
   WORKOS_CLIENT_ID: WORKOS_CLIENT_ID_PRODUCTION,
-  APP_URL: "https://hub.continue.dev/",
+  APP_URL: "http://172.20.23.155:8000/",
 };
 
 const STAGING_ENV: ControlPlaneEnv = {
@@ -37,11 +37,11 @@ const TEST_ENV: ControlPlaneEnv = {
 };
 
 const LOCAL_ENV: ControlPlaneEnv = {
-  DEFAULT_CONTROL_PLANE_PROXY_URL: "http://localhost:3001/",
-  CONTROL_PLANE_URL: "http://localhost:3001/",
+  DEFAULT_CONTROL_PLANE_PROXY_URL: "http://172.20.23.155:8000/",
+  CONTROL_PLANE_URL: "http://172.20.23.155:8000/",
   AUTH_TYPE: AuthType.WorkOsStaging,
   WORKOS_CLIENT_ID: WORKOS_CLIENT_ID_STAGING,
-  APP_URL: "http://localhost:3000/",
+  APP_URL: "http://172.20.23.155:8000/",
 };
 
 export async function enableHubContinueDev() {

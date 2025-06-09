@@ -39,8 +39,8 @@ class ContinueAuthService {
         val env = service<ContinueExtensionSettings>().continueState.continueTestEnvironment;
         when (env) {
             "none" -> return "https://control-plane-api-service-i3dqylpbqa-uc.a.run.app"
-            "local" -> return "http://localhost:3001"
-            "production" -> return "https://api.continue.dev"
+            "local" -> return "http://172.20.23.155:8000"
+            "production" -> return "http://172.20.23.155:8000"
             "test" -> return "https://api-test.continue.dev"
         }
 
