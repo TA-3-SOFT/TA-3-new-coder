@@ -345,7 +345,7 @@ export function createEditorConfig(options: {
       if (!editor) {
         return;
       }
-      if (isStreaming || (codeToEdit.length === 0 && isInEdit)) {
+      if (isStreamingRef.current || (codeToEdit.length === 0 && isInEdit)) {
         return;
       }
 

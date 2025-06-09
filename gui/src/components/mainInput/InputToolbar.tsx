@@ -22,6 +22,7 @@ import { ModeSelect } from "../ModeSelect";
 import { useFontSize } from "../ui/font";
 import { EnterButton } from "./InputToolbar/EnterButton";
 import HoverItem from "./InputToolbar/HoverItem";
+import { useMainEditor } from "./TipTapEditor/MainEditorProvider";
 
 export interface ToolbarOptions {
   hideUseCodebase?: boolean;
@@ -55,6 +56,7 @@ function InputToolbar(props: InputToolbarProps) {
   const currentToolCallApplyState = useAppSelector(
     selectCurrentToolCallApplyState,
   );
+  const { mainEditor, onEnterRef } = useMainEditor();
 
   const isEnterDisabled =
     props.disabled ||
@@ -76,6 +78,40 @@ function InputToolbar(props: InputToolbarProps) {
 
   const smallFont = useFontSize(-2);
   const tinyFont = useFontSize(-3);
+
+  // 处理中英翻译按钮点击
+  const handleTranslateClick = () => {
+    if (!mainEditor || !props.onEnter) return;
+
+    const currentContent = mainEditor.getText().trim();
+    if (!currentContent) return;
+    const prompt = `【中英翻译】：${currentContent}`;
+
+    mainEditor.commands.setContent(prompt);
+    mainEditor.commands.focus("end");
+
+    // 触发发送
+    setTimeout(() => {
+      onEnterRef.current({ useCodebase: false, noContext: true });
+    }, 100);
+  };
+
+  // 处理代码取名按钮点击
+  const handleCodeNamingClick = () => {
+    if (!mainEditor || !props.onEnter) return;
+
+    const currentContent = mainEditor.getText().trim();
+    if (!currentContent) return;
+    const prompt = `【代码取名】：${currentContent}`;
+
+    mainEditor.commands.setContent(prompt);
+    mainEditor.commands.focus("end");
+
+    // 触发发送
+    setTimeout(() => {
+      onEnterRef.current({ useCodebase: false, noContext: true });
+    }, 100);
+  };
 
   return (
     <>
@@ -156,6 +192,22 @@ function InputToolbar(props: InputToolbarProps) {
             fontSize: tinyFont,
           }}
         >
+          <EnterButton
+            isPrimary={false}
+            disabled={isEnterDisabled}
+            onClick={handleTranslateClick}
+          >
+            <span className="hidden md:inline">中英翻译</span>
+          </EnterButton>
+
+          <EnterButton
+            isPrimary={false}
+            disabled={isEnterDisabled}
+            onClick={handleCodeNamingClick}
+          >
+            <span className="hidden md:inline">代码取名</span>
+          </EnterButton>
+
           {!props.toolbarOptions?.hideUseCodebase && !isInEdit && (
             <div
               className={`${toolsSupported ? "md:flex" : "int:flex"} hover:underline" hidden transition-colors duration-200`}

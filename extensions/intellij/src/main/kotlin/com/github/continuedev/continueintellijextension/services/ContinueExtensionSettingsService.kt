@@ -2,20 +2,25 @@ package com.github.continuedev.continueintellijextension.services
 
 import com.github.continuedev.continueintellijextension.constants.getConfigJsPath
 import com.github.continuedev.continueintellijextension.constants.getConfigJsonPath
-import com.intellij.execution.target.value.constant
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.*
+import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.DumbAware
-import com.intellij.openapi.util.SystemInfo
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBRadioButton
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.messages.Topic
+import com.intellij.util.ui.UIUtil
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.awt.FlowLayout
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.io.File
@@ -33,6 +38,10 @@ class ContinueSettingsComponent : DumbAware {
     val enableOSR: JCheckBox = JCheckBox("Enable Off-Screen Rendering")
     val displayEditorTooltip: JCheckBox = JCheckBox("Display Editor Tooltip")
     val showIDECompletionSideBySide: JCheckBox = JCheckBox("Show IDE completions side-by-side")
+    // 添加单选按钮组件，标题为“快捷交互显示模式” 选项为"文字平铺"，“下拉图标”，“不显示”
+    val interactionModeRadioButtons = arrayOf( "下拉图标", "文字平铺", "不显示").map { JBRadioButton(it) }
+    // 创建一个水平面板来放置单选按钮
+    val interactionModePanel = JPanel(FlowLayout(FlowLayout.LEFT))
 
     init {
         val constraints = GridBagConstraints()
@@ -55,6 +64,16 @@ class ContinueSettingsComponent : DumbAware {
         panel.add(JLabel("User Token:"), constraints)
         constraints.gridy++
         panel.add(userToken, constraints)
+        constraints.gridy++
+        panel.add(JLabel("快捷操作显示模式:"), constraints)
+        constraints.gridy++
+        // 单选按钮组  互斥
+        ButtonGroup().apply { interactionModeRadioButtons.forEach { add(it) } }
+        interactionModeRadioButtons.forEach { interactionModePanel.add(it) }
+        interactionModePanel.add(JBLabel("（修改后切换代码编辑框即可生效）", UIUtil.ComponentStyle.SMALL))
+        interactionModeRadioButtons.first().isSelected = true
+        panel.add(interactionModePanel, constraints)
+        // 设置默认选中项
         constraints.gridy++
         panel.add(enableTabAutocomplete, constraints)
         constraints.gridy++
@@ -95,6 +114,7 @@ open class ContinueExtensionSettings : PersistentStateComponent<ContinueExtensio
         var displayEditorTooltip: Boolean = true
         var showIDECompletionSideBySide: Boolean = false
         var continueTestEnvironment: String = "production"
+        var interactionMode: Int = 0
     }
 
     var continueState: ContinueState = ContinueState()
@@ -207,7 +227,8 @@ class ContinueExtensionConfigurable : Configurable {
                     mySettingsComponent?.enableTabAutocomplete?.isSelected != settings.continueState.enableTabAutocomplete ||
                     mySettingsComponent?.enableOSR?.isSelected != settings.continueState.enableOSR ||
                     mySettingsComponent?.displayEditorTooltip?.isSelected != settings.continueState.displayEditorTooltip ||
-                    mySettingsComponent?.showIDECompletionSideBySide?.isSelected != settings.continueState.showIDECompletionSideBySide
+                    mySettingsComponent?.showIDECompletionSideBySide?.isSelected != settings.continueState.showIDECompletionSideBySide ||
+                    mySettingsComponent?.interactionModeRadioButtons?.indexOfFirst { it.isSelected } != settings.continueState.interactionMode
         return modified
     }
 
@@ -221,6 +242,7 @@ class ContinueExtensionConfigurable : Configurable {
         settings.continueState.displayEditorTooltip = mySettingsComponent?.displayEditorTooltip?.isSelected ?: true
         settings.continueState.showIDECompletionSideBySide =
             mySettingsComponent?.showIDECompletionSideBySide?.isSelected ?: false
+        settings.continueState.interactionMode = mySettingsComponent?.interactionModeRadioButtons?.indexOfFirst { it.isSelected } ?: 0
 
         ApplicationManager.getApplication().messageBus.syncPublisher(SettingsListener.TOPIC)
             .settingsUpdated(settings.continueState)
@@ -237,6 +259,10 @@ class ContinueExtensionConfigurable : Configurable {
         mySettingsComponent?.displayEditorTooltip?.isSelected = settings.continueState.displayEditorTooltip
         mySettingsComponent?.showIDECompletionSideBySide?.isSelected =
             settings.continueState.showIDECompletionSideBySide
+        val interactionMode = settings.continueState.interactionMode
+        if (interactionMode in 0..2) {
+            mySettingsComponent?.interactionModeRadioButtons?.get(interactionMode)?.isSelected = true
+        }
 
         ContinueExtensionSettings.instance.addRemoteSyncJob()
     }
