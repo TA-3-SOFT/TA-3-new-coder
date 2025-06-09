@@ -16,6 +16,8 @@
         com.intellij.modules.json
     </depends>
 
+    <depends optional="true">Git4Idea</depends>
+
     <!-- com.intellij.openapi.module.ModuleManager.Companion is only available since this build -->
     <idea-version since-build="223.7571.182"/>
 
@@ -197,6 +199,10 @@
                 description="Partial Accept Autocomplete Suggestion">
             <keyboard-shortcut first-keystroke="control alt RIGHT" keymap="$default"/>
             <keyboard-shortcut first-keystroke="alt meta RIGHT" keymap="Mac OS X"/>
+        </action>
+
+        <action id="TriggerCommitMessageGenerationAction" class="com.github.continuedev.continueintellijextension.actions.CommitMessageGenerationAction">
+            <add-to-group group-id="Vcs.MessageActionGroup" anchor="first"/>
         </action>
     </actions>
 </idea-plugin>
