@@ -7,13 +7,13 @@ package com.github.continuedev.continueintellijextension.actions;
 
 import com.github.continuedev.continueintellijextension.model.GenerateCommitMsgParam;
 import com.github.continuedev.continueintellijextension.utils.ThreadUtil;
+import com.github.continuedev.continueintellijextension.services.ContinuePluginService;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
@@ -62,7 +62,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-public class CommitMessageGenerationAction extends AnAction implements UpdateInBackground {
+public class CommitMessageGenerationAction extends AnAction {
     private static Logger log = Logger.getInstance(CommitMessageGenerationAction.class);
     private static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors.newSingleThreadScheduledExecutor();
     private static final Long MAX_PATCH_LEN = 70000L;
@@ -271,15 +271,9 @@ public class CommitMessageGenerationAction extends AnAction implements UpdateInB
                 generateCommitMsgParam.setCodeDiffs(diffList);
                 String preferredLanguage = Locale.CHINESE.getLanguage();
                 generateCommitMsgParam.setPreferredLanguage(preferredLanguage);
-                ThreadUtil.execute(() -> {
-//                    GenerateCommitMsgResult generateCommitMsgResult = Cosy.INSTANCE.getLanguageService(project).generateCommitMsg(generateCommitMsgParam, 10000L);
-//                    if (generateCommitMsgResult != null && BooleanUtils.isTrue(generateCommitMsgResult.getIsSuccess())) {
-//                        log.info(String.format("generate commit message result = %s", generateCommitMsgResult.getIsSuccess()));
-//                    } else {
-//                        log.warn("generate commit message error, requestId is " + requestId + ", result is " + generateCommitMsgResult);
-//                        this.afterGenerateCommitMsg(anActionEvent, project, requestId);
-//                    }
-                });
+
+                // 使用 Continue 核心服务生成提交信息
+                this.generateCommitMessageWithContinue(project, requestId, diffList, commitMessage, anActionEvent);
             }
         }, ModalityState.defaultModalityState());
 
@@ -299,38 +293,6 @@ public class CommitMessageGenerationAction extends AnAction implements UpdateInB
         CommitMessageInstance commitMessageInstance = new CommitMessageInstance(commitMessage, anActionEvent);
         REQUEST_COMMIT_MESSAGE.put(requestId, commitMessageInstance);
     }
-
-//    public Boolean updateAnswer(GenerateCommitMsgAnswerParams generateCommitMsgAnswerParams) {
-//        if (generateCommitMsgAnswerParams != null && generateCommitMsgAnswerParams.getText() != null) {
-//            ThreadUtil.execute(() -> {
-//                CommitMessageInstance commitMessageInstance = (CommitMessageInstance) REQUEST_COMMIT_MESSAGE.get(generateCommitMsgAnswerParams.getRequestId());
-//                if (commitMessageInstance == null) {
-//                    log.debug("commit message commitMessageInstance null.");
-//                } else {
-//                    Project project = (Project) COMMIT_MESSAGE_REQUEST_TO_PROJECT.get(generateCommitMsgAnswerParams.getRequestId());
-//                    CommitMessage commitMessage = commitMessageInstance.getCommitMessage();
-//                    if (project != null && commitMessage != null) {
-//                        try {
-//                            SwingUtilities.invokeAndWait(() -> {
-//                                String var10001 = commitMessage.getText();
-//                                commitMessage.setText(var10001 + generateCommitMsgAnswerParams.getText());
-//                            });
-//                        } catch (InterruptedException e) {
-//                            throw new RuntimeException(e);
-//                        } catch (InvocationTargetException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//                    } else {
-//                        log.debug("Cannot find project in commit message processor by request_id " + generateCommitMsgAnswerParams.getRequestId());
-//                    }
-//                }
-//            });
-//            return true;
-//        } else {
-//            log.warn("commit message answer params contain null.");
-//            return false;
-//        }
-//    }
 
     private void scheduleChatTimeout(String requestId, Project project, AnActionEvent anActionEvent) {
         SCHEDULED_EXECUTOR.schedule(() -> {
@@ -356,35 +318,24 @@ public class CommitMessageGenerationAction extends AnAction implements UpdateInB
         anActionEvent.getPresentation().setIcon(logoIcon);
         String requestId = PROJECT_TO_COMMIT_MESSAGE_REQUEST.get(project.getName());
         if (requestId != null) {
-//            TelemetryService.getInstance().telemetryGenerateCommitMsg(project, TrackEventTypeEnum.COMMIT_MESSAGE_STOP, requestId);
+            // 尝试取消 Continue 核心的请求
+            try {
+                ContinuePluginService continuePluginService = project.getService(ContinuePluginService.class);
+                if (continuePluginService != null && continuePluginService.getCoreMessenger() != null) {
+                    Map<String, Object> abortData = new HashMap<>();
+                    abortData.put("requestId", requestId);
+                    continuePluginService.getCoreMessenger().request("abort", abortData, null, (response) -> {
+                        // 忽略响应
+                        return null;
+                    });
+                }
+            } catch (Exception e) {
+                log.warn("Error aborting Continue request: " + e.getMessage());
+            }
+
             this.afterGenerateCommitMsg(anActionEvent, project, requestId);
         }
     }
-
-//    public Boolean finishAnswer(GenerateCommitMsgFinishParams generateCommitMsgFinishParams) {
-//        Project project = (Project) COMMIT_MESSAGE_REQUEST_TO_PROJECT.get(generateCommitMsgFinishParams.getRequestId());
-//        if (project == null) {
-//            log.debug("commit message project null.");
-//            return false;
-//        } else {
-//            CommitMessageInstance commitMessageInstance = (CommitMessageInstance) REQUEST_COMMIT_MESSAGE.get(generateCommitMsgFinishParams.getRequestId());
-//            if (commitMessageInstance == null) {
-//                log.debug("commit message commitMessageInstance null.");
-//                return false;
-//            } else {
-//                AnActionEvent anActionEvent = commitMessageInstance.getAnActionEvent();
-//                if (generateCommitMsgFinishParams.getStatusCode() == 408) {
-//                    NotificationFactory.showWarnNotification(project, I18NConstant.CHAT_ANSWER_TIMEOUT);
-//                } else if (generateCommitMsgFinishParams.getStatusCode() == 403) {
-//                    String errorMsg = ErrorMessageHandler.convertErrorMessage(project, generateCommitMsgFinishParams.getRequestId(), generateCommitMsgFinishParams.getReason(), ScenarioConstants.SCENARIO_GENERATE_COMMIT_MSG);
-//                    NotificationFactory.showWarnNotification(project, errorMsg);
-//                }
-//
-//                this.afterGenerateCommitMsg(anActionEvent, project, generateCommitMsgFinishParams.getRequestId());
-//                return true;
-//            }
-//        }
-//    }
 
     private void afterGenerateCommitMsg(AnActionEvent anActionEvent, Project project, String requestId) {
         COMMIT_MESSAGE_REQUEST_TO_PROJECT.remove(requestId);
@@ -411,11 +362,11 @@ public class CommitMessageGenerationAction extends AnAction implements UpdateInB
 
         GitRepository repository = null;
         if (projectFile != null) {
-            repository = (GitRepository) GitRepositoryManager.getInstance(project).getRepositoryForFile(projectFile);
+            repository = GitRepositoryManager.getInstance(project).getRepositoryForFile(projectFile);
         } else {
             List<GitRepository> repositories = GitRepositoryManager.getInstance(project).getRepositories();
             if (CollectionUtils.isNotEmpty(repositories)) {
-                repository = (GitRepository) repositories.get(0);
+                repository = repositories.get(0);
             }
         }
 
@@ -442,6 +393,104 @@ public class CommitMessageGenerationAction extends AnAction implements UpdateInB
 
                 return commitMessageList;
             }
+        }
+    }
+
+    private void generateCommitMessageWithContinue(Project project, String requestId, List<String> diffList, CommitMessage commitMessage, AnActionEvent anActionEvent) {
+        ThreadUtil.execute(() -> {
+            try {
+                ContinuePluginService continuePluginService = project.getService(ContinuePluginService.class);
+                if (continuePluginService == null || continuePluginService.getCoreMessenger() == null) {
+                    log.warn("Continue plugin service or core messenger not available");
+                    Notification notification = NOTIFICATION_GROUP.createNotification("Continue 服务不可用，请确保插件已正确初始化", NotificationType.WARNING);
+                    notification.setIcon(logoIcon);
+                    notification.notify(project);
+                    this.afterGenerateCommitMsg(anActionEvent, project, requestId);
+                    return;
+                }
+
+                // 构建提交信息生成的提示词
+                String diffContent = String.join("\n", diffList);
+                String prompt = diffContent + "\n\n你是一个用于在代码版本控制中生成简明的提交信息的工具，你的任务是根据上面的的内容生成概括性，且规范标准的提交信息。\n" +
+                        "输出要求：\n" +
+                        "1. 根据提供的git信息，分析出要提交的信息\n" +
+                        "2. 使用代码规范提交用词作为输出开头，如feat、fix、refactor等\n" +
+                        "3. 多个文件都提交时，总结归纳本次提交的信息，可分为几点来描述，如1. 2. 3. 等，字数不要超过100字\n" +
+                        "4. 请使用中文，直接输出字符串，不要json格式\n" +
+                        "5. 不要输出文件的全路径，只要文件名\n" +
+                        "6. 不要输出成代码格式或json格式";
+
+                // 创建聊天消息
+                Map<String, Object> chatMessage = new HashMap<>();
+                chatMessage.put("role", "user");
+                chatMessage.put("content", prompt);
+
+                List<Map<String, Object>> messages = new ArrayList<>();
+                messages.add(chatMessage);
+
+                // 创建完成选项
+                Map<String, Object> completionOptions = new HashMap<>();
+                completionOptions.put("stream", true);
+
+                Map<String, Object> requestData = new HashMap<>();
+                requestData.put("messages", messages);
+                requestData.put("completionOptions", completionOptions);
+                requestData.put("title", "生成提交信息");
+
+                // 发送请求到 Continue 核心
+                continuePluginService.getCoreMessenger().request("llm/streamChat", requestData, requestId, (response) -> {
+                    this.handleContinueResponse(response, requestId, commitMessage, anActionEvent, project);
+                    return null;
+                });
+
+            } catch (Exception e) {
+                log.warn("Error generating commit message with Continue: " + e.getMessage(), e);
+                Notification notification = NOTIFICATION_GROUP.createNotification("生成提交信息时发生错误：" + e.getMessage(), NotificationType.ERROR);
+                notification.setIcon(logoIcon);
+                notification.notify(project);
+                this.afterGenerateCommitMsg(anActionEvent, project, requestId);
+            }
+        });
+    }
+
+    private void handleContinueResponse(Object response, String requestId, CommitMessage commitMessage, AnActionEvent anActionEvent, Project project) {
+        try {
+            if (response instanceof Map) {
+                Map<String, Object> responseMap = (Map<String, Object>) response;
+                Object content = responseMap.get("content");
+
+                if (content instanceof Map) {
+                    Map<String, Object> contentMap = (Map<String, Object>) content;
+
+                    // 检查是否是 ChatMessage 格式
+                    Object role = contentMap.get("role");
+                    Object messageContent = contentMap.get("content");
+
+                    if ("assistant".equals(role) && messageContent instanceof String) {
+                        String text = (String) messageContent;
+                        SwingUtilities.invokeLater(() -> {
+                            String currentText = commitMessage.getText();
+                            commitMessage.setText(currentText + text);
+                        });
+                    }
+                }
+
+                // 检查是否完成 - 查看状态字段
+                Object status = responseMap.get("status");
+                Object done = responseMap.get("done");
+
+                if ("success".equals(status) && Boolean.TRUE.equals(done)) {
+                    // 生成完成
+                    SwingUtilities.invokeLater(() -> {
+                        this.afterGenerateCommitMsg(anActionEvent, project, requestId);
+                    });
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error handling Continue response: " + e.getMessage(), e);
+            SwingUtilities.invokeLater(() -> {
+                this.afterGenerateCommitMsg(anActionEvent, project, requestId);
+            });
         }
     }
 
