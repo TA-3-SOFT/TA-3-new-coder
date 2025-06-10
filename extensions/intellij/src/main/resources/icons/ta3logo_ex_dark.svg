@@ -10,7 +10,17 @@
         .st4{fill:#FFFFFF;}
         .st5{fill:#1C489D;}
     </style>
-    <g id="IDE-端插件优化" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <defs>
+        <defs>
+            <filter id="invert">
+                <feColorMatrix type="matrix" values="-1 0 0 0 1
+                                           0 -1 0 0 1
+                                           0 0 -1 0 1
+                                           0 0 0 1 0"/>
+            </filter>
+        </defs>
+    </defs>
+    <g id="IDE-端插件优化" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" filter="url(#invert)">
         <g id="Artboard" transform="translate(-2602.000000, -1470.000000)">
             <g id="light_console_icon" transform="translate(2602.000000, 1470.000000)">
                 <rect id="Rectangle-Copy-35" fill="#087CFA" opacity="0.16" x="0" y="0" width="77" height="20"

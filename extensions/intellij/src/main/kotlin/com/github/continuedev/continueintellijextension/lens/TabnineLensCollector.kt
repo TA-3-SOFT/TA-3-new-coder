@@ -46,7 +46,7 @@ class TabnineLensCollector(
                     priority = 0,
                     presentation = factory.seq(
                         factory.textSpacePlaceholder(countLeadingWhitespace(editor, element), false),
-                        factory.icon(IconLoader.getIcon("/icons/continue.svg", javaClass)),
+                        factory.icon(IconLoader.getIcon("/icons/continue_lens.svg", javaClass)),
                         buildQuickActionItem("解释代码", "解释代码", editor, element, false),
                         buildQuickActionItem("生成单元测试", "生成单元测试", editor, element, true),
                         buildQuickActionItem("生成代码注释", "生成代码注释", editor, element, true),

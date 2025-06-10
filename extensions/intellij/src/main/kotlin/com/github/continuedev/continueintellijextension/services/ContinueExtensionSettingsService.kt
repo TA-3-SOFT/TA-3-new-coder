@@ -70,7 +70,7 @@ class ContinueSettingsComponent : DumbAware {
         // 单选按钮组  互斥
         ButtonGroup().apply { interactionModeRadioButtons.forEach { add(it) } }
         interactionModeRadioButtons.forEach { interactionModePanel.add(it) }
-        interactionModePanel.add(JBLabel("（修改后切换代码编辑框即可生效）", UIUtil.ComponentStyle.SMALL))
+        interactionModePanel.add(JBLabel("（修改后重新打开文件即可生效）", UIUtil.ComponentStyle.SMALL))
         interactionModeRadioButtons.first().isSelected = true
         panel.add(interactionModePanel, constraints)
         // 设置默认选中项
