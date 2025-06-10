@@ -17,6 +17,7 @@
     </depends>
 
     <depends optional="true">Git4Idea</depends>
+    <depends optional="true" config-file="java-plugin.xml">com.intellij.java</depends>
 
     <!-- com.intellij.openapi.module.ModuleManager.Companion is only available since this build -->
     <idea-version since-build="223.7571.182"/>
@@ -64,6 +65,7 @@
         <codeInsight.inlayProvider language="kotlin" implementationClass="com.github.continuedev.continueintellijextension.lens.TabnineLensKotlinProvider" />
         <codeInsight.inlayProvider language="PHP" implementationClass="com.github.continuedev.continueintellijextension.lens.TabnineLensPhpProvider" />
         <codeInsight.inlayProvider language="Rust" implementationClass="com.github.continuedev.continueintellijextension.lens.TabnineLensRustProvider"  />
+        <jvm.exceptionFilter implementation="com.github.continuedev.continueintellijextension.filter.TaAiDebuggerFilter"/>
     </extensions>
 
     <actions>
