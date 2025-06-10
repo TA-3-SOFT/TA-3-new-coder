@@ -1042,9 +1042,14 @@ export abstract class BaseLLM implements ILLM {
                   model: this.model,
                   input: batch,
                 });
-                return JSON.parse(result.toString()).data.map(
-                  (chunk: any) => chunk.embedding,
-                );
+
+                try {
+                  return result.data.map((chunk) => chunk.embedding);
+                } catch (e) {
+                  return JSON.parse(result.toString()).data.map(
+                    (chunk: any) => chunk.embedding,
+                  );
+                }
               }
 
               return await this._embed(batch);
