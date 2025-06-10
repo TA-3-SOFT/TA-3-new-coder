@@ -69,26 +69,26 @@ public class CommitMessageGenerationAction extends AnAction {
     private static final int MAX_FILE = 50;
     private static final int COSY_GENERATE_TIMEOUT = 20;
     private static final int MAX_SINGLE_LINE_LEN = 300;
-    public static final Map<String, Project> COMMIT_MESSAGE_REQUEST_TO_PROJECT = new ConcurrentHashMap();
-    public static final Map<String, String> PROJECT_TO_COMMIT_MESSAGE_REQUEST = new ConcurrentHashMap();
-    public static final Map<String, CommitMessageInstance> REQUEST_COMMIT_MESSAGE = new ConcurrentHashMap();
+    public static final Map<String, Project> COMMIT_MESSAGE_REQUEST_TO_PROJECT = new ConcurrentHashMap<>();
+    public static final Map<String, String> PROJECT_TO_COMMIT_MESSAGE_REQUEST = new ConcurrentHashMap<>();
+    public static final Map<String, CommitMessageInstance> REQUEST_COMMIT_MESSAGE = new ConcurrentHashMap<>();
 
-    private static Icon logoIcon = IconLoader.getIcon("/icons/continue_20.svg", CommitMessageGenerationAction.class);
-    private static Icon stopIcon = IconLoader.getIcon("/icons/stop_grey.svg", CommitMessageGenerationAction.class);
+    private static final Icon LOGO_ICON = IconLoader.getIcon("/icons/continue_20.svg", CommitMessageGenerationAction.class);
+    private static final Icon STOP_ICON = IconLoader.getIcon("/icons/stop_grey.svg", CommitMessageGenerationAction.class);
 
     private static final NotificationGroup NOTIFICATION_GROUP = NotificationGroupManager.getInstance().getNotificationGroup("Continue");
 
     public CommitMessageGenerationAction() {
-        super("生成提交信息", "", logoIcon);
+        super("生成提交信息", "", LOGO_ICON);
     }
 
 
     public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
-        if (stopIcon.equals(anActionEvent.getPresentation().getIcon())) {
+        if (STOP_ICON.equals(anActionEvent.getPresentation().getIcon())) {
             this.stopAnswer(anActionEvent.getProject(), anActionEvent);
         } else {
             anActionEvent.getPresentation().setText("停止");
-            anActionEvent.getPresentation().setIcon(stopIcon);
+            anActionEvent.getPresentation().setIcon(STOP_ICON);
             CommitMessage commitMessage = (CommitMessage) VcsDataKeys.COMMIT_MESSAGE_CONTROL.getData(anActionEvent.getDataContext());
             this.chatAsk(anActionEvent.getProject(), commitMessage, anActionEvent);
         }
@@ -251,7 +251,7 @@ public class CommitMessageGenerationAction extends AnAction {
 
         SwingUtilities.invokeLater(() -> {
             commitMessage.setText("");
-            anActionEvent.getPresentation().setIcon(stopIcon);
+            anActionEvent.getPresentation().setIcon(STOP_ICON);
             anActionEvent.getPresentation().setText("停止");
         });
         GenerateCommitMsgParam generateCommitMsgParam = new GenerateCommitMsgParam();
@@ -263,7 +263,7 @@ public class CommitMessageGenerationAction extends AnAction {
             if (CollectionUtils.isEmpty(diffList)) {
 //                NotificationFactory.showWarnNotification(project, "没有文件变更，或所选择的文件不符合条件");
                 Notification notification = NOTIFICATION_GROUP.createNotification("没有文件变更，或所选择的文件不符合条件", NotificationType.INFORMATION);
-                notification.setIcon(logoIcon);
+                notification.setIcon(LOGO_ICON);
                 notification.notify(project);
                 this.afterGenerateCommitMsg(anActionEvent, project, requestId);
             } else {
@@ -303,7 +303,7 @@ public class CommitMessageGenerationAction extends AnAction {
                     if (commitMessage != null && StringUtils.isBlank(commitMessage.getText())) {
 //                        NotificationFactory.showWarnNotification(project, I18NConstant.CHAT_ANSWER_TIMEOUT);
                         Notification notification = NOTIFICATION_GROUP.createNotification("抱歉，请求超时，请重试。", NotificationType.INFORMATION);
-                        notification.setIcon(logoIcon);
+                        notification.setIcon(LOGO_ICON);
                         notification.notify(project);
                         this.afterGenerateCommitMsg(anActionEvent, project, requestId);
                     }
@@ -315,7 +315,7 @@ public class CommitMessageGenerationAction extends AnAction {
 
     private void stopAnswer(Project project, AnActionEvent anActionEvent) {
         anActionEvent.getPresentation().setText("生成提交信息");
-        anActionEvent.getPresentation().setIcon(logoIcon);
+        anActionEvent.getPresentation().setIcon(LOGO_ICON);
         String requestId = PROJECT_TO_COMMIT_MESSAGE_REQUEST.get(project.getName());
         if (requestId != null) {
             // 尝试取消 Continue 核心的请求
@@ -344,7 +344,7 @@ public class CommitMessageGenerationAction extends AnAction {
         if (anActionEvent != null) {
             SwingUtilities.invokeLater(() -> {
                 anActionEvent.getPresentation().setText("生成提交信息");
-                anActionEvent.getPresentation().setIcon(logoIcon);
+                anActionEvent.getPresentation().setIcon(LOGO_ICON);
             });
         }
 
@@ -403,7 +403,7 @@ public class CommitMessageGenerationAction extends AnAction {
                 if (continuePluginService == null || continuePluginService.getCoreMessenger() == null) {
                     log.warn("Continue plugin service or core messenger not available");
                     Notification notification = NOTIFICATION_GROUP.createNotification("Continue 服务不可用，请确保插件已正确初始化", NotificationType.WARNING);
-                    notification.setIcon(logoIcon);
+                    notification.setIcon(LOGO_ICON);
                     notification.notify(project);
                     this.afterGenerateCommitMsg(anActionEvent, project, requestId);
                     return;
@@ -446,7 +446,7 @@ public class CommitMessageGenerationAction extends AnAction {
             } catch (Exception e) {
                 log.warn("Error generating commit message with Continue: " + e.getMessage(), e);
                 Notification notification = NOTIFICATION_GROUP.createNotification("生成提交信息时发生错误：" + e.getMessage(), NotificationType.ERROR);
-                notification.setIcon(logoIcon);
+                notification.setIcon(LOGO_ICON);
                 notification.notify(project);
                 this.afterGenerateCommitMsg(anActionEvent, project, requestId);
             }
