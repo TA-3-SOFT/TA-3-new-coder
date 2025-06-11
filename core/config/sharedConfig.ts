@@ -13,6 +13,7 @@ export const sharedConfigSchema = z
     allowAnonymousTelemetry: z.boolean(),
     disableIndexing: z.boolean(),
     disableSessionTitles: z.boolean(),
+    keepToolCallsInChatMode: z.boolean(), // 新增配置项
 
     // `experimental` in `ContinueConfig`
     useChromiumForDocsCrawling: z.boolean(),
@@ -53,6 +54,12 @@ export function salvageSharedConfig(sharedConfig: object): SharedConfigSchema {
     const val = z.boolean().safeParse(sharedConfig.disableIndexing);
     if (val.success) {
       salvagedConfig.disableIndexing = val.data;
+    }
+  }
+  if ("keepToolCallsInChatMode" in sharedConfig) {
+    const val = z.boolean().safeParse(sharedConfig.keepToolCallsInChatMode);
+    if (val.success) {
+      salvagedConfig.keepToolCallsInChatMode = val.data;
     }
   }
   if ("disableSessionTitles" in sharedConfig) {
@@ -145,6 +152,9 @@ export function modifyAnyConfigWithSharedConfig<
   }
   if (sharedConfig.disableIndexing !== undefined) {
     configCopy.disableIndexing = sharedConfig.disableIndexing;
+  }
+  if (sharedConfig.keepToolCallsInChatMode !== undefined) {
+    configCopy.keepToolCallsInChatMode = sharedConfig.keepToolCallsInChatMode;
   }
   if (sharedConfig.disableSessionTitles !== undefined) {
     configCopy.disableSessionTitles = sharedConfig.disableSessionTitles;

@@ -1,4 +1,5 @@
 import {
+  BrowserSerializedContinueConfig,
   ChatHistoryItem,
   ChatMessage,
   ContextItemWithId,
@@ -108,6 +109,7 @@ export function constructMessages(
   history: ChatHistoryItem[],
   baseChatOrAgentSystemMessage: string | undefined,
   rules: RuleWithSource[],
+  config: BrowserSerializedContinueConfig, // 添加config参数
 ): ChatMessage[] {
   const filteredHistory = history.filter(
     (item) => item.message.role !== "system",
@@ -117,7 +119,8 @@ export function constructMessages(
   for (let i = 0; i < filteredHistory.length; i++) {
     const historyItem = filteredHistory[i];
 
-    if (messageMode === "chat") {
+    // 使用配置项来决定是否在Chat模式下过滤工具调用
+    if (messageMode === "chat" && !(config.keepToolCallsInChatMode ?? false)) {
       const toolMessage: ToolResultChatMessage =
         historyItem.message as ToolResultChatMessage;
       if (historyItem.toolCallState?.toolCallId || toolMessage.toolCallId) {

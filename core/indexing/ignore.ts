@@ -76,6 +76,7 @@ export const DEFAULT_IGNORE_FILETYPES = [
   "*.pag",
   "*.swp",
   "*.jsonl",
+  "*.sql",
   // "*.prompt", // can be incredibly confusing for the LLM to have another set of instructions injected into the prompt
 ];
 

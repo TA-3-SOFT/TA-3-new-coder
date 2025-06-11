@@ -1399,6 +1399,7 @@ export interface SerializedContinueConfig {
   contextProviders?: ContextProviderWithParams[];
   disableIndexing?: boolean;
   disableSessionTitles?: boolean;
+  keepToolCallsInChatMode?: boolean;
   userToken?: string;
   embeddingsProvider?: EmbeddingsProviderDescription;
   tabAutocompleteModel?: JSONModelDescription | JSONModelDescription[];
@@ -1440,6 +1441,7 @@ export interface Config {
   contextProviders?: (CustomContextProvider | ContextProviderWithParams)[];
   /** If set to true, Continue will not index your codebase for retrieval */
   disableIndexing?: boolean;
+  keepToolCallsInChatMode?: boolean;
   /** If set to true, Continue will not make extra requests to the LLM to generate a summary title of each session. */
   disableSessionTitles?: boolean;
   /** An optional token to identify a user. Not used by Continue unless you write custom coniguration that requires such a token */
@@ -1474,6 +1476,7 @@ export interface ContinueConfig {
   contextProviders: IContextProvider[];
   disableSessionTitles?: boolean;
   disableIndexing?: boolean;
+  keepToolCallsInChatMode?: boolean;
   userToken?: string;
   tabAutocompleteOptions?: Partial<TabAutocompleteOptions>;
   ui?: ContinueUIConfig;
@@ -1496,6 +1499,7 @@ export interface BrowserSerializedContinueConfig {
   slashCommands: SlashCommandDescription[];
   contextProviders: ContextProviderDescription[];
   disableIndexing?: boolean;
+  keepToolCallsInChatMode?: boolean;
   disableSessionTitles?: boolean;
   userToken?: string;
   ui?: ContinueUIConfig;

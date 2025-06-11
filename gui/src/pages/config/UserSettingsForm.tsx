@@ -76,6 +76,7 @@ export function UserSettingsForm() {
   const autoAcceptEditToolDiffs = config.ui?.autoAcceptEditToolDiffs ?? false;
   const displayRawMarkdown = config.ui?.displayRawMarkdown ?? false;
   const disableSessionTitles = config.disableSessionTitles ?? false;
+  const keepToolCallsInChatMode = config.keepToolCallsInChatMode ?? false;
   const useCurrentFileAsContext =
     config.experimental?.useCurrentFileAsContext ?? false;
 
@@ -219,6 +220,15 @@ export function UserSettingsForm() {
                 })
               }
               text="Enable Indexing"
+            />
+            <ToggleSwitch
+              isToggled={keepToolCallsInChatMode}
+              onToggle={() =>
+                handleUpdate({
+                  keepToolCallsInChatMode: !keepToolCallsInChatMode,
+                })
+              }
+              text="允许Chat模式使用读取工具"
             />
 
             {/* <ToggleSwitch

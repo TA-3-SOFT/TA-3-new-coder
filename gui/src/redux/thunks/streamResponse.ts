@@ -122,6 +122,7 @@ export const streamResponseThunk = createAsyncThunk<
           [...updatedHistory],
           baseChatOrAgentSystemMessage,
           applicableRules,
+          getState().config.config,
         );
 
         posthog.capture("step run", {

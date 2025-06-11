@@ -656,6 +656,7 @@ async function finalToBrowserConfig(
     contextProviders: final.contextProviders?.map((c) => c.description),
     disableIndexing: final.disableIndexing,
     disableSessionTitles: final.disableSessionTitles,
+    keepToolCallsInChatMode: final.keepToolCallsInChatMode,
     userToken: final.userToken,
     ui: final.ui,
     experimental: final.experimental,
