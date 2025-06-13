@@ -128,7 +128,7 @@ export function History() {
         <input
           className="bg-vsc-input-background text-vsc-foreground flex-1 rounded-md border border-none py-1 pl-2 pr-8 text-base outline-none focus:outline-none"
           ref={searchInputRef}
-          placeholder="Search past sessions"
+          placeholder="搜索历史会话"
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -165,26 +165,26 @@ export function History() {
                 <Fragment key={index}>
                   {index === 0 && date > yesterday && (
                     <tr className={HEADER_CLASS}>
-                      <td colSpan={3}>Today</td>
+                      <td colSpan={3}>今天</td>
                     </tr>
                   )}
                   {date < yesterday &&
                     date > lastWeek &&
                     prevDate > yesterday && (
                       <div className={HEADER_CLASS}>
-                        <td colSpan={3}>This Week</td>
+                        <td colSpan={3}>本周</td>
                       </div>
                     )}
                   {date < lastWeek &&
                     date > lastMonth &&
                     prevDate > lastWeek && (
                       <div className={HEADER_CLASS}>
-                        <td colSpan={3}>This Month</td>
+                        <td colSpan={3}>本月</td>
                       </div>
                     )}
                   {date < lastMonth && prevDate > lastMonth && (
                     <div className={HEADER_CLASS}>
-                      <td colSpan={3}>Older</td>
+                      <td colSpan={3}>更早</td>
                     </div>
                   )}
 
@@ -203,12 +203,12 @@ export function History() {
         <i
           className=""
           data-testid="history-sessions-note"
-        >{`Data is saved in ${platform === "windows" ? "%USERPROFILE%/.continue" : "~/.continue/sessions"}`}</i>
+        >{`数据存储在 ${platform === "windows" ? "%USERPROFILE%/.continue" : "~/.continue/sessions"}`}</i>
         <span
           className="cursor-pointer text-xs text-gray-400 hover:underline"
           onClick={showClearSessionsDialog}
         >
-          Clear session history
+          清空会话历史
         </span>
       </div>
     </div>

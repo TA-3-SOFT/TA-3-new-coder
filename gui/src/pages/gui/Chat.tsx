@@ -407,7 +407,7 @@ export function Chat() {
                     className="flex items-center gap-2"
                   >
                     <ArrowLeftIcon className="h-3 w-3" />
-                    <span className="text-xs">Last Session</span>
+                    <span className="text-xs">返回上次会话</span>
                   </NewSessionButton>
                 </div>
               )}

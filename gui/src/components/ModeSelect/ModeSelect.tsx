@@ -76,7 +76,8 @@ export function ModeSelect() {
         >
           <ModeIcon mode={mode} />
           <span className="hidden sm:block">
-            {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            {/*{mode.charAt(0).toUpperCase() + mode.slice(1)}*/}
+            {mode === "chat" ? "聊天" : "智能体"}
           </span>
           <ChevronDownIcon
             className="h-2 w-2 flex-shrink-0"
@@ -87,7 +88,7 @@ export function ModeSelect() {
           <ListboxOption value="chat">
             <div className="flex flex-row items-center gap-1.5">
               <ModeIcon mode="chat" />
-              <span className="">Chat</span>
+              <span className="">聊天</span>
               <span
                 className={`text-description-muted text-[${getFontSize() - 3}px] mr-auto`}
               >
@@ -104,7 +105,7 @@ export function ModeSelect() {
           >
             <div className="flex flex-row items-center gap-1.5">
               <ModeIcon mode="agent" />
-              <span className="">Agent</span>
+              <span className="">智能体</span>
             </div>
             {agentModeSupported ? (
               mode === "agent" && <CheckIcon className="ml-auto h-3 w-3" />
@@ -114,7 +115,7 @@ export function ModeSelect() {
           </ListboxOption>
 
           <div className="text-description-muted px-2 py-1">
-            {`${metaKeyLabel} . for next mode`}
+            {`${metaKeyLabel} . 切换模式`}
           </div>
         </ListboxOptions>
       </div>

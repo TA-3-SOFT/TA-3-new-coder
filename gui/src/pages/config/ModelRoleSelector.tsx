@@ -85,8 +85,8 @@ const ModelRoleSelector = ({
           >
             {models.length === 0 || noConfiguredModels ? (
               <span className="text-lightgray line-clamp-1 italic">
-                {`No ${models.length === 0 ? "" : "valid "}${displayName} models${
-                  ["Chat", "Apply", "Edit"].includes(displayName)
+                {`没有${models.length === 0 ? "" : "valid "}${displayName}模型${
+                  ["聊天", "应用", "Edit"].includes(displayName)
                     ? ". Using Chat model"
                     : ""
                 }`}

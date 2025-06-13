@@ -134,26 +134,26 @@
         <action id="continue.newContinueSession"
                 icon="AllIcons.General.Add"
                 class="com.github.continuedev.continueintellijextension.actions.NewContinueSessionAction"
-                text="New Session"
-                description="New Session">
+                text="新会话"
+                description="新会话">
 
-            <override-text place="GoToAction" text="New Session"/>
+            <override-text place="GoToAction" text="新会话"/>
         </action>
 
         <action id="continue.viewHistory"
                 icon="AllIcons.Vcs.History"
                 class="com.github.continuedev.continueintellijextension.actions.ViewHistoryAction"
-                text="View History"
-                description="View History">
-            <override-text place="GoToAction" text="View History"/>
+                text="历史会话"
+                description="历史会话">
+            <override-text place="GoToAction" text="历史会话"/>
         </action>
 
         <action id="continue.openConfigPage"
                 class="com.github.continuedev.continueintellijextension.actions.OpenConfigAction"
                 icon="AllIcons.General.GearPlain"
-                text="Continue Config"
-                description="Continue Config">
-            <override-text place="GoToAction" text="Continue Config"/>
+                text="配置项"
+                description="配置项">
+            <override-text place="GoToAction" text="配置项"/>
         </action>
 
         <action id="continue.openLogs"

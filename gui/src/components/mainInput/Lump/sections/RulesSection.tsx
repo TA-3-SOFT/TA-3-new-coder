@@ -61,9 +61,9 @@ const RuleCard: React.FC<RuleCardProps> = ({ rule }) => {
       if (rule.source === ".continuerules") {
         return "Project rules";
       } else if (rule.source === "default-chat") {
-        return "Default chat system message";
+        return "默认聊天系统消息";
       } else if (rule.source === "default-agent") {
-        return "Default agent system message";
+        return "默认智能体系统消息";
       } else if (rule.source === "json-systemMessage") {
         return "JSON systemMessage)";
       } else if (rule.source === "model-agent-options") {

@@ -10,7 +10,7 @@ export const ToolsSectionTooltip = () => {
 
   return (
     <div>
-      <span>{`Tools (${numActiveTools}/${numTools} active)`}</span>
+      <span>{`工具 (${numActiveTools}/${numTools} 激活)`}</span>
     </div>
   );
 };

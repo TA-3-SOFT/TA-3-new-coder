@@ -133,7 +133,7 @@ export function UserSettingsForm() {
       {hubEnabled ? (
         <div className="flex flex-col gap-4 py-4">
           <div>
-            <h2 className="mb-2 mt-0 p-0">User settings</h2>
+            <h2 className="mb-2 mt-0 p-0">用户设置</h2>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -144,7 +144,7 @@ export function UserSettingsForm() {
                   showSessionTabs: !showSessionTabs,
                 })
               }
-              text="Show Session Tabs"
+              text="显示会话标签页"
             />
             <ToggleSwitch
               isToggled={codeWrap}
@@ -153,7 +153,7 @@ export function UserSettingsForm() {
                   codeWrap: !codeWrap,
                 })
               }
-              text="Wrap Codeblocks"
+              text="代码块展示自动换行"
             />
 
             <ToggleSwitch
@@ -163,9 +163,9 @@ export function UserSettingsForm() {
                   showChatScrollbar: !showChatScrollbar,
                 })
               }
-              text="Show Chat Scrollbar"
+              text="显示聊天窗口滚动条"
             />
-            <ToggleSwitch
+            {/*            <ToggleSwitch
               isToggled={readResponseTTS}
               onToggle={() =>
                 handleUpdate({
@@ -173,7 +173,7 @@ export function UserSettingsForm() {
                 })
               }
               text="Text-to-Speech Output"
-            />
+            />*/}
             {/* <ToggleSwitch
                     isToggled={useChromiumForDocsCrawling}
                     onToggle={() =>
@@ -190,7 +190,7 @@ export function UserSettingsForm() {
                   disableSessionTitles: !disableSessionTitles,
                 })
               }
-              text="Enable Session Titles"
+              text="启用会话标题自动生成"
             />
             <ToggleSwitch
               isToggled={!displayRawMarkdown}
@@ -199,7 +199,7 @@ export function UserSettingsForm() {
                   displayRawMarkdown: !displayRawMarkdown,
                 })
               }
-              text="Format Markdown"
+              text="格式化 Markdown"
             />
 
             <ToggleSwitch
@@ -209,7 +209,7 @@ export function UserSettingsForm() {
                   allowAnonymousTelemetry: !allowAnonymousTelemetry,
                 })
               }
-              text="Allow Anonymous Telemetry"
+              text="允许匿名遥测"
             />
 
             <ToggleSwitch
@@ -219,7 +219,7 @@ export function UserSettingsForm() {
                   disableIndexing: !disableIndexing,
                 })
               }
-              text="Enable Indexing"
+              text="启用代码索引"
             />
             <ToggleSwitch
               isToggled={keepToolCallsInChatMode}
@@ -242,7 +242,7 @@ export function UserSettingsForm() {
                   /> */}
 
             <label className="flex items-center justify-between gap-3">
-              <span className="text-left">Font Size</span>
+              <span className="text-left">字体大小</span>
               <NumberInput
                 value={fontSize}
                 onChange={(val) => {
@@ -256,9 +256,7 @@ export function UserSettingsForm() {
               />
             </label>
             <label className="flex items-center justify-between gap-3">
-              <span className="lines lines-1 text-left">
-                Multiline Autocompletions
-              </span>
+              <span className="lines lines-1 text-left">多行自动补全</span>
               <Select
                 value={useAutocompleteMultilineCompletions}
                 onChange={(e) =>
@@ -270,13 +268,13 @@ export function UserSettingsForm() {
                   })
                 }
               >
-                <option value="auto">Auto</option>
-                <option value="always">Always</option>
-                <option value="never">Never</option>
+                <option value="auto">自动</option>
+                <option value="always">总是</option>
+                <option value="never">永不</option>
               </Select>
             </label>
             <label className="flex items-center justify-between gap-3">
-              <span className="text-left">Autocomplete Timeout (ms)</span>
+              <span className="text-left">自动补全超时 (ms)</span>
               <NumberInput
                 value={modelTimeout}
                 onChange={(val) =>
@@ -289,7 +287,7 @@ export function UserSettingsForm() {
               />
             </label>
             <label className="flex items-center justify-between gap-3">
-              <span className="text-left">Autocomplete Debounce (ms)</span>
+              <span className="text-left">自动补全延迟 (ms)</span>
               <NumberInput
                 value={debounceDelay}
                 onChange={(val) =>
@@ -309,7 +307,7 @@ export function UserSettingsForm() {
               }}
             >
               <div className="flex items-center justify-between">
-                <span>Disable autocomplete in files</span>
+                <span>禁用自动补全的文件</span>
                 <div className="flex items-center gap-2">
                   <Input
                     value={formDisableAutocomplete}
@@ -343,7 +341,7 @@ export function UserSettingsForm() {
                 </div>
               </div>
               <span className="text-vsc-foreground-muted text-lightgray self-end text-xs">
-                Comma-separated list of path matchers
+                以逗号分隔的路径匹配列表
               </span>
             </form>
           </div>
@@ -358,7 +356,7 @@ export function UserSettingsForm() {
                   showExperimental ? "rotate-90" : ""
                 }`}
               />
-              <span>Experimental Settings</span>
+              <span>实验性设置</span>
             </div>
             <div
               className={`duration-400 overflow-hidden transition-all ease-in-out ${
@@ -373,7 +371,7 @@ export function UserSettingsForm() {
                       autoAcceptEditToolDiffs: !autoAcceptEditToolDiffs,
                     })
                   }
-                  text="Auto-Accept Agent Edits"
+                  text="自动接受智能体的修改"
                   showIfToggled={
                     <>
                       <ExclamationTriangleIcon
@@ -381,7 +379,7 @@ export function UserSettingsForm() {
                         className="h-3 w-3 text-yellow-500"
                       />
                       <ToolTip id={`auto-accept-diffs-warning-tooltip`}>
-                        {`Be very careful with this setting. When turned on, Agent mode's edit tool can make changes to files with no manual review or guaranteed stopping point`}
+                        {`注意：当启用时，代理模式的编辑工具可以对文件进行更改，而无需手动审核或保证停止点。`}
                       </ToolTip>
                     </>
                   }
@@ -394,7 +392,7 @@ export function UserSettingsForm() {
                       useCurrentFileAsContext: !useCurrentFileAsContext,
                     })
                   }
-                  text="Add Current File by Default"
+                  text="将当前文件默认作为上下文"
                 />
               </div>
             </div>

@@ -260,7 +260,7 @@ function ModelSelect() {
             )}
 
             <span className="block px-2 py-1" style={{ color: lightGray }}>
-              {getMetaKeyLabel()}' to toggle model
+              {getMetaKeyLabel()}' 切换模型
             </span>
           </div>
         </ListboxOptions>

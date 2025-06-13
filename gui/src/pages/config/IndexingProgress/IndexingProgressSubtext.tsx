@@ -9,13 +9,13 @@ const STATUS_TO_SUBTITLE_TEXT: Record<
   IndexingProgressUpdate["status"],
   string | undefined
 > = {
-  done: "Click to re-index",
+  done: "点击重新索引",
   loading: "",
-  indexing: "Click to pause",
-  paused: "Click to resume",
-  failed: "Click to retry",
-  disabled: "Click to open assistant configuration",
-  cancelled: "Click to restart",
+  indexing: "点击暂停",
+  paused: "点击继续",
+  failed: "点击重试",
+  disabled: "点击打开设置",
+  cancelled: "点击重新启动",
 };
 
 function IndexingProgressSubtext({

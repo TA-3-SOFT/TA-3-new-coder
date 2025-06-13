@@ -15,7 +15,7 @@ export default function HistoryPage() {
       <PageHeader
         showBorder
         onTitleClick={() => navigate("/")}
-        title="Chat"
+        title="返回聊天"
         rightContent={<AccountButton />}
       />
       <History />

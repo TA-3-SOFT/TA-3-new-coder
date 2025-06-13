@@ -30,19 +30,19 @@ function ConfigPage() {
   const tabs: TabOption[] = [
     {
       id: "settings",
-      label: "Settings",
+      label: "设置",
       component: <UserSettingsForm />,
       icon: <Cog6ToothIcon className="xs:h-4 xs:w-4 h-3 w-3 flex-shrink-0" />,
     },
     {
       id: "indexing",
-      label: "Indexing",
+      label: "索引",
       component: <IndexingSettingsSection />,
       icon: <CircleStackIcon className="xs:h-4 xs:w-4 h-3 w-3 flex-shrink-0" />,
     },
     {
       id: "help",
-      label: "Help",
+      label: "帮助",
       component: <HelpCenterSection />,
       icon: (
         <QuestionMarkCircleIcon className="xs:h-4 xs:w-4 h-3 w-3 flex-shrink-0" />
@@ -50,7 +50,7 @@ function ConfigPage() {
     },
     {
       id: "shortcuts",
-      label: "Shortcuts",
+      label: "快捷方式",
       component: <KeyboardShortcuts />,
       icon: <BoltIcon className="xs:h-4 xs:w-4 h-3 w-3 flex-shrink-0" />,
     },
@@ -62,7 +62,7 @@ function ConfigPage() {
         <PageHeader
           showBorder
           onTitleClick={() => navigate("/")}
-          title="Chat"
+          title="返回聊天"
           rightContent={<AccountButton />}
         />
 

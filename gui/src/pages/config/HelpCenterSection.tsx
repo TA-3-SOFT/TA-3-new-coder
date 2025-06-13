@@ -20,7 +20,7 @@ export function HelpCenterSection() {
 
   return (
     <div className="py-5">
-      <h3 className="mb-4 mt-0 text-xl">Help center</h3>
+      <h3 className="mb-4 mt-0 text-xl">帮助中心</h3>
       <div className="-mx-4 flex flex-col">
         <MoreHelpRow
           title="Continue Hub"

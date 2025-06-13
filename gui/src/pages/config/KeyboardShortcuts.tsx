@@ -84,45 +84,44 @@ const vscodeShortcuts: Omit<KeyboardShortcutProps, "isEven">[] = [
 const jetbrainsShortcuts: Omit<KeyboardShortcutProps, "isEven">[] = [
   {
     shortcut: "cmd '",
-    description: "Toggle Selected Model",
+    description: "切换模型",
   },
   {
     shortcut: "cmd I",
-    description: "Edit highlighted code",
+    description: "编辑选中的代码",
   },
   {
     shortcut: "cmd J",
-    description:
-      "New Chat / New Chat With Selected Code / Close Continue Sidebar If Chat Already In Focus",
+    description: "新聊天 / 与选定代码的新聊天 / 如果聊天已经聚焦则关闭侧边栏",
   },
   {
     shortcut: "cmd backspace",
-    description: "Cancel response",
+    description: "取消响应",
   },
   {
     shortcut: "cmd shift I",
-    description: "Toggle inline edit focus",
+    description: "切换行内编辑焦点",
   },
   {
     shortcut: "cmd shift J",
     description:
-      "Focus Current Chat / Add Selected Code To Current Chat / Close Continue Sidebar If Chat Already In Focus",
+      "聚焦当前聊天 / 将选定代码添加到当前聊天 / 如果聊天已在聚焦中则关闭侧边栏",
   },
   {
     shortcut: "cmd shift backspace",
-    description: "Reject Diff",
+    description: "拒绝变更",
   },
   {
     shortcut: "cmd shift enter",
-    description: "Accept Diff",
+    description: "接受变更",
   },
   {
     shortcut: "alt shift J",
-    description: "Quick Input",
+    description: "快速输入",
   },
   {
     shortcut: "alt cmd J",
-    description: "Toggle Sidebar",
+    description: "切换侧边栏",
   },
 ];
 
@@ -133,7 +132,7 @@ function KeyboardShortcuts() {
 
   return (
     <div className="h-full overflow-auto p-5">
-      <h3 className="mb-5 text-xl">Keyboard shortcuts</h3>
+      <h3 className="mb-5 text-xl">键盘快捷键</h3>
       <div>
         {shortcuts.map((shortcut, i) => {
           return (

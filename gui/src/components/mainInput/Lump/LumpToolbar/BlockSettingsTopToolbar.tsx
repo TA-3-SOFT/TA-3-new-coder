@@ -44,24 +44,24 @@ interface Section {
 }
 
 const sections: Section[] = [
-  { id: "models", title: "Models", tooltip: "Models", icon: CubeIcon },
-  { id: "rules", title: "Rules", tooltip: "Rules", icon: PencilIcon },
-  { id: "docs", title: "Docs", tooltip: "Docs", icon: BookOpenIcon },
+  { id: "models", title: "模型", tooltip: "模型", icon: CubeIcon },
+  { id: "rules", title: "规则", tooltip: "规则", icon: PencilIcon },
+  { id: "docs", title: "文档", tooltip: "文档", icon: BookOpenIcon },
   {
     id: "prompts",
-    title: "Prompts",
-    tooltip: "Prompts",
+    title: "提示词",
+    tooltip: "提示词",
     icon: ChatBubbleLeftIcon,
   },
   {
     id: "tools",
-    title: "Tools",
+    title: "工具",
     tooltip: <ToolsSectionTooltip />,
     icon: WrenchScrewdriverIcon,
   },
   {
     id: "mcp",
-    title: "MCP",
+    title: "MCP服务",
     tooltip: <McpSectionTooltip />,
     icon: Squares2X2Icon,
   },
@@ -184,7 +184,7 @@ export function BlockSettingsTopToolbar() {
           <BlockSettingsToolbarIcon
             className="-ml-1.5"
             icon={isToolbarExpanded ? ChevronLeftIcon : EllipsisHorizontalIcon}
-            tooltip={isToolbarExpanded ? "Collapse Toolbar" : "Expand Toolbar"}
+            tooltip={isToolbarExpanded ? "收起工具栏" : "展开工具栏"}
             title=""
             isSelected={false}
             onClick={handleEllipsisClick}

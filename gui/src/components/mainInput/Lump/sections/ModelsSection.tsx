@@ -32,15 +32,15 @@ export function ModelsSection() {
     <div>
       <div className="text-[${getFontSize() - 1}px] grid grid-cols-1 gap-x-2 gap-y-1 pb-2 sm:grid-cols-[auto_1fr]">
         <ModelRoleSelector
-          displayName="Chat"
-          description="Used in the chat interface"
+          displayName="聊天"
+          description="用于聊天对话"
           models={config.modelsByRole.chat}
           selectedModel={config.selectedModelByRole.chat}
           onSelect={(model) => handleRoleUpdate("chat", model)}
         />
         <ModelRoleSelector
-          displayName="Autocomplete"
-          description="Used to generate code completion suggestions"
+          displayName="自动补全"
+          description="用于生成代码补全建议"
           models={config.modelsByRole.autocomplete}
           selectedModel={config.selectedModelByRole.autocomplete}
           onSelect={(model) => handleRoleUpdate("autocomplete", model)}
@@ -56,22 +56,22 @@ export function ModelsSection() {
           />
         )}
         <ModelRoleSelector
-          displayName="Apply"
-          description="Used to apply generated codeblocks to files"
+          displayName="应用"
+          description="用于将生成的代码块应用于文件"
           models={config.modelsByRole.apply}
           selectedModel={config.selectedModelByRole.apply}
           onSelect={(model) => handleRoleUpdate("apply", model)}
         />
         <ModelRoleSelector
-          displayName="Embed"
-          description="Used to generate and query embeddings for the @codebase and @docs context providers"
+          displayName="嵌入向量"
+          description="用于生成和查询@codebase和@docs上下文的嵌入向量"
           models={config.modelsByRole.embed}
           selectedModel={config.selectedModelByRole.embed}
           onSelect={(model) => handleRoleUpdate("embed", model)}
         />
         <ModelRoleSelector
-          displayName="Rerank"
-          description="Used for reranking results from the @codebase and @docs context providers"
+          displayName="重排"
+          description="用于对来自@codebase和@docs上下文的结果进行重新排序。"
           models={config.modelsByRole.rerank}
           selectedModel={config.selectedModelByRole.rerank}
           onSelect={(model) => handleRoleUpdate("rerank", model)}

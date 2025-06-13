@@ -79,40 +79,6 @@ function InputToolbar(props: InputToolbarProps) {
   const smallFont = useFontSize(-2);
   const tinyFont = useFontSize(-3);
 
-  // 处理中英翻译按钮点击
-  const handleTranslateClick = () => {
-    if (!mainEditor || !props.onEnter) return;
-
-    const currentContent = mainEditor.getText().trim();
-    if (!currentContent) return;
-    const prompt = `【中英翻译】：${currentContent}`;
-
-    mainEditor.commands.setContent(prompt);
-    mainEditor.commands.focus("end");
-
-    // 触发发送
-    setTimeout(() => {
-      onEnterRef.current({ useCodebase: false, noContext: true });
-    }, 100);
-  };
-
-  // 处理代码取名按钮点击
-  const handleCodeNamingClick = () => {
-    if (!mainEditor || !props.onEnter) return;
-
-    const currentContent = mainEditor.getText().trim();
-    if (!currentContent) return;
-    const prompt = `【代码取名】：${currentContent}`;
-
-    mainEditor.commands.setContent(prompt);
-    mainEditor.commands.focus("end");
-
-    // 触发发送
-    setTimeout(() => {
-      onEnterRef.current({ useCodebase: false, noContext: true });
-    }, 100);
-  };
-
   return (
     <>
       <div
@@ -127,14 +93,14 @@ function InputToolbar(props: InputToolbarProps) {
             <HoverItem data-tooltip-id="mode-select-tooltip" className="!p-0">
               <ModeSelect />
               <ToolTip id="mode-select-tooltip" place="top">
-                Select Mode
+                选择模式
               </ToolTip>
             </HoverItem>
           )}
           <HoverItem data-tooltip-id="model-select-tooltip" className="!p-0">
             <ModelSelect />
             <ToolTip id="model-select-tooltip" place="top">
-              Select Model
+              选择模型
             </ToolTip>
           </HoverItem>
           <div className="xs:flex text-description -mb-1 hidden items-center transition-colors duration-200">
@@ -166,7 +132,7 @@ function InputToolbar(props: InputToolbarProps) {
                     />
 
                     <ToolTip id="image-tooltip" place="top">
-                      Attach Image
+                      添加图片
                     </ToolTip>
                   </HoverItem>
                 </>
@@ -179,7 +145,7 @@ function InputToolbar(props: InputToolbarProps) {
                 />
 
                 <ToolTip id="add-context-item-tooltip" place="top">
-                  Attach Context
+                  添加上下文
                 </ToolTip>
               </HoverItem>
             )}
@@ -192,22 +158,6 @@ function InputToolbar(props: InputToolbarProps) {
             fontSize: tinyFont,
           }}
         >
-          <EnterButton
-            isPrimary={false}
-            disabled={isEnterDisabled}
-            onClick={handleTranslateClick}
-          >
-            <span className="hidden md:inline">中英翻译</span>
-          </EnterButton>
-
-          <EnterButton
-            isPrimary={false}
-            disabled={isEnterDisabled}
-            onClick={handleCodeNamingClick}
-          >
-            <span className="hidden md:inline">代码取名</span>
-          </EnterButton>
-
           {!props.toolbarOptions?.hideUseCodebase && !isInEdit && (
             <div
               className={`${toolsSupported ? "md:flex" : "int:flex"} hover:underline" hidden transition-colors duration-200`}
@@ -231,7 +181,7 @@ function InputToolbar(props: InputToolbarProps) {
                     {getMetaKeyLabel()}⏎ @codebase
                   </span>
                   <ToolTip id="add-codebase-context-tooltip" place="top-end">
-                    Send With Codebase as Context ({getMetaKeyLabel()}⏎)
+                    将代码库作为上下文发送 ({getMetaKeyLabel()}⏎)
                   </ToolTip>
                 </HoverItem>
               )}
@@ -267,11 +217,11 @@ function InputToolbar(props: InputToolbarProps) {
             disabled={isEnterDisabled}
           >
             <span className="hidden md:inline">
-              ⏎ {props.toolbarOptions?.enterText ?? "Enter"}
+              ⏎ {props.toolbarOptions?.enterText ?? "发送"}
             </span>
             <span className="md:hidden">⏎</span>
             <ToolTip id="enter-tooltip" place="top">
-              Send (⏎)
+              发送 (⏎)
             </ToolTip>
           </EnterButton>
         </div>

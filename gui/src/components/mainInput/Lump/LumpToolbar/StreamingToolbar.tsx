@@ -17,7 +17,7 @@ export function StreamingToolbar() {
           void dispatch(cancelStream());
         }}
       >
-        {jetbrains ? getAltKeyLabel() : getMetaKeyLabel()} ⌫ Cancel
+        {jetbrains ? getAltKeyLabel() : getMetaKeyLabel()} ⌫ 取消
       </StopButton>
     </Container>
   );

@@ -12,7 +12,7 @@ export const McpSectionTooltip = () => {
 
   return (
     <div>
-      <span>{`MCP Servers (${numActiveServers}/${numServers} active)`}</span>
+      <span>{`MCP 服务 (${numActiveServers}/${numServers} 激活)`}</span>
     </div>
   );
 };
