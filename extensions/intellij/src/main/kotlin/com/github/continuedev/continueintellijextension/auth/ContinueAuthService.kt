@@ -52,17 +52,42 @@ class ContinueAuthService {
     }
 
     fun startAuthFlow(project: Project, useOnboarding: Boolean) {
-        // Open login page
-        val url = openSignInPage(project, useOnboarding)
-
-        // Open a dialog where the user should paste their sign-in token
-        ApplicationManager.getApplication().invokeLater {
-            val dialog = ContinueAuthDialog(useOnboarding, url) { token ->
-                // Store the token
-                updateRefreshToken(token)
+        coroutineScope.launch {
+            val uid = getUid()
+            if (uid == null) {
+                return@launch
             }
-            dialog.show()
+
+            val sessionInfo = ControlPlaneSessionInfo(uid, ControlPlaneSessionInfo.Account(uid, uid))
+            setControlPlaneSessionInfo(sessionInfo)
         }
+    }
+
+    private suspend fun getUid (): String? {
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url("http://localhost:11111/auth")
+            .get()
+            .build()
+
+        var response: okhttp3.Response
+        try {
+            response = client.newCall(request).execute()
+        } catch (e: java.io.IOException) {
+            return null
+        }
+
+        val responseBody = response.body?.string()
+        val gson = Gson()
+        val responseMap = gson.fromJson(responseBody, Map::class.java)
+        val success = responseMap.get("success") as? Boolean
+        if (success == null || !success) {
+            return null
+        }
+
+        val data = responseMap.get("data") as? Map<String, Any>
+        val uid = data?.get("uid") as? String
+        return uid
     }
 
     fun signOut() {
