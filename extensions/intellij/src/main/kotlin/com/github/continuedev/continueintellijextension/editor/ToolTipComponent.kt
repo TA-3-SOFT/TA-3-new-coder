@@ -3,6 +3,7 @@ import com.github.continuedev.continueintellijextension.editor.openInlineEdit
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.util.IconLoader
 import com.intellij.ui.components.JBPanel
 import java.awt.*
 import java.awt.event.ActionEvent
@@ -88,8 +89,10 @@ class ToolTipComponent(editor: Editor, x: Int, y: Int) :
         val componentHorizontalPadding = 4
         val buttonMargin = 4
 
-        addToChatButton = StyledButton("Chat (${cmdCtrlChar}+J)")
-        editButton = StyledButton("Edit (${cmdCtrlChar}+I)")
+        addToChatButton = StyledButton("对话 (${cmdCtrlChar}+J)")
+        editButton = StyledButton("编辑 (${cmdCtrlChar}+I)")
+        addToChatButton.icon = IconLoader.getIcon("/icons/continue.svg", javaClass)
+        editButton.icon = IconLoader.getIcon("/icons/continue.svg", javaClass)
 
         addToChatButton.addActionListener { e: ActionEvent? ->
             focusContinueInput(editor.project)

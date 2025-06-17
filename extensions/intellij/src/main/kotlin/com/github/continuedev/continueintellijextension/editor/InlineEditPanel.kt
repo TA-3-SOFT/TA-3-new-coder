@@ -435,7 +435,7 @@ class CustomPanel(
             comboBoxRef.set(dropdown)
 
             val rightButton =
-                CustomButton("⏎  Enter") { onEnter() }
+                CustomButton("⏎  发送") { onEnter() }
                     .apply {
                         background = JBColor.namedColor("Button.startBackground")
                         foreground = JBColor.namedColor("Button.foreground")
@@ -469,14 +469,14 @@ class CustomPanel(
     private val subPanelC: JPanel =
         JPanel(MigLayout("insets 0, fillx")).apply {
             val leftLabel =
-                JLabel("Type to re-prompt").apply {
+                JLabel("输入以重新编写指令").apply {
                     foreground = Color(156, 163, 175) // text-gray-400
                     font = UIUtil.getFontWithFallback("Arial", Font.PLAIN, 11)
                     border = JBUI.Borders.emptyLeft(4)
                 }
 
             val leftButton =
-                CustomButton("Reject All (${getMetaKeyLabel()}${getShiftKeyLabel()}⌫)") { onReject() }
+                CustomButton("拒绝全部 (${getMetaKeyLabel()}${getShiftKeyLabel()}⌫)") { onReject() }
                     .apply {
                         background = Color(0, 0, 0, 0)
                         foreground = JBColor.foreground()
@@ -484,7 +484,7 @@ class CustomPanel(
                     }
 
             val rightButton =
-                CustomButton("Accept All (${getMetaKeyLabel()}${getShiftKeyLabel()}⏎)") { onAccept() }
+                CustomButton("接受全部 (${getMetaKeyLabel()}${getShiftKeyLabel()}⏎)") { onAccept() }
                     .apply {
                         background = JBColor.namedColor("Button.startBackground")
                         foreground = JBColor.namedColor("Button.foreground")
@@ -653,7 +653,7 @@ class CustomTextArea(rows: Int, columns: Int) : JXTextArea("") {
         if (text.isEmpty()) {
             g.color = Color(128, 128, 128, 255)
             g.font = UIUtil.getFontWithFallback("Arial", Font.PLAIN, MAIN_FONT_SIZE)
-            g.drawString("Enter instructions...", 8, 20)
+            g.drawString("输入指令...", 8, 20)
         }
 
         super.paintComponent(g)

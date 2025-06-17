@@ -47,12 +47,12 @@ export default function AcceptRejectAllButtons({
         onClick={() => handleAcceptOrReject("rejectDiff")}
         data-testid="edit-reject-button"
         data-tooltip-id="reject-shortcut"
-        data-tooltip-content={`Reject All (${rejectShortcut})`}
+        data-tooltip-content={`拒绝全部 (${rejectShortcut})`}
       >
         <div className="flex flex-row items-center gap-1">
           <XMarkIcon className="text-error h-4 w-4" />
-          <span>Reject</span>
-          <span className="xs:inline-block hidden">All</span>
+          <span>拒绝</span>
+          <span className="xs:inline-block hidden">全部</span>
         </div>
       </button>
       <ToolTip id="reject-shortcut" />
@@ -62,12 +62,12 @@ export default function AcceptRejectAllButtons({
         onClick={() => handleAcceptOrReject("acceptDiff")}
         data-testid="edit-accept-button"
         data-tooltip-id="accept-shortcut"
-        data-tooltip-content={`Accept All (${acceptShortcut})`}
+        data-tooltip-content={`接受全部 (${acceptShortcut})`}
       >
         <div className="flex flex-row items-center gap-1">
           <CheckIcon className="text-success h-4 w-4" />
-          <span>Accept</span>
-          <span className="xs:inline-block hidden">All</span>
+          <span>接受</span>
+          <span className="xs:inline-block hidden">全部</span>
         </div>
       </button>
       <ToolTip id="accept-shortcut" />

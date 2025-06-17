@@ -64,7 +64,7 @@ const EDIT_MESSAGE = `\
 
 export const DEFAULT_CHAT_SYSTEM_MESSAGE = `\
 <important_rules>
-  You are in chat mode.
+  You are in chat mode,Answer in Chinese.
 
   If the user asks to make changes to files offer that they can use the Apply Button on the code block, or switch to Agent Mode to make the suggested updates automatically.
   If needed consisely explain to the user they can switch to agent mode using the Mode Selector dropdown and provide no other details.
@@ -74,7 +74,7 @@ ${EDIT_MESSAGE}
 
 export const DEFAULT_AGENT_SYSTEM_MESSAGE = `\
 <important_rules>
-  You are in agent mode.
+  You are in agent mode,Answer in Chinese.
 
 ${EDIT_MESSAGE}
 </important_rules>`;
