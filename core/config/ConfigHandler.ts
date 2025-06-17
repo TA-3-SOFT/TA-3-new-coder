@@ -136,17 +136,83 @@ export class ConfigHandler {
     await this.reloadConfig();
   }
 
-  private async getOrgs(): Promise<OrgWithProfiles[]> {
-    if (await this.controlPlaneClient.isSignedIn()) {
-      const orgDescs = await this.controlPlaneClient.listOrganizations();
-      const personalHubOrg = await this.getPersonalHubOrg();
-      const hubOrgs = await Promise.all(
-        orgDescs.map((org) => this.getNonPersonalHubOrg(org)),
-      );
-      return [...hubOrgs, personalHubOrg];
-    } else {
-      return [await this.getLocalOrg()];
+  /*
+    服务端响应数据格式:
+
+    [{
+      id: '1',
+      iconUrl: '',
+      name: 'Test Organization',
+      profiles: [{
+        ownerSlug: 'Owner',
+        packageSlug: 'Package1',
+        config: {
+          name: 'Test Assistant 1',
+          version: '0.1.0',
+        },
+      }, {
+        ownerSlug: 'Owner',
+        packageSlug: 'Package2',
+        config: {
+          name: 'Test Assistant 2',
+          version: '0.1.0',
+        },
+      }],
+    }]
+      
+  */
+  private async loadOrgs () {
+    const response = await fetch('http://localhost:11111/orgs')
+    if (!response.ok) {
+      return null
     }
+
+    let orgs
+    try {
+      orgs = await response.json()
+    } catch (e) {
+      return null
+    }
+
+    for (let j=0; j<orgs.length; j++) {
+      const org = orgs[j]
+      const profiles = org.profiles
+      for (let i=0; i<profiles.length; i++) {
+        const profile = profiles[i]
+        const loader = await PlatformProfileLoader.create({
+          configResult: {
+            configLoadInterrupted: false,
+            errors: undefined,
+            config: profile.config,
+          },
+          ownerSlug: profile.ownerSlug,
+          packageSlug: profile.packageSlug,
+          iconUrl: profile.iconUrl,
+          versionSlug: profile.config?.version ?? "latest",
+          controlPlaneClient: this.controlPlaneClient,
+          ide: this.ide,
+          ideSettingsPromise: this.ideSettingsPromise,
+          llmLogger: this.llmLogger,
+          rawYaml: profile.rawYaml,
+          orgScopeId: null,
+        })
+        profiles[i] = new ProfileLifecycleManager(loader, this.ide)
+      }
+
+      orgs[j] = await this.rectifyProfilesForOrg(org, profiles)
+    }
+
+    return orgs
+  }
+
+  private async getOrgs(): Promise<OrgWithProfiles[]> {
+    let orgs = await this.loadOrgs()
+    orgs ??= []
+    if (orgs.length <= 0) {
+      orgs.push(await this.getLocalOrg())
+    }
+
+    return orgs
   }
 
   getSerializedOrgs(): SerializedOrgWithProfiles[] {
