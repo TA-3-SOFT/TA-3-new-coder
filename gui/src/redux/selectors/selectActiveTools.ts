@@ -25,7 +25,7 @@ export const selectActiveTools = createSelector(
         // 如果没有启用设置，则在Chat模式下不返回任何工具
         return [];
       }
-    } else if (mode === "agent") {
+    } else if (mode === "agent" || mode === "structured-agent") {
       return tools.filter(
         (tool) =>
           policies[tool.function.name] !== "disabled" &&

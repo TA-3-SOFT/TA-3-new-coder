@@ -18,6 +18,29 @@ import { resetStateForNewMessage } from "./resetStateForNewMessage";
 import { streamNormalInput } from "./streamNormalInput";
 import { streamThunkWrapper } from "./streamThunkWrapper";
 import { updateFileSymbolsFromFiles } from "./updateFileSymbols";
+import { startStructuredAgentWorkflowThunk, handleStructuredAgentUserInputThunk } from "./structuredAgentWorkflow";
+
+// 简单的函数来从JSONContent中提取文本
+function extractTextFromEditorState(editorState: JSONContent): string {
+  if (!editorState.content) return "";
+
+  return editorState.content
+    .map((node) => {
+      if (node.type === "paragraph" && node.content) {
+        return node.content
+          .map((child) => {
+            if (child.type === "text") {
+              return child.text || "";
+            }
+            return "";
+          })
+          .join("");
+      }
+      return "";
+    })
+    .join("\n")
+    .trim();
+}
 
 export const streamResponseThunk = createAsyncThunk<
   void,
@@ -26,12 +49,13 @@ export const streamResponseThunk = createAsyncThunk<
     modifiers: InputModifiers;
     index?: number;
     promptPreamble?: string;
+    dynamicSystemMessage?: string;
   },
   ThunkApiType
 >(
   "chat/streamResponse",
   async (
-    { editorState, modifiers, index, promptPreamble },
+    { editorState, modifiers, index, promptPreamble, dynamicSystemMessage },
     { dispatch, extra, getState },
   ) => {
     await dispatch(
@@ -39,9 +63,33 @@ export const streamResponseThunk = createAsyncThunk<
         const state = getState();
         const selectedChatModel = selectSelectedChatModel(state);
         const inputIndex = index ?? state.session.history.length; // Either given index or concat to end
+        const mode = state.session.mode;
 
         if (!selectedChatModel) {
           throw new Error("No chat model selected");
+        }
+
+        // 如果是结构化agent模式且是新的用户输入
+        if (mode === "structured-agent" && inputIndex === state.session.history.length) {
+          const userInput = extractTextFromEditorState(editorState);
+          if (userInput.trim()) {
+            // 先检查是否是工作流程确认输入
+            const handled = await dispatch(handleStructuredAgentUserInputThunk({ userInput }));
+            const handledResult = handled.payload as boolean;
+
+            if (handledResult) {
+              return; // 已被工作流程处理，不需要继续
+            }
+
+            // 如果不是确认输入，且工作流程未激活，则启动新的工作流程
+            if (!state.session.structuredAgentWorkflow.isActive) {
+              await dispatch(startStructuredAgentWorkflowThunk({
+                userInput,
+                editorState
+              }));
+              return;
+            }
+          }
         }
 
         dispatch(
@@ -123,6 +171,7 @@ export const streamResponseThunk = createAsyncThunk<
           baseChatOrAgentSystemMessage,
           applicableRules,
           getState().config.config,
+          dynamicSystemMessage,
         );
 
         posthog.capture("step run", {

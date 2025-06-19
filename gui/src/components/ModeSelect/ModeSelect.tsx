@@ -38,7 +38,10 @@ export function ModeSelect() {
   }, [mode, agentModeSupported, dispatch, selectedModel]);
 
   const cycleMode = useCallback(() => {
-    dispatch(setMode(mode === "chat" ? "agent" : "chat"));
+    const modes: MessageModes[] = ["chat", "agent", "structured-agent"];
+    const currentIndex = modes.indexOf(mode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    dispatch(setMode(modes[nextIndex]));
     mainEditor?.commands.focus();
   }, [mode, mainEditor]);
 
@@ -76,8 +79,11 @@ export function ModeSelect() {
         >
           <ModeIcon mode={mode} />
           <span className="hidden sm:block">
-            {/*{mode.charAt(0).toUpperCase() + mode.slice(1)}*/}
-            {mode === "chat" ? "聊天" : "智能体"}
+            {mode === "chat"
+              ? "聊天"
+              : mode === "structured-agent"
+                ? "流程化智能体"
+                : "智能体"}
           </span>
           <ChevronDownIcon
             className="h-2 w-2 flex-shrink-0"
@@ -109,6 +115,24 @@ export function ModeSelect() {
             </div>
             {agentModeSupported ? (
               mode === "agent" && <CheckIcon className="ml-auto h-3 w-3" />
+            ) : (
+              <span>(Not supported)</span>
+            )}
+          </ListboxOption>
+
+          <ListboxOption
+            value="structured-agent"
+            disabled={!agentModeSupported}
+            className={"gap-1"}
+          >
+            <div className="flex flex-row items-center gap-1.5">
+              <ModeIcon mode="structured-agent" />
+              <span className="">流程化智能体</span>
+            </div>
+            {agentModeSupported ? (
+              mode === "structured-agent" && (
+                <CheckIcon className="ml-auto h-3 w-3" />
+              )
             ) : (
               <span>(Not supported)</span>
             )}

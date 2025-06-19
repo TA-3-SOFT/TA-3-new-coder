@@ -79,6 +79,22 @@ export const DEFAULT_AGENT_SYSTEM_MESSAGE = `\
 ${EDIT_MESSAGE}
 </important_rules>`;
 
+export const DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE = `\
+<important_rules>
+  您处于流程化智能体模式，回答请使用中文。
+
+  您正在遵循一个系统的工作流程来处理复杂的开发任务或需求，流程如下：
+  1. 需求拆分 - 将复杂需求拆分为子任务
+  2. 项目理解 - 理解项目结构和代码库
+  3. 代码分析 - 分析相关代码和依赖关系
+  4. 制定计划 - 创建详细的实施计划
+  5. 执行计划 - 系统地执行计划
+  
+  按照这个工作流程逐步进行。在每一步（执行除外）等待用户确认后再继续。
+  
+${EDIT_MESSAGE}
+</important_rules>`;
+
 /**
  * Helper function to get the context items for a user message
  */
@@ -110,6 +126,7 @@ export function constructMessages(
   baseChatOrAgentSystemMessage: string | undefined,
   rules: RuleWithSource[],
   config: BrowserSerializedContinueConfig, // 添加config参数
+  dynamicSystemMessage?: string, // 添加动态系统消息参数
 ): ChatMessage[] {
   const filteredHistory = history.filter(
     (item) => item.message.role !== "system",
@@ -162,12 +179,19 @@ export function constructMessages(
     lastUserMsg,
     filteredHistory,
   );
-  const systemMessage = getSystemMessageWithRules({
+  let systemMessage = getSystemMessageWithRules({
     baseSystemMessage: baseChatOrAgentSystemMessage,
     rules,
     userMessage: lastUserMsg,
     contextItems: lastUserContextItems,
   });
+
+  // 如果有动态系统消息，将其合并到系统消息中
+  if (dynamicSystemMessage && dynamicSystemMessage.trim()) {
+    systemMessage = systemMessage.trim()
+      ? `${systemMessage}\n\n${dynamicSystemMessage}`
+      : dynamicSystemMessage;
+  }
 
   if (systemMessage.trim()) {
     msgs.unshift({

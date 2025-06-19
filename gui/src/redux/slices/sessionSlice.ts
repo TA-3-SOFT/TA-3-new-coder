@@ -18,6 +18,8 @@ import {
   RuleWithSource,
   Session,
   SessionMetadata,
+  StructuredAgentWorkflowState,
+  StructuredAgentStepType,
 } from "core";
 import { NEW_SESSION_TITLE } from "core/util/constants";
 import { renderChatMessage } from "core/util/messageContent";
@@ -51,6 +53,7 @@ type SessionState = {
     curIndex: number;
   };
   newestToolbarPreviewForInput: Record<string, string>;
+  structuredAgentWorkflow: StructuredAgentWorkflowState;
 };
 
 const initialState: SessionState = {
@@ -69,6 +72,13 @@ const initialState: SessionState = {
   },
   lastSessionId: undefined,
   newestToolbarPreviewForInput: {},
+  structuredAgentWorkflow: {
+    isActive: false,
+    currentStep: "requirement-input",
+    stepIndex: 0,
+    totalSteps: 5,
+    isWaitingForConfirmation: false,
+  },
 };
 
 export const sessionSlice = createSlice({
@@ -606,6 +616,64 @@ export const sessionSlice = createSlice({
       state.newestToolbarPreviewForInput[payload.inputId] =
         payload.contextItemId;
     },
+    // 结构化Agent工作流程相关的reducers
+    startStructuredAgentWorkflow: (state) => {
+      state.structuredAgentWorkflow = {
+        isActive: true,
+        currentStep: "requirement-input",
+        stepIndex: 1,
+        totalSteps: 5,
+        isWaitingForConfirmation: false,
+      };
+    },
+    updateStructuredAgentStep: (
+      state,
+      { payload }: PayloadAction<{
+        step: StructuredAgentStepType;
+        stepIndex: number;
+        data?: Partial<StructuredAgentWorkflowState>;
+      }>,
+    ) => {
+      state.structuredAgentWorkflow.currentStep = payload.step;
+      state.structuredAgentWorkflow.stepIndex = payload.stepIndex;
+      if (payload.data) {
+        Object.assign(state.structuredAgentWorkflow, payload.data);
+      }
+    },
+    setStructuredAgentWaitingForConfirmation: (
+      state,
+      { payload }: PayloadAction<boolean>,
+    ) => {
+      state.structuredAgentWorkflow.isWaitingForConfirmation = payload;
+    },
+    setStructuredAgentUserFeedback: (
+      state,
+      { payload }: PayloadAction<string>,
+    ) => {
+      state.structuredAgentWorkflow.userFeedback = payload;
+    },
+    resetStructuredAgentWorkflow: (state) => {
+      state.structuredAgentWorkflow = {
+        isActive: false,
+        currentStep: "requirement-input",
+        stepIndex: 0,
+        totalSteps: 5,
+        isWaitingForConfirmation: false,
+      };
+    },
+    stopStructuredAgentWorkflow: (state) => {
+      state.structuredAgentWorkflow = {
+        isActive: false,
+        currentStep: "requirement-input",
+        stepIndex: 0,
+        totalSteps: 5,
+        isWaitingForConfirmation: false,
+      };
+      // 同时停止流式输出
+      state.streamAborter.abort();
+      state.streamAborter = new AbortController();
+      state.isStreaming = false;
+    },
   },
   selectors: {
     selectIsGatheringContext: (state) => {
@@ -691,6 +759,12 @@ export const {
   deleteSessionMetadata,
   setNewestToolbarPreviewForInput,
   setIsInEdit,
+  startStructuredAgentWorkflow,
+  updateStructuredAgentStep,
+  setStructuredAgentWaitingForConfirmation,
+  setStructuredAgentUserFeedback,
+  resetStructuredAgentWorkflow,
+  stopStructuredAgentWorkflow,
 } = sessionSlice.actions;
 
 export const { selectIsGatheringContext } = sessionSlice.selectors;

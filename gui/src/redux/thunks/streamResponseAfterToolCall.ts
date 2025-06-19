@@ -79,6 +79,7 @@ export const streamResponseAfterToolCall = createAsyncThunk<
           baseChatOrAgentSystemMessage,
           state.config.config.rules,
           state.config.config, // 传入完整配置
+          undefined, // 没有动态系统消息
         );
 
         unwrapResult(await dispatch(streamNormalInput({ messages })));

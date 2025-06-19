@@ -6,6 +6,7 @@ import { getLocalStorage } from "./localStorage";
 import {
   DEFAULT_CHAT_SYSTEM_MESSAGE,
   DEFAULT_AGENT_SYSTEM_MESSAGE,
+  DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE,
 } from "core/llm/constructMessages";
 
 export type Platform = "mac" | "linux" | "windows" | "unknown";
@@ -131,6 +132,9 @@ export function getBaseSystemMessage(
   if (mode === "agent") {
     baseChatOrAgentSystemMessage =
       modelDetails?.baseAgentSystemMessage ?? DEFAULT_AGENT_SYSTEM_MESSAGE;
+  } else if (mode === "structured-agent") {
+    baseChatOrAgentSystemMessage =
+      modelDetails?.baseAgentSystemMessage ?? DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE;
   } else {
     baseChatOrAgentSystemMessage =
       modelDetails?.baseChatSystemMessage ?? DEFAULT_CHAT_SYSTEM_MESSAGE;
