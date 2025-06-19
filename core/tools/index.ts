@@ -5,6 +5,7 @@ import { editFileTool } from "./definitions/editFile";
 import { globSearchTool } from "./definitions/globSearch";
 import { grepSearchTool } from "./definitions/grepSearch";
 import { lsTool } from "./definitions/lsTool";
+import { projectAnalysisTool } from "./definitions/projectAnalysis";
 import { readCurrentlyOpenFileTool } from "./definitions/readCurrentlyOpenFile";
 import { readFileTool } from "./definitions/readFile";
 import { requestRuleTool } from "./definitions/requestRule";
@@ -23,6 +24,7 @@ export const baseToolDefinitions = [
   viewDiffTool,
   readCurrentlyOpenFileTool,
   lsTool,
+  projectAnalysisTool,
   createRuleBlock,
   // replacing with ls tool for now
   // viewSubdirectoryTool,

@@ -8,6 +8,7 @@ import { createRuleBlockImpl } from "./implementations/createRuleBlock";
 import { fileGlobSearchImpl } from "./implementations/globSearch";
 import { grepSearchImpl } from "./implementations/grepSearch";
 import { lsToolImpl } from "./implementations/lsTool";
+import { projectAnalysisImpl } from "./implementations/projectAnalysis";
 import { readCurrentlyOpenFileImpl } from "./implementations/readCurrentlyOpenFile";
 import { readFileImpl } from "./implementations/readFile";
 import { requestRuleImpl } from "./implementations/requestRule";
@@ -154,6 +155,8 @@ async function callBuiltInTool(
       return await viewDiffImpl(args, extras);
     case BuiltInToolNames.LSTool:
       return await lsToolImpl(args, extras);
+    case BuiltInToolNames.ProjectAnalysis:
+      return await projectAnalysisImpl(args, extras);
     case BuiltInToolNames.ReadCurrentlyOpenFile:
       return await readCurrentlyOpenFileImpl(args, extras);
     case BuiltInToolNames.CreateRuleBlock:

@@ -9,6 +9,7 @@ export enum BuiltInToolNames {
   SearchWeb = "builtin_search_web",
   ViewDiff = "builtin_view_diff",
   LSTool = "builtin_ls",
+  ProjectAnalysis = "project_analysis",
   CreateRuleBlock = "builtin_create_rule_block",
   RequestRule = "builtin_request_rule",
 
