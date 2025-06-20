@@ -25,7 +25,7 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
         {
           name: "项目分析结果",
           description: "项目分析失败",
-          content: `无法分析项目: 在 ${rootDir} 中未找到pom.xml文件`,
+          content: `无法分析项目: 在 ${rootDir} 中未找到pom.xml文件,该项目不是maven项目，请调用其他工具进行分析`,
         },
       ];
     }
@@ -61,9 +61,9 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
           rootDir,
         );
 
-        content += `### 推荐的模块\n`;
-        content += `**推荐模块**: ${recommendation.recommended_modules.join(", ")}\n`;
-        content += `**推荐理由**: ${recommendation.module_reasoning}\n\n`;
+        // content += `### 推荐的模块\n`;
+        // content += `**推荐模块**: ${recommendation.recommended_modules.join(", ")}\n`;
+        // content += `**推荐理由**: ${recommendation.module_reasoning}\n\n`;
 
         content += `### 推荐的文件\n`;
         for (const fileRec of recommendation.recommended_files) {
@@ -78,6 +78,8 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
         content += `推荐分析失败: ${error}\n\n`;
       }
     }
+
+    console.log(content);
 
     return [
       {

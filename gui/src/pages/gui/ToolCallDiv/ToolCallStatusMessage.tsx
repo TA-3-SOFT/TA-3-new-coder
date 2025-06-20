@@ -33,23 +33,23 @@ export function ToolCallStatusMessage({
     intro = "";
     message = tool.hasAlready
       ? Mustache.render(tool.hasAlready, toolCallState.parsedArgs)
-      : `used the ${defaultToolDescription}`;
+      : `使用 ${defaultToolDescription}`;
   } else if (toolCallState.status === "generating") {
-    intro = "is generating output to";
+    intro = "正在生成输出到";
     message = futureMessage;
   } else if (toolCallState.status === "generated") {
-    intro = "wants to";
+    intro = "想要";
     message = futureMessage;
   } else if (toolCallState.status === "calling") {
-    intro = "is";
+    intro = "正在";
     message = tool.isCurrently
       ? Mustache.render(tool.isCurrently, toolCallState.parsedArgs)
-      : `calling the ${defaultToolDescription}`;
+      : `正在调用 ${defaultToolDescription}`;
   } else if (
     toolCallState.status === "canceled" ||
     toolCallState.status === "errored"
   ) {
-    intro = "tried to";
+    intro = "尝试";
     message = futureMessage;
   }
   return (
@@ -58,7 +58,7 @@ export function ToolCallStatusMessage({
       style={{ fontSize }}
       data-testid="tool-call-title"
     >
-      {`Continue ${intro} ${message}`}
+      {`TA+3 牛码 ${intro} ${message}`}
     </div>
   );
 }

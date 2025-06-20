@@ -1,18 +1,17 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { JSONContent } from "@tiptap/core";
-import { StructuredAgentStepType, UserChatMessage } from "core";
-import { v4 as uuidv4 } from "uuid";
+import { StructuredAgentStepType, ContextItem } from "core";
 import { ThunkApiType } from "../store";
 import {
   setStructuredAgentWaitingForConfirmation,
   startStructuredAgentWorkflow,
   updateStructuredAgentStep,
-  submitEditorAndInitAtIndex,
   setStructuredAgentUserFeedback,
   resetStructuredAgentWorkflow,
   stopStructuredAgentWorkflow,
 } from "../slices/sessionSlice";
 import { streamResponseThunk } from "./streamResponse";
+import { findToolCall } from "../util";
 
 // 工作流程步骤配置
 const WORKFLOW_STEPS: Array<{
@@ -24,14 +23,10 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "requirement-breakdown",
     title: "需求拆分",
-    systemPrompt: `你是一名资深AI开发工程师，请将用户给出的复杂需求拆解为可独立执行的子任务，要求：
-1.按功能模块/逻辑层次逐级分解
-2.每个子任务需包含：
-  输入条件（依赖项）
-  输出结果（交付物）
-  技术关键点（技术难点/解决方案）
-3.用列表输出，包含：子任务、描述、优先级、预估复杂度
-4.标注跨模块依赖关系
+    systemPrompt: `你是一名资深AI开发工程师，请将用户给出的复杂需求拆解为可独立执行的子需求，要求：
+1.子需求不要超过5个
+2.每个子需求简单明了
+3.不要调用任何tools工具
 
 回答完成后请输出以下固定格式：
 ---
@@ -45,12 +40,8 @@ const WORKFLOW_STEPS: Array<{
     step: "project-understanding",
     title: "项目理解",
     systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求，深入了解项目结构和相关知识。要求：
-1. 请使用project_analysis工具来分析当前Maven项目的结构，找到与需求相关的模块和文件。    
-2. 分析项目的整体架构
-3. 了解项目的目录结构
-4. 了解相关的技术栈和框架
-5. 识别关键的代码模块和依赖关系
-6. 理解现有的代码规范和模式
+1. 使用project_analysis工具来分析当前Maven项目的结构。
+2. 如果project_analysis工具分析项目成功，就完成回答
 
 回答完成后请输出以下固定格式：
 ---
@@ -63,11 +54,10 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "code-analysis",
     title: "代码分析",
-    systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求和对项目的了解，针对每个子需求进行详细的代码分析。要求：
-1. 识别需要修改的具体文件和模块
-2. 分析相关的代码片段和接口
-3. 理解现有的实现逻辑
-4. 识别潜在的影响范围和依赖关系
+    systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求和对上一步项目的分析，进行详细的代码分析。要求：
+1. 使用code_chunk_analysis工具，基于上一步project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为modules和files参数，依次分析推荐的每个模块下的代码文件
+2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则依次调用3次code_chunk_analysis工具，每次调用传入模块作为modules参数，传入模块下所有5个推荐文件作为files参数
+3. 依次调用完code_chunk_analysis工具后即可完成代码分析
 
 回答完成后请输出以下固定格式：
 ---
@@ -177,6 +167,20 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     }
     if (userFeedback) {
       dynamicSystemMessage += `\n\n用户反馈：${userFeedback}`;
+    }
+
+    // 如果是代码分析步骤，添加 project_analysis 的结果
+    if (step === "code-analysis") {
+      const projectAnalysisResult = getProjectAnalysisResult(
+        state.session.history,
+      );
+
+      if (projectAnalysisResult) {
+        const resultContent = extractProjectAnalysisData(projectAnalysisResult);
+        if (resultContent) {
+          dynamicSystemMessage += `\n\n## 上一步 project_analysis 工具的分析结果：\n${resultContent}`;
+        }
+      }
     }
 
     // 构建用户消息内容（简洁的步骤说明）
@@ -374,4 +378,52 @@ export const stopStructuredAgentWorkflowThunk = createAsyncThunk<
 // 获取当前步骤信息
 export const getCurrentStepInfo = (step: StructuredAgentStepType) => {
   return WORKFLOW_STEPS.find((s) => s.step === step);
+};
+
+// 获取指定工具调用的返回结果
+export const getToolCallResult = (
+  history: any[],
+  toolName: string,
+): ContextItem[] | null => {
+  // 从历史记录中查找最近的指定工具调用
+  for (let i = history.length - 1; i >= 0; i--) {
+    const historyItem = history[i];
+    if (
+      historyItem.message?.role === "assistant" &&
+      historyItem.message?.toolCalls
+    ) {
+      for (const toolCall of historyItem.message.toolCalls) {
+        if (toolCall.function.name === toolName) {
+          const toolCallState = findToolCall(history, toolCall.id);
+          if (toolCallState && toolCallState.output) {
+            return toolCallState.output;
+          }
+        }
+      }
+    }
+  }
+  return null;
+};
+
+// 获取 project_analysis 工具调用的返回结果
+export const getProjectAnalysisResult = (
+  history: any[],
+): ContextItem[] | null => {
+  return getToolCallResult(history, "project_analysis");
+};
+
+// 从 project_analysis 结果中提取推荐的模块和文件信息
+export const extractProjectAnalysisData = (contextItems: ContextItem[]) => {
+  if (!contextItems || contextItems.length === 0) {
+    return null;
+  }
+
+  const analysisResult = contextItems[0];
+  if (!analysisResult || !analysisResult.content) {
+    return null;
+  }
+
+  const content = analysisResult.content;
+
+  return content;
 };

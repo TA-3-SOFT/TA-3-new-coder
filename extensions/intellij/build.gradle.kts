@@ -193,10 +193,10 @@ tasks {
 
     runIde {
         // Open the `manual-testing-sandbox` directory and the specific file on start
-        args = listOf(
-            "${rootProject.projectDir.parentFile.parentFile}/manual-testing-sandbox",
-            "${rootProject.projectDir.parentFile.parentFile}/manual-testing-sandbox/test.kt"
-        ).map { file(it).absolutePath }
+//        args = listOf(
+//            "${rootProject.projectDir.parentFile.parentFile}/manual-testing-sandbox",
+//            "${rootProject.projectDir.parentFile.parentFile}/manual-testing-sandbox/test.kt"
+//        ).map { file(it).absolutePath }
     }
 
     test {

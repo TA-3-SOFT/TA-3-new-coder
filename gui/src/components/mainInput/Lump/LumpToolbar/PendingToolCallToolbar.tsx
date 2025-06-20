@@ -33,7 +33,7 @@ export function PendingToolCallToolbar() {
   return (
     <Container>
       <div className="text-description flex flex-row items-center pb-0.5 pr-1 text-xs">
-        <span className="hidden sm:flex">Pending tool call</span>
+        <span className="hidden sm:flex">工具调用确认</span>
       </div>
 
       <div className="flex gap-2 pb-0.5">
@@ -43,7 +43,7 @@ export function PendingToolCallToolbar() {
           data-testid="reject-tool-call-button"
         >
           {/* JetBrains overrides cmd+backspace, so we have to use another shortcut */}
-          {jetbrains ? getAltKeyLabel() : getMetaKeyLabel()} ⌫ Cancel
+          {jetbrains ? getAltKeyLabel() : getMetaKeyLabel()} ⌫ 取消
         </StopButton>
         <EnterButton
           isPrimary={true}
@@ -51,7 +51,7 @@ export function PendingToolCallToolbar() {
           onClick={() => dispatch(callCurrentTool())}
           data-testid="accept-tool-call-button"
         >
-          {getMetaKeyLabel()} ⏎ Continue
+          {getMetaKeyLabel()} ⏎ 继续
         </EnterButton>
       </div>
     </Container>

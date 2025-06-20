@@ -5,7 +5,7 @@ export const projectAnalysisTool: Tool = {
   type: "function",
   displayTitle: "Project Analysis",
   wouldLikeTo: "分析 Maven 项目结构",
-  isCurrently: "正在分析 Maven 项目结构",
+  isCurrently: "分析 Maven 项目结构",
   hasAlready: "分析完成 Maven 项目结构",
   readonly: true,
   isInstant: false,

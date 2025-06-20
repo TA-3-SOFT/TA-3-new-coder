@@ -134,7 +134,7 @@ export default function StructuredAgentProgress() {
         })}
         {structuredAgentWorkflow.isActive && (
           <EnterButton
-            isPrimary={true}
+            variant="danger"
             className="text-description"
             onClick={handleStopWorkflow}
             data-testid="accept-tool-call-button"
