@@ -4,11 +4,13 @@ import com.github.continuedev.continueintellijextension.services.ContinueExtensi
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService
 import com.github.continuedev.continueintellijextension.utils.Desktop
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.intellij.credentialStore.Credentials
 import com.intellij.ide.passwordSafe.PasswordSafe
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes
@@ -48,25 +50,58 @@ class ContinueAuthService {
     }
 
     init {
-        setupRefreshTokenInterval()
     }
 
     fun startAuthFlow(project: Project, useOnboarding: Boolean) {
         coroutineScope.launch {
-            val uid = getUid()
+            val uid = getEncryptedUid()
             if (uid == null) {
+                reportError(project, "无法从银海通获取 token")
                 return@launch
             }
 
-            val sessionInfo = ControlPlaneSessionInfo(uid, ControlPlaneSessionInfo.Account(uid, uid))
+            val client = OkHttpClient()
+            val request = Request.Builder()
+                .url("http://localhost:8081/lowcodeback/aiContinueLogin")
+                .header("Authorization", uid)
+                .post("".toRequestBody())
+                .build()
+
+            var response: okhttp3.Response
+            try {
+                response = client.newCall(request).execute()
+            } catch (e: java.io.IOException) {
+                reportError(project, "无法连接到登录服务")
+                System.err.println(e)
+                return@launch
+            }
+
+            val responseMap = jsonFromResponse(response)
+            if (responseMap == null) {
+                reportError(project, "登录失败")
+                System.err.println(response)
+                return@launch
+            }
+
+            val code = responseMap.get("code") as? Double
+            if (code != 200.0) {
+                reportError(project, "登录失败")
+                System.err.println(responseMap)
+                return@launch
+            }
+
+            val data = responseMap.get("data") as? Map<*, *>
+            val label = data?.get("label") as? String ?: ""
+
+            val sessionInfo = ControlPlaneSessionInfo(uid, ControlPlaneSessionInfo.Account(label, label))
             setControlPlaneSessionInfo(sessionInfo)
         }
     }
 
-    private suspend fun getUid (): String? {
+    private suspend fun getEncryptedUid (): String? {
         val client = OkHttpClient()
         val request = Request.Builder()
-            .url("http://localhost:11111/auth")
+            .url("http://localhost:13631/getuid")
             .get()
             .build()
 
@@ -74,20 +109,41 @@ class ContinueAuthService {
         try {
             response = client.newCall(request).execute()
         } catch (e: java.io.IOException) {
+            System.err.println(e)
             return null
         }
 
-        val responseBody = response.body?.string()
-        val gson = Gson()
-        val responseMap = gson.fromJson(responseBody, Map::class.java)
-        val success = responseMap.get("success") as? Boolean
+        val responseMap = jsonFromResponse(response)
+        val success = responseMap?.get("success") as? Boolean
         if (success == null || !success) {
+            System.err.println(responseMap)
             return null
         }
 
-        val data = responseMap.get("data") as? Map<String, Any>
+        val data = responseMap.get("data") as? Map<*, *>
         val uid = data?.get("uid") as? String
         return uid
+    }
+
+    private fun jsonFromResponse (response: okhttp3.Response): Map<*, *>? {
+        val responseBody = response.body?.string()
+        val gson = Gson()
+        var responseMap: Map<*, *>
+        try {
+            responseMap = gson.fromJson(responseBody, Map::class.java)
+        } catch (e: JsonSyntaxException) {
+            return null
+        }
+
+        return responseMap
+    }
+
+    private fun reportError (project: Project, message: String) {
+        val continuePluginService = ServiceManager.getService(
+            project,
+            ContinuePluginService::class.java
+        )
+        continuePluginService.ideProtocolClient?.handleMessage("{\"messageType\": \"showToast\", \"data\": [\"error\", \"${message}\"]}", {})
     }
 
     fun signOut() {
