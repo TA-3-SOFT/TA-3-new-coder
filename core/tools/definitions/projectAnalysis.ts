@@ -9,7 +9,7 @@ export const projectAnalysisTool: Tool = {
   hasAlready: "分析完成 Maven 项目结构",
   readonly: true,
   isInstant: false,
-  group: "项目工具",
+  group: "项目分析工具",
   function: {
     name: BuiltInToolNames.ProjectAnalysis,
     description:
@@ -23,10 +23,11 @@ export const projectAnalysisTool: Tool = {
         },
         requirement: {
           type: "string",
-          description: "用户需求描述，用于推荐相关的模块和文件（可选）",
+          description:
+            "原始需求拆分后的子需求，用于推荐相关的模块和文件（必选）",
         },
       },
-      required: [],
+      required: ["requirement"],
     },
   },
 };

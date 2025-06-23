@@ -9,7 +9,7 @@ export const codeChunkAnalysisTool: Tool = {
   hasAlready: "分析完成代码片段相关性",
   readonly: true,
   isInstant: false,
-  group: "代码分析工具",
+  group: "项目分析工具",
   function: {
     name: BuiltInToolNames.CodeChunkAnalysis,
     description:
@@ -33,7 +33,7 @@ export const codeChunkAnalysisTool: Tool = {
         },
         userRequest: {
           type: "string",
-          description: "用户需求描述，用于评估代码片段的相关性",
+          description: "原始需求拆分后的子需求，用于评估代码片段的相关性",
         },
         topN: {
           type: "number",

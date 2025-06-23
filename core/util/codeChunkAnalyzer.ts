@@ -49,7 +49,7 @@ export class CodeSnippetAnalyzer {
            - Penalize snippets that are unrelated or contain only generic code (e.g., imports, boilerplate).
         4. Consider the project context: This is a Java-based Spring framework project focused on cache management.
         5. Return JSON: {{"scores": [{{"file": "path", "start_line": number, "score": number}}]}}
-        Return only JSON, no additional explanation.
+           w- IMPORTANT: Return ONLY pure JSON text without any markdown formatting (no \`\`\`json code blocks). The response must be valid JSON that can be directly parsed.
         `;
   }
 

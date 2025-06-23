@@ -23,10 +23,51 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "requirement-breakdown",
     title: "需求拆分",
-    systemPrompt: `你是一名资深AI开发工程师，请将用户给出的复杂需求拆解为可独立执行的子需求，要求：
-1.子需求不要超过5个
-2.每个子需求简单明了
-3.不要调用任何tools工具
+    //     systemPrompt: `你是一名资深AI开发工程师，请将用户给出的复杂需求拆解为可独立执行的子需求，要求：
+    // 1.子需求不要超过5个
+    // 2.每个子需求简单明了
+    // 3.不要调用任何tools工具
+    //
+    // 回答完成后请输出以下固定格式：
+    // ---
+    // ✅ **步骤完成，等待您的确认**
+    //
+    // 请在输入框中输入：
+    // "确认"继续流程下一步，或输入具体的调整建议`,
+    systemPrompt: `你是一个很有用的需求设计分析助手，你能帮助用户按照他提供的需求设计进行拆解和分析。
+    
+## 你的任务如下：
+1. 如果是复杂需求和设计，请将需求分解为子需求和设计，需求和设计一一对应。
+2. 如果需求设计中不太明确的地方，请将疑问记下来并问用户。
+3. 每个子需求和设计需要完整，逻辑清晰，可以实现。
+4. 请将子需求以要求的格式输出，方便我后续使用。
+5. 如果没有必要分解，就不要分解。
+6. 如果不需要进一步分解，直接整理成一个输出。
+7. 不要调用任何tools工具
+
+
+## 参考格式
+
+子需求1
+1. 功能需求
+1.1 核心业务流程
+1.2 关键业务规则
+1.3 具体场景示例
+2. 需求设计
+2.1 库表
+2.2 接口
+2.3 三方依赖
+---
+子需求2
+1. 功能需求
+1.1 核心业务流程
+1.2 关键业务规则
+1.3 具体场景示例
+2. 需求设计
+2.1 库表
+2.2 接口
+2.3 三方依赖
+
 
 回答完成后请输出以下固定格式：
 ---
@@ -41,7 +82,7 @@ const WORKFLOW_STEPS: Array<{
     title: "项目理解",
     systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求，深入了解项目结构和相关知识。要求：
 1. 使用project_analysis工具来分析当前Maven项目的结构。
-2. 如果project_analysis工具分析项目成功，就完成回答
+2. 调用project_analysis工具成功后，不要再调用其他tools了，根据结果理解项目，完成回答。
 
 回答完成后请输出以下固定格式：
 ---
@@ -54,10 +95,10 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "code-analysis",
     title: "代码分析",
-    systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求和对上一步项目的分析，进行详细的代码分析。要求：
+    systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求和上一步项目理解的结果，进行详细的代码分析。要求：
 1. 使用code_chunk_analysis工具，基于上一步project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为modules和files参数，依次分析推荐的每个模块下的代码文件
 2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则依次调用3次code_chunk_analysis工具，每次调用传入模块作为modules参数，传入模块下所有5个推荐文件作为files参数
-3. 依次调用完code_chunk_analysis工具后即可完成代码分析
+3. 依次调用完code_chunk_analysis工具后，如果code_chunk_analysis调用成功，不要再调用其他tools了，根据结果代码分析，完成回答
 
 回答完成后请输出以下固定格式：
 ---
@@ -70,7 +111,7 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "plan-creation",
     title: "制定计划",
-    systemPrompt: `你是一名资深AI开发工程师，基于前面的任务拆分，项目分析，代码分析制定详细的实施计划。要求：
+    systemPrompt: `你是一名资深AI开发工程师，基于前面步骤拆分的子需求，项目分析结果，代码分析结果制定详细的实施计划。要求：
 1. 能实现目标的开发任务列表
 2. 每个任务的具体实施步骤、文件修改的详细计划
 
@@ -162,12 +203,12 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
 
     // 构建动态系统消息
     let dynamicSystemMessage = stepConfig.systemPrompt;
-    if (userInput && step === "requirement-breakdown") {
-      dynamicSystemMessage += `\n\n用户需求：${userInput}`;
-    }
-    if (userFeedback) {
-      dynamicSystemMessage += `\n\n用户反馈：${userFeedback}`;
-    }
+    // if (userInput && step === "requirement-breakdown") {
+    //   dynamicSystemMessage += `\n\n用户需求：${userInput}`;
+    // }
+    // if (userFeedback) {
+    //   dynamicSystemMessage += `\n\n用户反馈：${userFeedback}`;
+    // }
 
     // 如果是代码分析步骤，添加 project_analysis 的结果
     if (step === "code-analysis") {
@@ -231,8 +272,8 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
           useCodebase: false,
           noContext: true,
         },
-        promptPreamble: dynamicSystemMessage + "\n",
-        // dynamicSystemMessage,
+        // promptPreamble: dynamicSystemMessage + "\n",
+        dynamicSystemMessage: dynamicSystemMessage,
       }),
     );
 
