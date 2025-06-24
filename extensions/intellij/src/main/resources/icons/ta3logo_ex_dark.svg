@@ -3,27 +3,17 @@
      xmlns:xlink="http://www.w3.org/1999/xlink">
     <title>light_console_icon</title>
     <style type="text/css">
-        .st0{fill:#02389D;}
-        .st1{fill:#02389C;}
-        .st2{fill:#F9C003;}
-        .st3{fill:#F9C004;}
-        .st4{fill:#FFFFFF;}
-        .st5{fill:#1C489D;}
+        .st0{fill:#8B5CF6;}
+        .st1{fill:#A78BFA;}
+        .st2{fill:#F59E0B;}
+        .st3{fill:#D97706;}
+        .st4{fill:#F3F4F6;}
+        .st5{fill:#8B5CF6;}
     </style>
-    <defs>
-        <defs>
-            <filter id="invert">
-                <feColorMatrix type="matrix" values="-1 0 0 0 1
-                                           0 -1 0 0 1
-                                           0 0 -1 0 1
-                                           0 0 0 1 0"/>
-            </filter>
-        </defs>
-    </defs>
-    <g id="IDE-端插件优化" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" filter="url(#invert)">
+    <g id="IDE-端插件优化" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
         <g id="Artboard" transform="translate(-2602.000000, -1470.000000)">
             <g id="light_console_icon" transform="translate(2602.000000, 1470.000000)">
-                <rect id="Rectangle-Copy-35" fill="#087CFA" opacity="0.16" x="0" y="0" width="77" height="20"
+                <rect id="Rectangle-Copy-35" fill="#8B5CF6" opacity="0.12" x="0" y="0" width="77" height="20"
                       rx="4"></rect>
                 <g id="Group-10-Copy" transform="translate(5.000000, 4.000000)">
                     <g id="Tongyi-colored-Copy">
@@ -65,7 +55,7 @@
                         </g>
                     </g>
                     <text fill-rule="nonzero" font-family="SFPro-Regular, SF Pro" font-size="10"
-                          font-weight="bold" fill="#1C489D">
+                          font-weight="bold" fill="#8B5CF6">
                         <tspan x="16" y="10">TA+3 牛码</tspan>
                     </text>
                     <!--                    <g id="右箭头-arrowright" transform="translate(57.000000, 0.000000)" fill="#19191C"

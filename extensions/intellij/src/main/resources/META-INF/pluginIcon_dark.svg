@@ -4,25 +4,12 @@
      y="0px"
      width="20" height="20" viewBox="0 0 256 256" style="enable-background:new 0 0 256 256;" xml:space="preserve">
 <style type="text/css">
-	.st0{fill:#02389D;}
-	.st1{fill:#02389C;}
-	.st2{fill:#F9C003;}
-	.st3{fill:#F9C004;}
-	.st4{fill:#FFFFFF;}
+	.st0{fill:#8B5CF6;}
+	.st1{fill:#A78BFA;}
+	.st2{fill:#F59E0B;}
+	.st3{fill:#D97706;}
+	.st4{fill:#F3F4F6;}
 </style>
-
-    <!-- 定义滤镜 -->
-    <defs>
-    <filter id="invert">
-      <feColorMatrix type="matrix" values="-1 0 0 0 1
-                                           0 -1 0 0 1
-                                           0 0 -1 0 1
-                                           0 0 0 1 0"/>
-    </filter>
-  </defs>
-
-    <!-- 应用反转滤镜 -->
-    <g filter="url(#invert)">
     <path class="st0" d="M121.6,112c-2.2-0.1-4,0-5.8-0.3c-4.5-0.5-7.7-2.9-9.6-6.9c-1.2-2.7-1.8-5.5-2.1-8.4c-0.6-5-0.3-9.9-0.3-14.9
 	c0-0.7,0.3-1,1-0.9c1.1,0,2.2,0,3.3,0c0.5,0,0.8,0.2,0.8,0.8c0,0.1,0,0.3,0,0.4c0.4,3.5,1.9,5.1,5.4,5.7c1.7,0.3,3.3,0.3,5,0.3
 	c15.4,0,30.8,0.1,46.3,0c16.3-0.2,29.3,6.5,39.7,18.6c7.1,8.2,11.5,17.7,13.5,28.3c0.9,4.7,0.9,9.4,0.9,14.1c0,15.1,0,30.3,0,45.4
@@ -57,5 +44,4 @@
         <circle class="st0" cx="160.5" cy="161.5" r="30.5"/>
         <circle class="st2" cx="166.4" cy="158" r="17.6"/>
         <circle class="st4" cx="169.9" cy="154.5" r="7"/>
-</g>
 </svg>
