@@ -19,6 +19,9 @@ export const DEFAULT_CHAT_SYSTEM_MESSAGE_URL =
 export const DEFAULT_AGENT_SYSTEM_MESSAGE_URL =
   "https://github.com/continuedev/continue/blob/main/core/llm/constructMessages.ts";
 
+export const DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE_URL =
+  "https://github.com/continuedev/continue/blob/main/core/llm/constructMessages.ts";
+
 const EDIT_MESSAGE = `\
   Always include the language and file name in the info string when you write code blocks.
   If you are editing "src/main.py" for example, your code block should start with '\`\`\`python src/main.py'
@@ -79,10 +82,7 @@ export const DEFAULT_AGENT_SYSTEM_MESSAGE = `\
 ${EDIT_MESSAGE}
 </important_rules>`;
 
-export const DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE = `\
-<important_rules>
-${EDIT_MESSAGE}
-</important_rules>`;
+export const DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE = ``;
 
 /**
  * Helper function to get the context items for a user message
@@ -177,10 +177,10 @@ export function constructMessages(
 
   // 如果有动态系统消息，将其合并到系统消息中
   if (dynamicSystemMessage && dynamicSystemMessage.trim()) {
-    // systemMessage = systemMessage.trim()
-    //   ? `${systemMessage}\n\n${dynamicSystemMessage}`
-    //   : dynamicSystemMessage;
-    systemMessage = dynamicSystemMessage;
+    systemMessage = systemMessage.trim()
+      ? `${systemMessage}\n\n${dynamicSystemMessage}`
+      : dynamicSystemMessage;
+    // systemMessage = dynamicSystemMessage;
   }
 
   if (systemMessage.trim()) {

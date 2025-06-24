@@ -10,6 +10,8 @@ import {
   DEFAULT_CHAT_SYSTEM_MESSAGE_URL,
   DEFAULT_AGENT_SYSTEM_MESSAGE,
   DEFAULT_AGENT_SYSTEM_MESSAGE_URL,
+  DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE,
+  DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE_URL,
 } from "core/llm/constructMessages";
 import { useContext, useMemo } from "react";
 import { defaultBorderRadius, vscCommandCenterActiveBorder } from "../../..";
@@ -47,6 +49,8 @@ const RuleCard: React.FC<RuleCardProps> = ({ rule }) => {
       ideMessenger.post("openUrl", DEFAULT_CHAT_SYSTEM_MESSAGE_URL);
     } else if (rule.source === "default-agent" && mode === "agent") {
       ideMessenger.post("openUrl", DEFAULT_AGENT_SYSTEM_MESSAGE_URL);
+    } else if (rule.source === "default-structured-agent" && mode === "structured-agent") {
+      ideMessenger.post("openUrl", DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE_URL);
     } else {
       ideMessenger.post("config/openProfile", {
         profileId: undefined,
@@ -64,6 +68,8 @@ const RuleCard: React.FC<RuleCardProps> = ({ rule }) => {
         return "默认聊天系统消息";
       } else if (rule.source === "default-agent") {
         return "默认智能体系统消息";
+      } else if (rule.source === "default-structured-agent") {
+        return "默认结构化智能体系统消息";
       } else if (rule.source === "json-systemMessage") {
         return "JSON systemMessage)";
       } else if (rule.source === "model-agent-options") {
@@ -113,7 +119,8 @@ const RuleCard: React.FC<RuleCardProps> = ({ rule }) => {
               <ArrowsPointingOutIcon className="h-3 w-3 text-gray-400" />
             </HeaderButtonWithToolTip>{" "}
             {rule.source === "default-chat" ||
-            rule.source === "default-agent" ? (
+            rule.source === "default-agent" ||
+            rule.source === "default-structured-agent" ? (
               <HeaderButtonWithToolTip onClick={handleOpen} text="View">
                 <EyeIcon className="h-3 w-3 text-gray-400" />
               </HeaderButtonWithToolTip>
@@ -201,6 +208,18 @@ export function RulesSection() {
         rules.unshift({
           rule: DEFAULT_AGENT_SYSTEM_MESSAGE,
           source: "default-agent",
+        });
+      }
+    } else if (mode === "structured-agent") {
+      if (config.selectedModelByRole.chat?.baseAgentSystemMessage) {
+        rules.unshift({
+          rule: config.selectedModelByRole.chat?.baseAgentSystemMessage,
+          source: "model-agent-options",
+        });
+      } else {
+        rules.unshift({
+          rule: DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE,
+          source: "default-structured-agent",
         });
       }
     } else {

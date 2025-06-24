@@ -80,9 +80,9 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "project-understanding",
     title: "项目理解",
-    systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求，深入了解项目结构和相关知识。要求：
+    systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求，了解项目结构相关知识。要求：
 1. 使用project_analysis工具来分析当前Maven项目的结构。
-2. 调用project_analysis工具成功后，不要再调用其他tools了，根据结果理解项目，完成回答。
+2. 调用project_analysis工具后，根据结果总结回答，不要再调用其他tools了。
 
 回答完成后请输出以下固定格式：
 ---

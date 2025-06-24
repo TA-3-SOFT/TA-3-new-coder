@@ -856,16 +856,12 @@ export type StepName =
 
 // 结构化Agent工作流程步骤类型
 export type StructuredAgentStepType =
-  | "requirement-input"      // 1. 用户输入需求
-  | "requirement-breakdown"  // 2. 需求拆分
-  | "user-confirmation-1"    // 3. 用户确认需求拆分
-  | "project-understanding"  // 4. 项目理解
-  | "user-confirmation-2"    // 5. 用户确认项目理解
-  | "code-analysis"          // 6. 代码分析
-  | "user-confirmation-3"    // 7. 用户确认代码分析
-  | "plan-creation"          // 8. 制定计划
-  | "user-confirmation-4"    // 9. 用户确认计划
-  | "plan-execution";        // 10. 执行计划
+  | "requirement-input" // 1. 用户输入需求
+  | "requirement-breakdown" // 2. 需求拆分
+  | "project-understanding" // 3. 项目理解
+  | "code-analysis" // 4. 代码分析
+  | "plan-creation" // 5. 制定计划
+  | "plan-execution"; // 6. 执行计划
 
 export interface StructuredAgentWorkflowState {
   isActive: boolean;
@@ -1587,6 +1583,7 @@ export interface TerminalOptions {
 export type RuleSource =
   | "default-chat"
   | "default-agent"
+  | "default-structured-agent"
   | "model-chat-options"
   | "model-agent-options"
   | "rules-block"

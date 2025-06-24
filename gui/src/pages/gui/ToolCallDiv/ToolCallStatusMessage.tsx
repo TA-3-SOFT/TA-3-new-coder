@@ -33,7 +33,7 @@ export function ToolCallStatusMessage({
     intro = "";
     message = tool.hasAlready
       ? Mustache.render(tool.hasAlready, toolCallState.parsedArgs)
-      : `使用 ${defaultToolDescription}`;
+      : `已使用 ${defaultToolDescription}`;
   } else if (toolCallState.status === "generating") {
     intro = "正在生成输出到";
     message = futureMessage;
@@ -44,7 +44,7 @@ export function ToolCallStatusMessage({
     intro = "正在";
     message = tool.isCurrently
       ? Mustache.render(tool.isCurrently, toolCallState.parsedArgs)
-      : `正在调用 ${defaultToolDescription}`;
+      : `调用 ${defaultToolDescription}`;
   } else if (
     toolCallState.status === "canceled" ||
     toolCallState.status === "errored"

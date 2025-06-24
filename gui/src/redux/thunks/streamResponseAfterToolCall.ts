@@ -14,6 +14,7 @@ import { findToolCall } from "../util";
 import { resetStateForNewMessage } from "./resetStateForNewMessage";
 import { streamNormalInput } from "./streamNormalInput";
 import { streamThunkWrapper } from "./streamThunkWrapper";
+import { getCurrentStepInfo } from "./structuredAgentWorkflow";
 
 export const streamResponseAfterToolCall = createAsyncThunk<
   void,
@@ -73,13 +74,25 @@ export const streamResponseAfterToolCall = createAsyncThunk<
           messageMode,
         );
 
+        // 获取动态系统消息（如果在结构化智能体模式下）
+        let dynamicSystemMessage: string | undefined;
+        if (messageMode === "structured-agent") {
+          const workflow = getState().session.structuredAgentWorkflow;
+          if (workflow.isActive) {
+            const stepConfig = getCurrentStepInfo(workflow.currentStep);
+            if (stepConfig) {
+              dynamicSystemMessage = stepConfig.systemPrompt;
+            }
+          }
+        }
+
         const messages = constructMessages(
           messageMode,
           [...updatedHistory],
           baseChatOrAgentSystemMessage,
           state.config.config.rules,
           state.config.config, // 传入完整配置
-          undefined, // 没有动态系统消息
+          dynamicSystemMessage, // 传入动态系统消息
         );
 
         unwrapResult(await dispatch(streamNormalInput({ messages })));
