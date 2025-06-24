@@ -209,6 +209,13 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     // if (userFeedback) {
     //   dynamicSystemMessage += `\n\n用户反馈：${userFeedback}`;
     // }
+    let promptPreamble = "";
+    if (userInput && step === "requirement-breakdown") {
+      promptPreamble = `用户需求：`;
+    }
+    if (userFeedback) {
+      promptPreamble = `用户反馈：`;
+    }
 
     // 如果是代码分析步骤，添加 project_analysis 的结果
     if (step === "code-analysis") {
@@ -272,7 +279,7 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
           useCodebase: false,
           noContext: true,
         },
-        // promptPreamble: dynamicSystemMessage + "\n",
+        promptPreamble: promptPreamble,
         dynamicSystemMessage: dynamicSystemMessage,
       }),
     );
