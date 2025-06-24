@@ -54,10 +54,15 @@ class ContinueAuthService {
 
     fun startAuthFlow(project: Project, useOnboarding: Boolean) {
         coroutineScope.launch {
+            startAuthFlowWithResult(project, useOnboarding)
+        }
+    }
+
+    suspend fun startAuthFlowWithResult(project: Project, useOnboarding: Boolean): ControlPlaneSessionInfo? {
             val uid = getEncryptedUid()
             if (uid == null) {
                 reportError(project, "无法从银海通获取 token")
-                return@launch
+                return null
             }
 
             val client = OkHttpClient()
@@ -73,21 +78,21 @@ class ContinueAuthService {
             } catch (e: java.io.IOException) {
                 reportError(project, "无法连接到登录服务")
                 System.err.println(e)
-                return@launch
+                return null
             }
 
             val responseMap = jsonFromResponse(response)
             if (responseMap == null) {
                 reportError(project, "登录失败")
                 System.err.println(response)
-                return@launch
+                return null
             }
 
             val code = responseMap.get("code") as? Double
             if (code != 200.0) {
                 reportError(project, "登录失败")
                 System.err.println(responseMap)
-                return@launch
+                return null
             }
 
             val data = responseMap.get("data") as? Map<*, *>
@@ -95,7 +100,8 @@ class ContinueAuthService {
 
             val sessionInfo = ControlPlaneSessionInfo(uid, ControlPlaneSessionInfo.Account(label, label))
             setControlPlaneSessionInfo(sessionInfo)
-        }
+
+        return sessionInfo
     }
 
     private suspend fun getEncryptedUid (): String? {
