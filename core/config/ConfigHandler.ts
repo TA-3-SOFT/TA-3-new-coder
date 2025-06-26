@@ -136,33 +136,51 @@ export class ConfigHandler {
     await this.reloadConfig();
   }
 
-  /*
-    服务端响应数据格式:
+  private async loadProfiles (org: any) {
+    const response = await fetch('http://localhost:8081/lowcodeback/ai/continue/ide/list-assistants?organizationId=' + org.id, {
+      method: 'POST',
+    })
+    if (!response.ok) {
+      return org
+    }
 
-    [{
-      id: '1',
-      iconUrl: '',
-      name: 'Test Organization',
-      profiles: [{
-        ownerSlug: 'Owner',
-        packageSlug: 'Package1',
-        config: {
-          name: 'Test Assistant 1',
-          version: '0.1.0',
-        },
-      }, {
-        ownerSlug: 'Owner',
-        packageSlug: 'Package2',
-        config: {
-          name: 'Test Assistant 2',
-          version: '0.1.0',
-        },
-      }],
-    }]
-      
-  */
+    let profiles
+    try {
+      profiles = await response.json()
+    } catch (e) {
+      return org
+    }
+
+    if (!Array.isArray(profiles)) {
+      return org
+    }
+
+      for (let i=0; i<profiles.length; i++) {
+        const profile = profiles[i]
+        const loader = await PlatformProfileLoader.create({
+          configResult: profile.configResult,
+          ownerSlug: profile.ownerSlug,
+          packageSlug: profile.packageSlug,
+          iconUrl: profile.iconUrl,
+          versionSlug: profile.configResult?.config?.version ?? "latest",
+          controlPlaneClient: this.controlPlaneClient,
+          ide: this.ide,
+          ideSettingsPromise: this.ideSettingsPromise,
+          llmLogger: this.llmLogger,
+          rawYaml: profile.rawYaml,
+          orgScopeId: null,
+        })
+        profiles[i] = new ProfileLifecycleManager(loader, this.ide)
+      }
+
+      org = await this.rectifyProfilesForOrg(org, profiles)
+      return org
+  }
+
   private async loadOrgs () {
-    const response = await fetch('http://localhost:11111/orgs')
+    const response = await fetch('http://localhost:8081/lowcodeback/ai/continue/ide/list-organizations', {
+      method: 'POST',
+    })
     if (!response.ok) {
       return null
     }
@@ -174,32 +192,9 @@ export class ConfigHandler {
       return null
     }
 
+    orgs = orgs.organizations ?? []
     for (let j=0; j<orgs.length; j++) {
-      const org = orgs[j]
-      const profiles = org.profiles
-      for (let i=0; i<profiles.length; i++) {
-        const profile = profiles[i]
-        const loader = await PlatformProfileLoader.create({
-          configResult: {
-            configLoadInterrupted: false,
-            errors: undefined,
-            config: profile.config,
-          },
-          ownerSlug: profile.ownerSlug,
-          packageSlug: profile.packageSlug,
-          iconUrl: profile.iconUrl,
-          versionSlug: profile.config?.version ?? "latest",
-          controlPlaneClient: this.controlPlaneClient,
-          ide: this.ide,
-          ideSettingsPromise: this.ideSettingsPromise,
-          llmLogger: this.llmLogger,
-          rawYaml: profile.rawYaml,
-          orgScopeId: null,
-        })
-        profiles[i] = new ProfileLifecycleManager(loader, this.ide)
-      }
-
-      orgs[j] = await this.rectifyProfilesForOrg(org, profiles)
+      orgs[j] = await this.loadProfiles(orgs[j])
     }
 
     return orgs

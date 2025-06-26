@@ -375,7 +375,6 @@ export default function AssistantSelect() {
                 </span>
                 <div
                   className="ml-auto flex items-center gap-1"
-                  onClick={cycleOrgs}
                 >
                   {currentOrg?.iconUrl ? (
                     <img
@@ -386,12 +385,11 @@ export default function AssistantSelect() {
                     <BuildingOfficeIcon className="h-4 w-4" />
                   )}
                   <span
-                    className="hover:cursor-pointer hover:underline"
                     style={{
                       fontSize: tinyFont - 1,
                     }}
                   >
-                    {currentOrg?.name || "Personal"}
+                    {currentOrg?.name ?? '(未知)'}
                   </span>
                 </div>
               </div>
