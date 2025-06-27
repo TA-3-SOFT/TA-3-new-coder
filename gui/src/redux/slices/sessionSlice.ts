@@ -78,6 +78,7 @@ const initialState: SessionState = {
     stepIndex: 0,
     totalSteps: 5,
     isWaitingForConfirmation: false,
+    stepHistoryStartIndex: undefined,
   },
 };
 
@@ -624,6 +625,7 @@ export const sessionSlice = createSlice({
         stepIndex: 1,
         totalSteps: 5,
         isWaitingForConfirmation: false,
+        stepHistoryStartIndex: state.history.length, // 记录当前步骤开始的历史记录索引
       };
     },
     updateStructuredAgentStep: (
@@ -634,6 +636,10 @@ export const sessionSlice = createSlice({
         data?: Partial<StructuredAgentWorkflowState>;
       }>,
     ) => {
+      // 如果是新的步骤，更新步骤历史记录开始索引
+      if (state.structuredAgentWorkflow.currentStep !== payload.step) {
+        state.structuredAgentWorkflow.stepHistoryStartIndex = state.history.length;
+      }
       state.structuredAgentWorkflow.currentStep = payload.step;
       state.structuredAgentWorkflow.stepIndex = payload.stepIndex;
       if (payload.data) {
@@ -659,6 +665,7 @@ export const sessionSlice = createSlice({
         stepIndex: 0,
         totalSteps: 5,
         isWaitingForConfirmation: false,
+        stepHistoryStartIndex: undefined,
       };
     },
     stopStructuredAgentWorkflow: (state) => {
@@ -668,6 +675,7 @@ export const sessionSlice = createSlice({
         stepIndex: 0,
         totalSteps: 5,
         isWaitingForConfirmation: false,
+        stepHistoryStartIndex: undefined,
       };
       // 同时停止流式输出
       state.streamAborter.abort();

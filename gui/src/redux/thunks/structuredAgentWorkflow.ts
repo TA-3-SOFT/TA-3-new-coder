@@ -1,23 +1,24 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { JSONContent } from "@tiptap/core";
-import { StructuredAgentStepType, ContextItem } from "core";
+import { ContextItem, StructuredAgentStepType } from "core";
 import { ThunkApiType } from "../store";
 import {
+  resetStructuredAgentWorkflow,
+  setStructuredAgentUserFeedback,
   setStructuredAgentWaitingForConfirmation,
   startStructuredAgentWorkflow,
-  updateStructuredAgentStep,
-  setStructuredAgentUserFeedback,
-  resetStructuredAgentWorkflow,
   stopStructuredAgentWorkflow,
+  updateStructuredAgentStep,
 } from "../slices/sessionSlice";
 import { streamResponseThunk } from "./streamResponse";
 import { findToolCall } from "../util";
 
+let requirementFinal: string | null = null;
 // 工作流程步骤配置
-const WORKFLOW_STEPS: Array<{
+let WORKFLOW_STEPS: Array<{
   step: StructuredAgentStepType;
   title: string;
-  systemPrompt: string;
+  systemPrompt: () => string;
   needsConfirmation: boolean;
 }> = [
   {
@@ -34,7 +35,8 @@ const WORKFLOW_STEPS: Array<{
     //
     // 请在输入框中输入：
     // "确认"继续流程下一步，或输入具体的调整建议`,
-    systemPrompt: `你是一个很有用的需求设计分析助手，你能帮助用户按照他提供的需求设计进行拆解和分析。
+    systemPrompt:
+      () => `你是一个很有用的需求设计分析助手，你能帮助用户按照他提供的需求设计进行拆解和分析。
     
 ## 你的任务如下：
 1. 如果是复杂需求和设计，请将需求分解为子需求和设计，需求和设计一一对应。
@@ -70,8 +72,7 @@ const WORKFLOW_STEPS: Array<{
 
 
 回答完成后请输出以下固定格式：
----
-✅ **步骤完成，等待您的确认**
+***【用户操作】***：✅ **步骤完成，等待您的确认**
 
 请在输入框中输入：
 "确认"继续流程下一步，或输入具体的调整建议`,
@@ -80,13 +81,17 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "project-understanding",
     title: "项目理解",
-    systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求，了解项目结构相关知识。要求：
-1. 使用project_analysis工具来分析当前Maven项目的结构。
+    systemPrompt: () => `详细需求如下:
+---
+${requirementFinal}
+---
+
+你是一名资深AI开发工程师，基于上面的详细需求，了解项目结构相关知识。要求：
+1. 使用project_analysis工具来分析当前Maven项目的结构，必须将完整的详细需求作为参数传递给该工具。
 2. 调用project_analysis工具后，根据结果总结回答，不要再调用其他tools了。
 
 回答完成后请输出以下固定格式：
----
-✅ **步骤完成，等待您的确认**
+***【用户操作】***：✅ **步骤完成，等待您的确认**
 
 请在输入框中输入：
 "确认"继续流程下一步，或输入具体的调整建议`,
@@ -95,14 +100,18 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "code-analysis",
     title: "代码分析",
-    systemPrompt: `你是一名资深AI开发工程师，基于拆分的子需求和上一步项目理解的结果，进行详细的代码分析。要求：
-1. 使用code_chunk_analysis工具，基于上一步project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为modules和files参数，依次分析推荐的每个模块下的代码文件
+    systemPrompt: () => `详细需求如下：
+---
+${requirementFinal}
+---
+
+你是一名资深AI开发工程师，基于上面的详细需求和用户给出的项目理解的结果，进行详细的代码分析。要求：
+1. 使用code_chunk_analysis工具，基于用户给出的project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为modules和files参数，传入上面完成的详细需求作为userRequest参数，依次分析推荐的每个模块下的代码文件
 2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则依次调用3次code_chunk_analysis工具，每次调用传入模块作为modules参数，传入模块下所有5个推荐文件作为files参数
 3. 依次调用完code_chunk_analysis工具后，如果code_chunk_analysis调用成功，不要再调用其他tools了，根据结果代码分析，完成回答
 
 回答完成后请输出以下固定格式：
----
-✅ **步骤完成，等待您的确认**
+***【用户操作】***：✅ **步骤完成，等待您的确认**
 
 请在输入框中输入：
 "确认"继续流程下一步，或输入具体的调整建议`,
@@ -111,14 +120,17 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "plan-creation",
     title: "制定计划",
-    systemPrompt: `你是一名资深AI开发工程师，基于前面步骤拆分的子需求，项目分析结果，代码分析结果制定详细的实施计划。要求：
-1. 能实现目标的开发任务列表
-2. 每个任务的具体实施步骤、文件修改的详细计划
+    systemPrompt: () => `详细需求如下：
+---
+${requirementFinal}
+---
 
+你是一名资深AI开发工程师，基于上面的详细需求以及用户给出的代码分析结果制定详细的实施计划。要求：
+1. 能实现所有需求的开发任务列表
+2. 每个任务的具体实施步骤、相关文件修改的详细计划
 
 回答完成后请输出以下固定格式：
----
-✅ **步骤完成，等待您的确认**
+***【用户操作】***：✅ **步骤完成，等待您的确认**
 
 请在输入框中输入：
 "确认"继续流程下一步，或输入具体的调整建议`,
@@ -127,14 +139,18 @@ const WORKFLOW_STEPS: Array<{
   {
     step: "plan-execution",
     title: "执行计划",
-    systemPrompt: `你是一名资深AI开发工程师，基于前面制定的实施计划。使用可用的工具来进行开发工作，要求：
+    systemPrompt: () => `详细需求如下：
+---
+${requirementFinal}
+---
+
+你是一名资深AI开发工程师，基于上面的详细需求，和用户给出的实施计划。使用可用的工具来进行开发工作，要求：
 1. 按照计划的顺序逐步实施
 2. 使用编辑工具对每个文件进行精确的修改
 3. 确保代码质量和一致性
 4. 在关键节点进行验证
 
-执行完成后做出总结，结束流程
-`,
+执行完成后做出总结，结束流程`,
     needsConfirmation: false,
   },
 ];
@@ -201,14 +217,6 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
       dispatch(setStructuredAgentUserFeedback(userFeedback));
     }
 
-    // 构建动态系统消息
-    let dynamicSystemMessage = stepConfig.systemPrompt;
-    // if (userInput && step === "requirement-breakdown") {
-    //   dynamicSystemMessage += `\n\n用户需求：${userInput}`;
-    // }
-    // if (userFeedback) {
-    //   dynamicSystemMessage += `\n\n用户反馈：${userFeedback}`;
-    // }
     let promptPreamble = "";
     if (userInput && step === "requirement-breakdown") {
       promptPreamble = `用户需求：`;
@@ -217,18 +225,50 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
       promptPreamble = `用户反馈：`;
     }
 
+    if (step === "project-understanding") {
+      requirementFinal =
+        state.session.history[
+          state.session.history.length - 1
+        ].message.content.toString();
+      // 如果requirementFinal包含"***用户操作***"，只取分隔符之前的内容
+      if (requirementFinal && requirementFinal.includes("***【用户操作】***")) {
+        const lastSeparatorIndex =
+          requirementFinal.lastIndexOf("***【用户操作】***");
+        requirementFinal = requirementFinal
+          .substring(0, lastSeparatorIndex)
+          .trim();
+      }
+    }
+
     // 如果是代码分析步骤，添加 project_analysis 的结果
     if (step === "code-analysis") {
       const projectAnalysisResult = getProjectAnalysisResult(
         state.session.history,
       );
-
       if (projectAnalysisResult) {
-        const resultContent = extractProjectAnalysisData(projectAnalysisResult);
-        if (resultContent) {
-          dynamicSystemMessage += `\n\n## 上一步 project_analysis 工具的分析结果：\n${resultContent}`;
-        }
+        promptPreamble += `## project_analysis 工具的分析结果：\n${projectAnalysisResult}\n\n`;
       }
+    }
+
+    if (step === "plan-creation") {
+      const codeChunkAnalysisResult = getCodeChunkAnaysisResult(
+        state.session.history,
+      );
+      if (codeChunkAnalysisResult) {
+        promptPreamble += `## 代码分析 的结果：\n${codeChunkAnalysisResult}\n\n`;
+      }
+    }
+
+    if (step === "plan-execution") {
+      let planResult =
+        state.session.history[
+          state.session.history.length - 1
+        ].message.content.toString();
+      if (planResult && planResult.includes("***【用户操作】***")) {
+        const lastSeparatorIndex = planResult.lastIndexOf("***【用户操作】***");
+        planResult = planResult.substring(0, lastSeparatorIndex).trim();
+      }
+      promptPreamble += `## 实施计划如下：\n${planResult}\n\n`;
     }
 
     // 构建用户消息内容（简洁的步骤说明）
@@ -270,6 +310,9 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
         ],
       };
     }
+
+    // 构建动态系统消息
+    let dynamicSystemMessage = stepConfig.systemPrompt();
 
     // 开始流式响应
     await dispatch(
@@ -454,14 +497,8 @@ export const getToolCallResult = (
 };
 
 // 获取 project_analysis 工具调用的返回结果
-export const getProjectAnalysisResult = (
-  history: any[],
-): ContextItem[] | null => {
-  return getToolCallResult(history, "project_analysis");
-};
-
-// 从 project_analysis 结果中提取推荐的模块和文件信息
-export const extractProjectAnalysisData = (contextItems: ContextItem[]) => {
+export const getProjectAnalysisResult = (history: any[]): string | null => {
+  let contextItems = getToolCallResult(history, "project_analysis");
   if (!contextItems || contextItems.length === 0) {
     return null;
   }
@@ -471,7 +508,20 @@ export const extractProjectAnalysisData = (contextItems: ContextItem[]) => {
     return null;
   }
 
-  const content = analysisResult.content;
+  return analysisResult.content;
+};
 
-  return content;
+// 获取 code_chunk_analysis 工具调用的返回结果
+export const getCodeChunkAnaysisResult = (history: any[]): string | null => {
+  let contextItems = getToolCallResult(history, "code_chunk_analysis");
+  if (!contextItems || contextItems.length === 0) {
+    return null;
+  }
+
+  const analysisResult = contextItems[0];
+  if (!analysisResult || !analysisResult.content) {
+    return null;
+  }
+
+  return analysisResult.content;
 };

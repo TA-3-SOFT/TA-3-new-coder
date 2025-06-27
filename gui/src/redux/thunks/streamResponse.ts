@@ -18,7 +18,10 @@ import { resetStateForNewMessage } from "./resetStateForNewMessage";
 import { streamNormalInput } from "./streamNormalInput";
 import { streamThunkWrapper } from "./streamThunkWrapper";
 import { updateFileSymbolsFromFiles } from "./updateFileSymbols";
-import { startStructuredAgentWorkflowThunk, handleStructuredAgentUserInputThunk } from "./structuredAgentWorkflow";
+import {
+  startStructuredAgentWorkflowThunk,
+  handleStructuredAgentUserInputThunk,
+} from "./structuredAgentWorkflow";
 
 // 简单的函数来从JSONContent中提取文本
 function extractTextFromEditorState(editorState: JSONContent): string {
@@ -70,11 +73,16 @@ export const streamResponseThunk = createAsyncThunk<
         }
 
         // 如果是结构化agent模式且是新的用户输入
-        if (mode === "structured-agent" && inputIndex === state.session.history.length) {
+        if (
+          mode === "structured-agent" &&
+          inputIndex === state.session.history.length
+        ) {
           const userInput = extractTextFromEditorState(editorState);
           if (userInput.trim()) {
             // 先检查是否是工作流程确认输入
-            const handled = await dispatch(handleStructuredAgentUserInputThunk({ userInput }));
+            const handled = await dispatch(
+              handleStructuredAgentUserInputThunk({ userInput }),
+            );
             const handledResult = handled.payload as boolean;
 
             if (handledResult) {
@@ -83,10 +91,12 @@ export const streamResponseThunk = createAsyncThunk<
 
             // 如果不是确认输入，且工作流程未激活，则启动新的工作流程
             if (!state.session.structuredAgentWorkflow.isActive) {
-              await dispatch(startStructuredAgentWorkflowThunk({
-                userInput,
-                editorState
-              }));
+              await dispatch(
+                startStructuredAgentWorkflowThunk({
+                  userInput,
+                  editorState,
+                }),
+              );
               return;
             }
           }
@@ -165,9 +175,24 @@ export const streamResponseThunk = createAsyncThunk<
           messageMode,
         );
 
+        // 在结构化智能体模式下，每个步骤是独立的多轮对话，只包含当前步骤的历史记录
+        let historyForMessages = [...updatedHistory];
+        if (messageMode === "structured-agent") {
+          const workflow = getState().session.structuredAgentWorkflow;
+          const stepHistoryStartIndex = workflow.stepHistoryStartIndex;
+
+          // 如果有步骤历史记录开始索引，从该索引开始到最后
+          if (
+            stepHistoryStartIndex !== undefined &&
+            stepHistoryStartIndex >= 0
+          ) {
+            historyForMessages = updatedHistory.slice(stepHistoryStartIndex);
+          }
+        }
+
         const messages = constructMessages(
           messageMode,
-          [...updatedHistory],
+          historyForMessages,
           baseChatOrAgentSystemMessage,
           applicableRules,
           getState().config.config,

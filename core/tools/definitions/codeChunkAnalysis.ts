@@ -33,7 +33,7 @@ export const codeChunkAnalysisTool: Tool = {
         },
         userRequest: {
           type: "string",
-          description: "原始需求拆分后的子需求，用于评估代码片段的相关性",
+          description: "完整的详细需求，用于评估代码片段的相关性",
         },
         topN: {
           type: "number",

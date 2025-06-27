@@ -81,14 +81,44 @@ export const streamResponseAfterToolCall = createAsyncThunk<
           if (workflow.isActive) {
             const stepConfig = getCurrentStepInfo(workflow.currentStep);
             if (stepConfig) {
-              dynamicSystemMessage = stepConfig.systemPrompt;
+              dynamicSystemMessage = stepConfig.systemPrompt();
             }
           }
         }
 
+        // 在结构化智能体模式下，每个步骤不包含历史记录，只使用当前消息
+        let historyForMessages = [...updatedHistory];
+        if (messageMode === "structured-agent") {
+          const workflow = getState().session.structuredAgentWorkflow;
+          const stepHistoryStartIndex = workflow.stepHistoryStartIndex;
+
+          // 如果有步骤历史记录开始索引，从该索引开始到最后
+          if (
+            stepHistoryStartIndex !== undefined &&
+            stepHistoryStartIndex >= 0
+          ) {
+            historyForMessages = updatedHistory.slice(stepHistoryStartIndex);
+          }
+          // else {
+          //   // 兜底逻辑：找到最后一个role为user的消息的索引
+          //   let lastUserIndex = -1;
+          //   for (let i = updatedHistory.length - 1; i >= 0; i--) {
+          //     if (updatedHistory[i].message.role === "user") {
+          //       lastUserIndex = i;
+          //       break;
+          //     }
+          //   }
+          //
+          //   // 如果找到了最后一个user消息，从该位置开始到最后
+          //   if (lastUserIndex !== -1) {
+          //     historyForMessages = updatedHistory.slice(lastUserIndex);
+          //   }
+          // }
+        }
+
         const messages = constructMessages(
           messageMode,
-          [...updatedHistory],
+          historyForMessages,
           baseChatOrAgentSystemMessage,
           state.config.config.rules,
           state.config.config, // 传入完整配置
