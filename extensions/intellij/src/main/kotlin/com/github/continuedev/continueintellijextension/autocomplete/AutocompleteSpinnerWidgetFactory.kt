@@ -42,7 +42,7 @@ class AutocompleteSpinnerWidget(project: Project) : EditorBasedWidget(project), 
 
     override fun getTooltipText(): String {
         val enabled = service<ContinueExtensionSettings>().state.enableTabAutocomplete
-        return if (enabled) "Continue autocomplete enabled" else "Continue autocomplete disabled"
+        return if (enabled) "TA+3 牛码自动补全已启用" else "TA+3 牛码自动补全已禁用"
     }
 
     override fun getClickConsumer(): Consumer<MouseEvent>? {
@@ -89,7 +89,7 @@ class AutocompleteSpinnerWidgetFactory : StatusBarWidgetFactory {
     }
 
     override fun getDisplayName(): String {
-        return "Continue Autocomplete"
+        return "TA+3 牛码自动补全"
     }
 
     override fun isAvailable(p0: Project): Boolean {

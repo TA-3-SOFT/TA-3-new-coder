@@ -874,6 +874,7 @@ export interface StructuredAgentWorkflowState {
   executionPlan?: string;
   isWaitingForConfirmation: boolean;
   userFeedback?: string;
+  stepHistoryStartIndex?: number; // 当前步骤开始的历史记录索引
 }
 
 export type ContextProviderName =

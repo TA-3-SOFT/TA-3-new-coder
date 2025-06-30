@@ -11,6 +11,7 @@ class Anthropic extends BaseLLM {
     completionOptions: {
       model: "claude-3-5-sonnet-latest",
       maxTokens: 8192,
+      temperature: 0,
     },
     apiBase: "https://api.anthropic.com/v1/",
   };
