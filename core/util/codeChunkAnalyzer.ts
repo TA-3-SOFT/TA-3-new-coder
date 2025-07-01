@@ -14,6 +14,7 @@ export interface ScoredChunk {
   start_line: number;
   score: number;
   code: string;
+  module?: string;  // 可选的模块信息
 }
 
 export interface RelevanceScore {
@@ -26,13 +27,17 @@ export interface RelevanceEvaluationResult {
   scores: RelevanceScore[];
 }
 
+export interface ModuleFileMap {
+  [moduleName: string]: string[];
+}
+
 export class CodeSnippetAnalyzer {
-  private maxChunkSize: number;
+  protected maxChunkSize: number;
   private systemPrompt: string;
 
   constructor(
-    private ide: IDE,
-    private llm?: ILLM,
+    protected ide: IDE,
+    protected llm?: ILLM,
     maxChunkSize: number = 2000,
   ) {
     this.maxChunkSize = maxChunkSize;
@@ -206,16 +211,19 @@ export class CodeSnippetAnalyzer {
 
   /**
    * 获取相关代码片段 (对应Python的get_relevant_snippets函数)
+   * @param moduleFileMap 模块名到文件列表的映射
+   * @param userRequest 用户请求
+   * @param topN 返回的代码片段数量
+   * @param batchSize 批处理大小
    */
   async getRelevantSnippets(
-    modules: string[],
-    files: string[],
+    moduleFileMap: ModuleFileMap,
     userRequest: string,
     topN: number = 5,
     batchSize: number = 10,
   ): Promise<ScoredChunk[]> {
-    if (!modules.length || !files.length || !userRequest) {
-      throw new Error("模块、文件和用户请求必须提供且非空");
+    if (!Object.keys(moduleFileMap).length || !userRequest) {
+      throw new Error("模块文件映射和用户请求必须提供且非空");
     }
 
     // 获取当前IDE打开的工作空间目录
@@ -240,7 +248,7 @@ export class CodeSnippetAnalyzer {
     const allChunks: CodeChunk[] = [];
     const tasks: Promise<CodeChunk[]>[] = [];
 
-    for (const module of modules) {
+    for (const [module, files] of Object.entries(moduleFileMap)) {
       const modulePath = path.join(normalizedBasePath, module);
       for (const file of files) {
         const filePath = path.join(modulePath, file);

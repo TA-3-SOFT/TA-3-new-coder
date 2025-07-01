@@ -17,19 +17,16 @@ export const codeChunkAnalysisTool: Tool = {
     parameters: {
       type: "object",
       properties: {
-        modules: {
-          type: "array",
-          items: {
-            type: "string",
+        moduleFileMap: {
+          type: "object",
+          description:
+            '模块名到文件列表的映射，格式：{"模块路径": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）"]}',
+          additionalProperties: {
+            type: "array",
+            items: {
+              type: "string",
+            },
           },
-          description: "要分析的模块",
-        },
-        files: {
-          type: "array",
-          items: {
-            type: "string",
-          },
-          description: "要分析的文件列表（相对于模块路径）",
         },
         userRequest: {
           type: "string",
@@ -51,7 +48,7 @@ export const codeChunkAnalysisTool: Tool = {
           default: 2000,
         },
       },
-      required: ["modules", "files", "userRequest"],
+      required: ["moduleFileMap", "userRequest"],
     },
   },
 };

@@ -105,11 +105,11 @@ ${requirementFinal}
 ${requirementFinal}
 ---
 
-你是一名资深AI开发工程师，基于上面的详细需求和用户给出的项目理解的结果，进行详细的代码分析。要求：
-1. 使用code_chunk_analysis工具，基于用户给出的project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为modules和files参数，传入上面完成的详细需求作为userRequest参数，依次分析推荐的每个模块下的代码文件
-2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则依次调用3次code_chunk_analysis工具，每次调用传入模块作为modules参数，传入模块下所有5个推荐文件作为files参数
+你是一名资深AI开发工程师，基于拆分的子需求和上一步项目理解的结果，进行详细的代码分析。要求：
+1. 使用code_chunk_analysis工具，基于上一步project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为moduleFileMap参数，依次分析推荐的每个模块下的代码文件
+2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则调用code_chunk_analysis工具，moduleFileMap格式：{"模块路径": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）"]}
 3. 依次调用完code_chunk_analysis工具后，如果code_chunk_analysis调用成功，不要再调用其他tools了，根据结果代码分析，完成回答
-
+  
 回答完成后请输出以下固定格式：
 ***【用户操作】***：✅ **步骤完成，等待您的确认**
 
