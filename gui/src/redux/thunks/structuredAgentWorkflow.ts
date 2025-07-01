@@ -1,6 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { JSONContent } from "@tiptap/core";
 import { ContextItem, StructuredAgentStepType } from "core";
+import { BuiltInToolNames } from "core/tools/builtIn";
 import { ThunkApiType } from "../store";
 import {
   resetStructuredAgentWorkflow,
@@ -20,6 +21,7 @@ let WORKFLOW_STEPS: Array<{
   title: string;
   systemPrompt: () => string;
   needsConfirmation: boolean;
+  allowedTools?: string[]; // 该步骤允许使用的工具名称列表
 }> = [
   {
     step: "requirement-breakdown",
@@ -37,7 +39,7 @@ let WORKFLOW_STEPS: Array<{
     // "确认"继续流程下一步，或输入具体的调整建议`,
     systemPrompt:
       () => `你是一个很有用的需求设计分析助手，你能帮助用户按照他提供的需求设计进行拆解和分析。
-    
+
 ## 你的任务如下：
 1. 如果是复杂需求和设计，请将需求分解为子需求和设计，需求和设计一一对应。
 2. 如果需求设计中不太明确的地方，请将疑问记下来并问用户。
@@ -77,6 +79,7 @@ let WORKFLOW_STEPS: Array<{
 请在输入框中输入：
 "确认"继续流程下一步，或输入具体的调整建议`,
     needsConfirmation: true,
+    allowedTools: [], // 需求拆分步骤不使用任何工具
   },
   {
     step: "project-understanding",
@@ -96,6 +99,7 @@ ${requirementFinal}
 请在输入框中输入：
 "确认"继续流程下一步，或输入具体的调整建议`,
     needsConfirmation: true,
+    allowedTools: [BuiltInToolNames.ProjectAnalysis], // 项目理解步骤只允许使用项目分析工具
   },
   {
     step: "code-analysis",
@@ -105,17 +109,19 @@ ${requirementFinal}
 ${requirementFinal}
 ---
 
-你是一名资深AI开发工程师，基于拆分的子需求和上一步项目理解的结果，进行详细的代码分析。要求：
-1. 使用code_chunk_analysis工具，基于上一步project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为moduleFileMap参数，依次分析推荐的每个模块下的代码文件
-2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则调用code_chunk_analysis工具，moduleFileMap格式：{"模块路径": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）"]}
+你是一名资深软件设计工程师，基于上面的详细需求和用户给出的项目理解的结果，进行详细的代码分析。要求：
+1. 使用code_chunk_analysis工具，基于用户给出的project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为moduleFileMap参数，传入上面完成的详细需求作为userRequest参数，依次分析推荐的每个模块下的代码文件
+2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则调用code_chunk_analysis工具，调用传入所有模块和推荐文件作为moduleFileMap参数，moduleFileMap格式：{"模块路径": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）"]}
 3. 依次调用完code_chunk_analysis工具后，如果code_chunk_analysis调用成功，不要再调用其他tools了，根据结果代码分析，完成回答
-  
+4. 只管设计工作，不要完成代码编写这类开发工作
+
 回答完成后请输出以下固定格式：
 ***【用户操作】***：✅ **步骤完成，等待您的确认**
 
 请在输入框中输入：
 "确认"继续流程下一步，或输入具体的调整建议`,
     needsConfirmation: true,
+    allowedTools: [BuiltInToolNames.CodeChunkAnalysis], // 代码分析步骤只允许使用代码块分析工具
   },
   {
     step: "plan-creation",
@@ -125,9 +131,10 @@ ${requirementFinal}
 ${requirementFinal}
 ---
 
-你是一名资深AI开发工程师，基于上面的详细需求以及用户给出的代码分析结果制定详细的实施计划。要求：
+你是一名资深软件开发设计工程师，基于上面的详细需求以及用户给出的代码分析结果制定详细的实施计划。要求：
 1. 能实现所有需求的开发任务列表
 2. 每个任务的具体实施步骤、相关文件修改的详细计划
+3. 只管设计工作，不要完成代码编写这类开发工作
 
 回答完成后请输出以下固定格式：
 ***【用户操作】***：✅ **步骤完成，等待您的确认**
@@ -135,6 +142,14 @@ ${requirementFinal}
 请在输入框中输入：
 "确认"继续流程下一步，或输入具体的调整建议`,
     needsConfirmation: true,
+    allowedTools: [
+      // 制定计划步骤允许使用只读工具来查看和分析代码
+      BuiltInToolNames.ReadFile,
+      BuiltInToolNames.GrepSearch,
+      BuiltInToolNames.FileGlobSearch,
+      BuiltInToolNames.LSTool,
+      BuiltInToolNames.ViewDiff,
+    ],
   },
   {
     step: "plan-execution",
@@ -144,7 +159,7 @@ ${requirementFinal}
 ${requirementFinal}
 ---
 
-你是一名资深AI开发工程师，基于上面的详细需求，和用户给出的实施计划。使用可用的工具来进行开发工作，要求：
+你是一名资深软件开发工程师，基于上面的详细需求，和用户给出的实施计划。使用可用的工具来进行开发工作，要求：
 1. 按照计划的顺序逐步实施
 2. 使用编辑工具对每个文件进行精确的修改
 3. 确保代码质量和一致性
@@ -152,6 +167,18 @@ ${requirementFinal}
 
 执行完成后做出总结，结束流程`,
     needsConfirmation: false,
+    allowedTools: [
+      // 执行计划步骤允许使用所有工具
+      // BuiltInToolNames.ReadFile,
+      // BuiltInToolNames.EditExistingFile,
+      // BuiltInToolNames.CreateNewFile,
+      // BuiltInToolNames.RunTerminalCommand,
+      // BuiltInToolNames.GrepSearch,
+      // BuiltInToolNames.FileGlobSearch,
+      // BuiltInToolNames.LSTool,
+      // BuiltInToolNames.ViewDiff,
+      // BuiltInToolNames.SearchWeb,
+    ],
   },
 ];
 
@@ -242,8 +269,9 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
 
     // 如果是代码分析步骤，添加 project_analysis 的结果
     if (step === "code-analysis") {
-      const projectAnalysisResult = getProjectAnalysisResult(
+      const projectAnalysisResult = getProjectToolResult(
         state.session.history,
+        "project_analysis",
       );
       if (projectAnalysisResult) {
         promptPreamble += `## project_analysis 工具的分析结果：\n${projectAnalysisResult}\n\n`;
@@ -251,8 +279,9 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     }
 
     if (step === "plan-creation") {
-      const codeChunkAnalysisResult = getCodeChunkAnaysisResult(
+      const codeChunkAnalysisResult = getProjectToolResult(
         state.session.history,
+        "code_chunk_analysis",
       );
       if (codeChunkAnalysisResult) {
         promptPreamble += `## 代码分析 的结果：\n${codeChunkAnalysisResult}\n\n`;
@@ -475,8 +504,9 @@ export const getCurrentStepInfo = (step: StructuredAgentStepType) => {
 export const getToolCallResult = (
   history: any[],
   toolName: string,
-): ContextItem[] | null => {
+): ContextItem[][] | null => {
   // 从历史记录中查找最近的指定工具调用
+  let result = [];
   for (let i = history.length - 1; i >= 0; i--) {
     const historyItem = history[i];
     if (
@@ -487,41 +517,35 @@ export const getToolCallResult = (
         if (toolCall.function.name === toolName) {
           const toolCallState = findToolCall(history, toolCall.id);
           if (toolCallState && toolCallState.output) {
-            return toolCallState.output;
+            result.push(toolCallState.output);
           }
         }
       }
     }
   }
-  return null;
+  return result.length > 0 ? result : null;
 };
 
-// 获取 project_analysis 工具调用的返回结果
-export const getProjectAnalysisResult = (history: any[]): string | null => {
-  let contextItems = getToolCallResult(history, "project_analysis");
-  if (!contextItems || contextItems.length === 0) {
-    return null;
+// 获取项目工具调用的返回结果
+export const getProjectToolResult = (
+  history: any[],
+  toolName: string,
+): string | null => {
+  let contextItems = getToolCallResult(history, toolName);
+  let result = "";
+  // 遍历contextItem
+  if (contextItems) {
+    for (const contextItem of contextItems) {
+      if (!contextItem || contextItem.length === 0) {
+        continue;
+      }
+
+      const analysisResult = contextItem[0];
+      if (!analysisResult || !analysisResult.content) {
+        continue;
+      }
+      result += analysisResult.content + "\n\n";
+    }
   }
-
-  const analysisResult = contextItems[0];
-  if (!analysisResult || !analysisResult.content) {
-    return null;
-  }
-
-  return analysisResult.content;
-};
-
-// 获取 code_chunk_analysis 工具调用的返回结果
-export const getCodeChunkAnaysisResult = (history: any[]): string | null => {
-  let contextItems = getToolCallResult(history, "code_chunk_analysis");
-  if (!contextItems || contextItems.length === 0) {
-    return null;
-  }
-
-  const analysisResult = contextItems[0];
-  if (!analysisResult || !analysisResult.content) {
-    return null;
-  }
-
-  return analysisResult.content;
+  return result;
 };
