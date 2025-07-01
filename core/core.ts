@@ -701,7 +701,7 @@ export class Core {
       }
     });
 
-    on("tools/call", async ({ data: { toolCall } }) => {
+    on("tools/call", async ({ data: { toolCall, contextData } }) => {
       const { config } = await this.configHandler.loadConfig();
       if (!config) {
         throw new Error("Config not loaded");
@@ -736,6 +736,7 @@ export class Core {
         tool,
         toolCallId: toolCall.id,
         onPartialOutput,
+        contextData,
       });
     });
 

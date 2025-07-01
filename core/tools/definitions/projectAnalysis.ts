@@ -19,15 +19,15 @@ export const projectAnalysisTool: Tool = {
       properties: {
         workspaceDir: {
           type: "string",
-          description: "要分析的工作空间目录路径（可选，默认使用当前工作空间）",
+          description: "要分析的工作空间目录路径（弃用，默认使用当前工作空间）",
         },
         requirement: {
           type: "string",
           description:
-            "原始需求拆分后的子需求，用于推荐相关的模块和文件（必选）",
+            "原始需求拆分后的子需求，用于推荐相关的模块和文件（弃用，默认从contextData中获取）",
         },
       },
-      required: ["requirement"],
+      required: [],
     },
   },
 };

@@ -1,6 +1,6 @@
 import { ToolImpl } from ".";
 import { CodeSnippetAnalyzer } from "../../util/codeChunkAnalyzer.js";
-import { CodeVectorAnalyzer } from "../../util/codeVectorAnalyzer.js";
+// import { CodeVectorAnalyzer } from "../../util/codeVectorAnalyzer.js";
 
 export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
   const {
@@ -13,79 +13,116 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
     useKeywordMatching,
   } = args;
 
+  const finalUserRequest = extras.contextData?.requirementFinal || userRequest;
+
   try {
     // 验证参数
-    if (!moduleFileMap || typeof moduleFileMap !== "object" || Object.keys(moduleFileMap).length === 0) {
+    if (
+      !moduleFileMap ||
+      typeof moduleFileMap !== "object" ||
+      Object.keys(moduleFileMap).length === 0
+    ) {
       return [
         {
           name: "代码片段分析错误",
           description: "参数验证失败",
-          content: "moduleFileMap 参数必须是非空对象，格式：{\"模块路径\": [\"文件1\", \"文件2\"]}",
+          content:
+            'moduleFileMap 参数必须是非空对象，格式：{"模块路径": ["文件1", "文件2"]}',
         },
       ];
     }
 
-    if (!userRequest || typeof userRequest !== "string") {
+    if (!finalUserRequest || typeof finalUserRequest !== "string") {
       return [
         {
           name: "代码片段分析错误",
           description: "参数验证失败",
-          content: "userRequest 参数必须是非空字符串",
+          content: "finalUserRequest 参数必须是非空字符串",
         },
       ];
     }
 
     // 根据分析方法选择分析器
-    let analyzer: CodeSnippetAnalyzer | CodeVectorAnalyzer;
+    // let analyzer: CodeSnippetAnalyzer | CodeVectorAnalyzer;
+    let analyzer: CodeSnippetAnalyzer;
     let methodUsed: string;
 
     // 获取嵌入提供者
     const embeddingsProvider = extras.config?.selectedModelByRole?.embed;
 
-    if (analysisMethod === "vector") {
-      if (!embeddingsProvider) {
-        return [
-          {
-            name: "代码片段分析错误",
-            description: "向量化方法需要嵌入提供者",
-            content: "向量化分析方法需要配置嵌入模型。请在配置中设置 embeddingsProvider。",
-          },
-        ];
-      }
-      analyzer = new CodeVectorAnalyzer(extras.ide, embeddingsProvider, extras.llm, maxChunkSize);
-      methodUsed = "向量化匹配";
-    } else if (analysisMethod === "llm") {
-      analyzer = new CodeSnippetAnalyzer(extras.ide, extras.llm, maxChunkSize);
-      methodUsed = "LLM语义分析";
-    } else {
-      // auto: 根据需求复杂度自动选择
-      if ((userRequest.length > 100 || userRequest.split(/[，。,\.]/).length > 3) && embeddingsProvider) {
-        analyzer = new CodeVectorAnalyzer(extras.ide, embeddingsProvider, extras.llm, maxChunkSize);
-        methodUsed = "向量化匹配（自动选择）";
-      } else {
-        analyzer = new CodeSnippetAnalyzer(extras.ide, extras.llm, maxChunkSize);
-        methodUsed = "LLM语义分析（自动选择）";
-      }
-    }
+    // if (analysisMethod === "vector") {
+    //   if (!embeddingsProvider) {
+    //     return [
+    //       {
+    //         name: "代码片段分析错误",
+    //         description: "向量化方法需要嵌入提供者",
+    //         content:
+    //           "向量化分析方法需要配置嵌入模型。请在配置中设置 embeddingsProvider。",
+    //       },
+    //     ];
+    //   }
+    //   analyzer = new CodeVectorAnalyzer(
+    //     extras.ide,
+    //     embeddingsProvider,
+    //     extras.llm,
+    //     maxChunkSize,
+    //   );
+    //   methodUsed = "向量化匹配";
+    // } else if (analysisMethod === "llm") {
+    //   analyzer = new CodeSnippetAnalyzer(extras.ide, extras.llm, maxChunkSize);
+    //   methodUsed = "LLM语义分析";
+    // } else {
+    //   // auto: 根据需求复杂度自动选择
+    //   if (
+    //     (finalUserRequest.length > 100 ||
+    //       finalUserRequest.split(/[，。,\.]/).length > 3) &&
+    //     embeddingsProvider
+    //   ) {
+    //     analyzer = new CodeVectorAnalyzer(
+    //       extras.ide,
+    //       embeddingsProvider,
+    //       extras.llm,
+    //       maxChunkSize,
+    //     );
+    //     methodUsed = "向量化匹配（自动选择）";
+    //   } else {
+    //     analyzer = new CodeSnippetAnalyzer(
+    //       extras.ide,
+    //       extras.llm,
+    //       maxChunkSize,
+    //     );
+    //     methodUsed = "LLM语义分析（自动选择）";
+    //   }
+    // }
+
+    analyzer = new CodeSnippetAnalyzer(extras.ide, extras.llm, maxChunkSize);
+    methodUsed = "LLM语义分析";
 
     // 调用分析器
     let snippets;
-    if (analyzer instanceof CodeVectorAnalyzer) {
-      snippets = await analyzer.getRelevantSnippets(
-        moduleFileMap,
-        userRequest,
-        topN,
-        batchSize,
-        useKeywordMatching,
-      );
-    } else {
-      snippets = await analyzer.getRelevantSnippets(
-        moduleFileMap,
-        userRequest,
-        topN,
-        batchSize,
-      );
-    }
+    // if (analyzer instanceof CodeVectorAnalyzer) {
+    //   snippets = await analyzer.getRelevantSnippets(
+    //     moduleFileMap,
+    //     finalUserRequest,
+    //     topN,
+    //     batchSize,
+    //     useKeywordMatching,
+    //   );
+    // } else {
+    //   snippets = await analyzer.getRelevantSnippets(
+    //     moduleFileMap,
+    //     finalUserRequest,
+    //     topN,
+    //     batchSize,
+    //   );
+    // }
+
+    snippets = await analyzer.getRelevantSnippets(
+      moduleFileMap,
+      finalUserRequest,
+      topN,
+      batchSize,
+    );
 
     if (!snippets.length) {
       const moduleList = Object.keys(moduleFileMap);
@@ -94,7 +131,7 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
         {
           name: "代码片段分析结果",
           description: "未找到相关代码片段",
-          content: `根据需求 "${userRequest}" 在指定的模块和文件中未找到相关的代码片段。\n\n分析方法: ${methodUsed}\n分析的模块: ${moduleList.join(", ")}\n分析的文件: ${fileList.join(", ")}`,
+          content: `根据需求在指定的模块和文件中未找到相关的代码片段。\n\n分析方法: ${methodUsed}\n分析的模块: ${moduleList.join(", ")}\n分析的文件: ${fileList.join(", ")}`,
         },
       ];
     }
@@ -104,7 +141,7 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
     const fileList = Object.values(moduleFileMap).flat();
 
     let content = `# 代码片段相关性分析报告\n\n`;
-    content += `**用户需求:** ${userRequest}\n\n`;
+    // content += `**用户需求:** ${finalUserRequest}\n\n`;
     content += `**分析方法:** ${methodUsed}\n\n`;
     content += `**分析范围:**\n`;
     content += `- 模块: ${moduleList.join(", ")}\n`;

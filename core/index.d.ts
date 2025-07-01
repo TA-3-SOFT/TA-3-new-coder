@@ -875,6 +875,7 @@ export interface StructuredAgentWorkflowState {
   isWaitingForConfirmation: boolean;
   userFeedback?: string;
   stepHistoryStartIndex?: number; // 当前步骤开始的历史记录索引
+  requirementFinal?: string; // 最终确定的需求，用于传递给工具
 }
 
 export type ContextProviderName =
@@ -992,6 +993,8 @@ export interface ToolExtras {
     contextItems: ContextItem[];
   }) => void;
   config: ContinueConfig;
+  // 额外的上下文数据，用于传递不通过参数传递的信息
+  contextData?: Record<string, any>;
 }
 
 export interface Tool {

@@ -74,8 +74,21 @@ export const callCurrentTool = createAsyncThunk<void, undefined, ThunkApiType>(
       streamResponse = respondImmediately;
     } else {
       // Tool is called on core side
+      // 构建contextData，在结构化智能体模式下传递requirementFinal
+      let contextData: Record<string, any> | undefined = undefined;
+      const messageMode = state.session.mode;
+      if (messageMode === "structured-agent") {
+        const workflow = state.session.structuredAgentWorkflow;
+        if (workflow.isActive && workflow.requirementFinal) {
+          contextData = {
+            requirementFinal: workflow.requirementFinal,
+          };
+        }
+      }
+
       const result = await extra.ideMessenger.request("tools/call", {
         toolCall: toolCallState.toolCall,
+        contextData,
       });
       if (result.status === "error") {
         throw new Error(result.error);

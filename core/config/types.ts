@@ -894,6 +894,8 @@ declare global {
     ide: IDE;
     llm: ILLM;
     fetch: FetchFunction;
+    // 额外的上下文数据，用于传递不通过参数传递的信息
+    contextData?: Record<string, any>;
   }
   
   export interface Tool {

@@ -1,6 +1,10 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { JSONContent } from "@tiptap/core";
-import { ContextItem, StructuredAgentStepType } from "core";
+import {
+  ContextItem,
+  StructuredAgentStepType,
+  StructuredAgentWorkflowState,
+} from "core";
 import { BuiltInToolNames } from "core/tools/builtIn";
 import { ThunkApiType } from "../store";
 import {
@@ -26,19 +30,8 @@ let WORKFLOW_STEPS: Array<{
   {
     step: "requirement-breakdown",
     title: "需求拆分",
-    //     systemPrompt: `你是一名资深AI开发工程师，请将用户给出的复杂需求拆解为可独立执行的子需求，要求：
-    // 1.子需求不要超过5个
-    // 2.每个子需求简单明了
-    // 3.不要调用任何tools工具
-    //
-    // 回答完成后请输出以下固定格式：
-    // ---
-    // ✅ **步骤完成，等待您的确认**
-    //
-    // 请在输入框中输入：
-    // "确认"继续流程下一步，或输入具体的调整建议`,
     systemPrompt:
-      () => `你是一个很有用的需求设计分析助手，你能帮助用户按照他提供的需求设计进行拆解和分析。
+      () => `你是一个很有用的软件需求设计分析助手，你能帮助用户按照他提供的需求设计进行拆解和分析。
 
 ## 你的任务如下：
 1. 如果是复杂需求和设计，请将需求分解为子需求和设计，需求和设计一一对应。
@@ -89,8 +82,8 @@ let WORKFLOW_STEPS: Array<{
 ${requirementFinal}
 ---
 
-你是一名资深AI开发工程师，基于上面的详细需求，了解项目结构相关知识。要求：
-1. 使用project_analysis工具来分析当前Maven项目的结构，必须将完整的详细需求作为参数传递给该工具。
+你是一名资深软件设计工程师，基于上面的详细需求，了解项目结构相关知识。要求：
+1. 使用project_analysis工具来分析当前Maven项目的结构，禁止传递任何参数给该工具（都使用默认的）。
 2. 调用project_analysis工具后，根据结果总结回答，不要再调用其他tools了。
 
 回答完成后请输出以下固定格式：
@@ -110,8 +103,8 @@ ${requirementFinal}
 ---
 
 你是一名资深软件设计工程师，基于上面的详细需求和用户给出的项目理解的结果，进行详细的代码分析。要求：
-1. 使用code_chunk_analysis工具，基于用户给出的project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为moduleFileMap参数，传入上面完成的详细需求作为userRequest参数，依次分析推荐的每个模块下的代码文件
-2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则调用code_chunk_analysis工具，调用传入所有模块和推荐文件作为moduleFileMap参数，moduleFileMap格式：{"模块路径": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）"]}
+1. 使用code_chunk_analysis工具，基于用户给出的project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为moduleFileMap参数，不要传入userRequest参数（使用默认的）分析推荐的每个模块下的代码文件
+2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则调用code_chunk_analysis工具，调用传入所有模块和推荐文件作为moduleFileMap参数，moduleFileMap格式：{"模块1": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）..."],"模块2": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）..."], "模块3": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）..."]}
 3. 依次调用完code_chunk_analysis工具后，如果code_chunk_analysis调用成功，不要再调用其他tools了，根据结果代码分析，完成回答
 4. 只管设计工作，不要完成代码编写这类开发工作
 
@@ -169,15 +162,15 @@ ${requirementFinal}
     needsConfirmation: false,
     allowedTools: [
       // 执行计划步骤允许使用所有工具
-      // BuiltInToolNames.ReadFile,
-      // BuiltInToolNames.EditExistingFile,
-      // BuiltInToolNames.CreateNewFile,
-      // BuiltInToolNames.RunTerminalCommand,
-      // BuiltInToolNames.GrepSearch,
-      // BuiltInToolNames.FileGlobSearch,
-      // BuiltInToolNames.LSTool,
-      // BuiltInToolNames.ViewDiff,
-      // BuiltInToolNames.SearchWeb,
+      BuiltInToolNames.ReadFile,
+      BuiltInToolNames.EditExistingFile,
+      BuiltInToolNames.CreateNewFile,
+      BuiltInToolNames.RunTerminalCommand,
+      BuiltInToolNames.GrepSearch,
+      BuiltInToolNames.FileGlobSearch,
+      BuiltInToolNames.LSTool,
+      BuiltInToolNames.ViewDiff,
+      BuiltInToolNames.SearchWeb,
     ],
   },
 ];
@@ -229,15 +222,6 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
       console.error(`Unknown workflow step: ${step}`);
       return;
     }
-
-    // 更新步骤状态
-    const stepIndex = WORKFLOW_STEPS.findIndex((s) => s.step === step);
-    dispatch(
-      updateStructuredAgentStep({
-        step,
-        stepIndex: stepIndex + 1,
-      }),
-    );
 
     // 如果有用户反馈，先保存
     if (userFeedback) {
@@ -339,6 +323,18 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
         ],
       };
     }
+
+    let updateData: Partial<StructuredAgentWorkflowState> = {};
+    updateData.requirementFinal = requirementFinal || "";
+    // 更新步骤状态
+    const stepIndex = WORKFLOW_STEPS.findIndex((s) => s.step === step);
+    dispatch(
+      updateStructuredAgentStep({
+        step,
+        stepIndex: stepIndex + 1,
+        data: updateData,
+      }),
+    );
 
     // 构建动态系统消息
     let dynamicSystemMessage = stepConfig.systemPrompt();

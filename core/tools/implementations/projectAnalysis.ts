@@ -4,6 +4,9 @@ import { ProjectAnalyzer } from "../../util/projectAnalyzer.js";
 export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
   const { workspaceDir, requirement } = args;
 
+  // 优先从contextData中获取requirementFinal，如果没有则使用参数中的requirement
+  const finalRequirement = extras.contextData?.requirementFinal || requirement;
+
   try {
     const analyzer = new ProjectAnalyzer(extras.ide, extras.llm);
 
@@ -50,13 +53,13 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
     let content = ``;
 
     // 如果提供了需求，进行模块和文件推荐
-    if (requirement) {
+    if (finalRequirement) {
       content += `## 基于需求的推荐分析\n\n`;
-      content += `**用户需求**: ${requirement}\n\n`;
+      // content += `**用户需求**: ${finalRequirement}\n\n`;
 
       try {
         const recommendation = await analyzer.recommendModulesAndFiles(
-          requirement,
+          finalRequirement,
           projectStructure,
           rootDir,
         );
@@ -65,7 +68,7 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
         // content += `**推荐模块**: ${recommendation.recommended_modules.join(", ")}\n`;
         // content += `**推荐理由**: ${recommendation.module_reasoning}\n\n`;
 
-        content += `### 推荐的文件\n`;
+        // content += `### 推荐的文件\n`;
         for (const fileRec of recommendation.recommended_files) {
           content += `#### 模块: ${fileRec.module}\n`;
           content += `**推荐文件**:\n`;

@@ -30,7 +30,8 @@ export const codeChunkAnalysisTool: Tool = {
         },
         userRequest: {
           type: "string",
-          description: "完整的详细需求，用于评估代码片段的相关性",
+          description:
+            "完整的详细需求，用于评估代码片段的相关性（弃用，默认从contextData中获取）",
         },
         topN: {
           type: "number",
@@ -48,7 +49,7 @@ export const codeChunkAnalysisTool: Tool = {
           default: 2000,
         },
       },
-      required: ["moduleFileMap", "userRequest"],
+      required: ["moduleFileMap"],
     },
   },
 };
