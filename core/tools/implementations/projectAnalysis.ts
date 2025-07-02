@@ -5,7 +5,11 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
   const { workspaceDir, requirement } = args;
 
   // 优先从contextData中获取requirementFinal，如果没有则使用参数中的requirement
-  const finalRequirement = extras.contextData?.requirementFinal || requirement;
+  let finalRequirement = extras.contextData?.requirementFinal || requirement;
+  const userFeedbackContent = extras.contextData?.userFeedbackContent;
+  if (userFeedbackContent) {
+    finalRequirement += `\n\n用户反馈：${userFeedbackContent}`;
+  }
 
   try {
     const analyzer = new ProjectAnalyzer(extras.ide, extras.llm);

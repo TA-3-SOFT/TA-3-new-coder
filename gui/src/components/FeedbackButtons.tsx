@@ -36,7 +36,7 @@ export default function FeedbackButtons({ item }: FeedbackButtonsProps) {
   return (
     <>
       <HeaderButtonWithToolTip
-        text="Helpful"
+        text="有用"
         tabIndex={-1}
         onClick={() => sendFeedback(true)}
       >
@@ -45,7 +45,7 @@ export default function FeedbackButtons({ item }: FeedbackButtonsProps) {
         />
       </HeaderButtonWithToolTip>
       <HeaderButtonWithToolTip
-        text="Unhelpful"
+        text="无用"
         tabIndex={-1}
         onClick={() => sendFeedback(false)}
       >

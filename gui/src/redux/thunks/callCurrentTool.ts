@@ -83,6 +83,9 @@ export const callCurrentTool = createAsyncThunk<void, undefined, ThunkApiType>(
           contextData = {
             requirementFinal: workflow.requirementFinal,
           };
+          if (workflow.userFeedbackContent) {
+            contextData.userFeedbackContent = workflow.userFeedbackContent;
+          }
         }
       }
 

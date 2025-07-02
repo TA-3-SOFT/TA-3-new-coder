@@ -876,6 +876,7 @@ export interface StructuredAgentWorkflowState {
   userFeedback?: string;
   stepHistoryStartIndex?: number; // 当前步骤开始的历史记录索引
   requirementFinal?: string; // 最终确定的需求，用于传递给工具
+  userFeedbackContent?: string; // 用于传递给工具的用户反馈
 }
 
 export type ContextProviderName =

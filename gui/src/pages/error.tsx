@@ -32,7 +32,7 @@ const ErrorPage: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center px-2 py-4 text-center sm:px-8">
-      <h1 className="mb-4 text-3xl font-bold">Oops! Something went wrong</h1>
+      <h1 className="mb-4 text-3xl font-bold">抱歉！出了点问题</h1>
 
       <code className="whitespace-wrap mx-2 mb-4 max-w-full break-words py-2">
         {error.statusText || error.message}
@@ -46,7 +46,7 @@ const ErrorPage: React.FC = () => {
           localStorage.removeItem("inputHistory_chat");
           // localStorage.removeItem("showTutorialCard");
           // localStorage.removeItem("onboardingStatus");
-          navigate("/");
+          navigate("/config");
         }}
       >
         {initialLoad ? (
@@ -54,10 +54,10 @@ const ErrorPage: React.FC = () => {
         ) : (
           <ArrowPathIcon className="h-5 w-5" />
         )}
-        Continue
+        刷新
       </Button>
 
-      <p className="mb-0 mt-6 text-lg">
+      {/* <p className="mb-0 mt-6 text-lg">
         Report the issue on GitHub or Discord:
       </p>
 
@@ -74,7 +74,7 @@ const ErrorPage: React.FC = () => {
         >
           <DiscordIcon size={20} /> <span className="ml-2">Discord</span>
         </SecondaryButton>
-      </div>
+      </div>*/}
     </div>
   );
 };

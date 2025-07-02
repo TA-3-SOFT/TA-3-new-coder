@@ -24,7 +24,7 @@ export function CopyIconButton({
       <HeaderButtonWithToolTip
         tooltipPlacement={tooltipPlacement}
         tabIndex={tabIndex}
-        text={copied ? "Copied" : "Copy"}
+        text={copied ? "已复制" : "复制"}
         onClick={copyText}
       >
         {copied ? (

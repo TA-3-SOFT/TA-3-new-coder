@@ -74,7 +74,7 @@ const ButtonContainer = styled.div`
 `;
 
 const EditButton = styled.button<{ variant: "primary" | "secondary" }>`
-  padding: 6px 12px;
+  padding: 4px 8px;
   border: none;
   border-radius: 4px;
   font-size: ${getFontSize() - 2}px;
@@ -84,7 +84,7 @@ const EditButton = styled.button<{ variant: "primary" | "secondary" }>`
   display: flex;
   align-items: center;
   gap: 4px;
-  min-width: 60px;
+  min-width: 48px;
   justify-content: center;
 
   ${(props) =>

@@ -1,4 +1,8 @@
-import { BarsArrowDownIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  BarsArrowDownIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { ChatHistoryItem } from "core";
 import { renderChatMessage } from "core/util/messageContent";
 import FeedbackButtons from "../FeedbackButtons";
@@ -24,30 +28,30 @@ export default function ResponseActions({
 }: ResponseActionsProps) {
   return (
     <div className="mx-2 flex cursor-default items-center justify-end space-x-1 bg-transparent pb-0 text-xs text-gray-400">
+      {onEdit && (
+        <HeaderButtonWithToolTip
+          testId={`edit-button-${index}`}
+          text="编辑回答"
+          tabIndex={-1}
+          onClick={onEdit}
+        >
+          <PencilIcon className="h-3.5 w-3.5 text-pink-500" />
+        </HeaderButtonWithToolTip>
+      )}
+
       {isTruncated && (
         <HeaderButtonWithToolTip
           tabIndex={-1}
-          text="Continue generation"
+          text="继续生成"
           onClick={onContinueGeneration}
         >
           <BarsArrowDownIcon className="h-3.5 w-3.5 text-gray-500" />
         </HeaderButtonWithToolTip>
       )}
 
-      {onEdit && (
-        <HeaderButtonWithToolTip
-          testId={`edit-button-${index}`}
-          text="Edit"
-          tabIndex={-1}
-          onClick={onEdit}
-        >
-          <PencilIcon className="h-3.5 w-3.5 text-gray-500" />
-        </HeaderButtonWithToolTip>
-      )}
-
       <HeaderButtonWithToolTip
         testId={`delete-button-${index}`}
-        text="Delete"
+        text="删除"
         tabIndex={-1}
         onClick={onDelete}
       >

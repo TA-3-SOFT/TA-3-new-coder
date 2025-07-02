@@ -229,11 +229,13 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     }
 
     let promptPreamble = "";
+    let userFeedbackContent;
     if (userInput && step === "requirement-breakdown") {
       promptPreamble = `用户需求：`;
     }
     if (userFeedback) {
       promptPreamble = `用户反馈：`;
+      userFeedbackContent = promptPreamble + userFeedback;
     }
 
     if (step === "project-understanding") {
@@ -326,6 +328,7 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
 
     let updateData: Partial<StructuredAgentWorkflowState> = {};
     updateData.requirementFinal = requirementFinal || "";
+    updateData.userFeedbackContent = userFeedbackContent;
     // 更新步骤状态
     const stepIndex = WORKFLOW_STEPS.findIndex((s) => s.step === step);
     dispatch(

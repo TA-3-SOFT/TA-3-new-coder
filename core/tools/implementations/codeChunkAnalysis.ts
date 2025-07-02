@@ -13,7 +13,11 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
     useKeywordMatching,
   } = args;
 
-  const finalUserRequest = extras.contextData?.requirementFinal || userRequest;
+  let finalUserRequest = extras.contextData?.requirementFinal || userRequest;
+  const userFeedbackContent = extras.contextData?.userFeedbackContent;
+  if (userFeedbackContent) {
+    finalUserRequest += `\n\n用户反馈：${userFeedbackContent}`;
+  }
 
   try {
     // 验证参数

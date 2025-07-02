@@ -74,20 +74,18 @@ export default function MainTab({
         </>
       ) : (
         <>
-          <p className="xs:w-3/4 w-full text-sm">
-            Log in to quickly build your first custom AI code assistant
-          </p>
+          <p className="xs:w-3/4 w-full text-sm">快速登录接入您的AI代码助手</p>
 
           <Button
             onClick={onGetStarted}
             className="mt-4 grid w-full grid-flow-col items-center gap-2"
           >
-            Get started
+            开始使用
           </Button>
         </>
       )}
 
-      {onboardingCard.activeTab === "ExistingUserHubIntro" ? (
+      {/*{onboardingCard.activeTab === "ExistingUserHubIntro" ? (
         <ButtonSubtext onClick={() => onboardingCard.close(isDialog)}>
           <div className="mt-4 flex cursor-pointer items-center justify-center gap-1">
             <span>Or, use Continue as usual</span>
@@ -101,7 +99,7 @@ export default function MainTab({
             <ChevronRightIcon className="h-3 w-3" />
           </div>
         </ButtonSubtext>
-      )}
+      )}*/}
     </div>
   );
 }
