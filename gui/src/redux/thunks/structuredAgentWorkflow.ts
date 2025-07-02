@@ -458,15 +458,7 @@ export const handleStructuredAgentUserInputThunk = createAsyncThunk<
     const trimmedInput = userInput.trim().toLowerCase();
 
     // 检测确认指令
-    const confirmKeywords = [
-      "确认",
-      "confirm",
-      "ok",
-      "yes",
-      "继续",
-      "continue",
-      "下一步",
-    ];
+    const confirmKeywords = ["确认", "confirm", "ok", "yes"];
     const isConfirm = confirmKeywords.some(
       (keyword) => trimmedInput === keyword || trimmedInput.includes(keyword),
     );
