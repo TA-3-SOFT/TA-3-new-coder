@@ -6,8 +6,9 @@ import styled from "styled-components";
 import { vscBackground } from "..";
 import { useAppSelector } from "../../redux/hooks";
 import { selectUIConfig } from "../../redux/slices/configSlice";
-import { deleteMessage } from "../../redux/slices/sessionSlice";
+import { deleteMessage, editMessage } from "../../redux/slices/sessionSlice";
 import { getFontSize } from "../../util";
+import { varWithFallback } from "../../styles/theme";
 import StyledMarkdownPreview from "../StyledMarkdownPreview";
 import Reasoning from "./Reasoning";
 import ResponseActions from "./ResponseActions";
@@ -29,14 +30,109 @@ const ContentDiv = styled.div<{ fontSize?: number }>`
   overflow: hidden;
 `;
 
+const EditContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  background: ${varWithFallback("editor-background")};
+  border: 1px solid ${varWithFallback("border")};
+  //box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+`;
+
+const EditTextarea = styled.textarea`
+  min-height: 300px;
+  max-height: 60vh;
+  height: 800px;
+  padding: 12px;
+  border: 1px solid ${varWithFallback("border-focus")};
+  border-radius: 6px;
+  background: ${varWithFallback("editor-background")};
+  color: ${varWithFallback("editor-foreground")};
+  font-size: ${getFontSize()}px;
+  font-family: "JetBrains Mono", "Consolas", "Monaco", monospace;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: all 0.2s ease;
+
+  &:focus {
+    border-color: ${varWithFallback("border-focus")};
+    box-shadow: 0 0 0 2px ${varWithFallback("border-focus")}20;
+  }
+
+  &::placeholder {
+    color: ${varWithFallback("description")};
+  }
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+`;
+
+const EditButton = styled.button<{ variant: "primary" | "secondary" }>`
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: ${getFontSize() - 2}px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+  justify-content: center;
+
+  ${(props) =>
+    props.variant === "primary"
+      ? `
+    background: ${varWithFallback("primary-background")};
+    color: ${varWithFallback("primary-foreground")};
+
+    &:hover {
+      background: ${varWithFallback("primary-hover")};
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  `
+      : `
+    background: ${varWithFallback("secondary-background")};
+    color: ${varWithFallback("secondary-foreground")};
+    border: 1px solid ${varWithFallback("border")};
+
+    &:hover {
+      background: ${varWithFallback("secondary-hover")};
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  `}
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
 export default function StepContainer(props: StepContainerProps) {
   const dispatch = useDispatch();
   const [isTruncated, setIsTruncated] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState("");
   const isStreaming = useAppSelector((state) => state.session.isStreaming);
   const historyItemAfterThis = useAppSelector(
     (state) => state.session.history[props.index + 1],
   );
   const uiConfig = useAppSelector(selectUIConfig);
+  const mode = useAppSelector((state) => state.session.mode);
 
   const hideActionSpace =
     historyItemAfterThis?.message.role === "assistant" ||
@@ -79,10 +175,42 @@ export default function StepContainer(props: StepContainerProps) {
     );
   }
 
+  function onEdit() {
+    setEditedContent(renderChatMessage(props.item.message));
+    setIsEditing(true);
+  }
+
+  function onSaveEdit() {
+    dispatch(editMessage({ index: props.index, content: editedContent }));
+    setIsEditing(false);
+  }
+
+  function onCancelEdit() {
+    setIsEditing(false);
+    setEditedContent("");
+  }
+
   return (
     <div>
       <ContentDiv>
-        {uiConfig?.displayRawMarkdown ? (
+        {isEditing ? (
+          <EditContainer>
+            <EditTextarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              placeholder="编辑消息内容..."
+              autoFocus
+            />
+            <ButtonContainer>
+              <EditButton variant="secondary" onClick={onCancelEdit}>
+                取消
+              </EditButton>
+              <EditButton variant="primary" onClick={onSaveEdit}>
+                保存
+              </EditButton>
+            </ButtonContainer>
+          </EditContainer>
+        ) : uiConfig?.displayRawMarkdown ? (
           <pre
             className="max-w-full overflow-x-auto whitespace-pre-wrap break-words p-4"
             style={{ fontSize: getFontSize() - 2 }}
@@ -110,6 +238,12 @@ export default function StepContainer(props: StepContainerProps) {
               isTruncated={isTruncated}
               onDelete={onDelete}
               onContinueGeneration={onContinueGeneration}
+              onEdit={
+                props.item.message.role === "assistant" &&
+                mode === "structured-agent"
+                  ? onEdit
+                  : undefined
+              }
               index={props.index}
               item={props.item}
             />

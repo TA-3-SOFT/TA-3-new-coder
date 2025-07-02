@@ -217,6 +217,15 @@ export const sessionSlice = createSlice({
       // Deletes the current assistant message and the previous user message
       state.history.splice(action.payload - 1, 2);
     },
+    editMessage: (
+      state,
+      action: PayloadAction<{ index: number; content: string }>
+    ) => {
+      const { index, content } = action.payload;
+      if (state.history[index]) {
+        state.history[index].message.content = content;
+      }
+    },
     updateHistoryItemAtIndex: (
       state,
       {
@@ -750,6 +759,7 @@ export const {
   clearLastEmptyResponse,
   setMainEditorContentTrigger,
   deleteMessage,
+  editMessage,
   setIsGatheringContext,
   resetNextCodeBlockToApplyIndex,
   updateApplyState,
