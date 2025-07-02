@@ -55,13 +55,16 @@ export default function StructuredAgentProgress() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-background px-2 py-3">
+    <div className="bg-background flex h-full flex-col px-2 py-3">
       {/* 顶部标题和进度 */}
       <div className="mb-3 text-center">
-        <div className="mb-1 flex items-center justify-center gap-2 text-xs font-medium text-foreground">
+        <div className="text-foreground mb-1 flex items-center justify-center gap-2 text-xs font-medium">
           <span>流程进度</span>
         </div>
-        <div className="text-xs opacity-70" style={{ color: varWithFallback("foreground") }}>
+        <div
+          className="text-xs opacity-70"
+          style={{ color: varWithFallback("foreground") }}
+        >
           {structuredAgentWorkflow.stepIndex}/
           {structuredAgentWorkflow.totalSteps}
         </div>
@@ -70,7 +73,10 @@ export default function StructuredAgentProgress() {
       {/* 当前步骤标题 */}
       {currentStep && (
         <div className="mb-3 px-1 text-center">
-          <div className="mb-1 text-xs font-medium" style={{ color: varWithFallback("primary-background") }}>
+          <div
+            className="mb-1 text-xs font-medium"
+            style={{ color: varWithFallback("primary-background") }}
+          >
             {currentStep.title}
           </div>
         </div>
@@ -145,9 +151,10 @@ export default function StructuredAgentProgress() {
                 <div
                   className="h-4 w-0.5 transition-all duration-300"
                   style={{
-                    backgroundColor: index < currentStepIndex
-                      ? varWithFallback("success")
-                      : varWithFallback("border"),
+                    backgroundColor:
+                      index < currentStepIndex
+                        ? varWithFallback("success")
+                        : varWithFallback("border"),
                     opacity: index < currentStepIndex ? 0.6 : 1,
                   }}
                 />
@@ -168,11 +175,19 @@ export default function StructuredAgentProgress() {
         {/* 底部等待确认提示 */}
         {structuredAgentWorkflow.isWaitingForConfirmation && (
           <div className="mt-2 text-center">
-            <div className="mb-1 text-xs" style={{ color: varWithFallback("foreground") }}>💬</div>
-            <div className="text-xs leading-tight opacity-70" style={{ color: varWithFallback("foreground") }}>
-              输入"确认"
+            <div
+              className="mb-1 text-xs"
+              style={{ color: varWithFallback("foreground") }}
+            >
+              💬
+            </div>
+            <div
+              className="text-xs leading-tight opacity-70"
+              style={{ color: varWithFallback("foreground") }}
+            >
+              用户确认
               <br />
-              或修改建议
+              操作
             </div>
           </div>
         )}
