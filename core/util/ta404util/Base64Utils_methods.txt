@@ -1,0 +1,4 @@
+Package Path: com.yinhai.tools.deps.crypto
+
+public static String byte2Base64(byte[] bytes);
+

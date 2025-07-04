@@ -1,0 +1,6 @@
+Package Path: com.yinhai.tools.basic.string.regex.org
+
+public static boolean matches(String code);
+
+public static boolean matchesLoose(String code);
+

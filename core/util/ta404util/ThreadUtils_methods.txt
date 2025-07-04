@@ -1,0 +1,12 @@
+Package Path: com.yinhai.tools.basic.thread
+
+public static Future<?> execute(Runnable task, ExecutorService executor);
+
+public static Thread[] getThreadsInGroup();
+
+public static <V> void waitForAllTasks(List<Future<V>> futures);
+
+public static <V> void waitForAnyTask(List<Future<V>> futures);
+
+public static <T> T getAsyncResult(Future<T> future);
+

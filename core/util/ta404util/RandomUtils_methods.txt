@@ -1,0 +1,22 @@
+Package Path: com.yinhai.tools.basic.random
+
+public static int getRandomInt(int min, int max);
+
+public static double getRandomInt(double min, double max);
+
+public static long getRandomInt(long min, long max);
+
+public static float getRandomInt(float min, float max);
+
+public static String getRandomString(int length);
+
+public static String getRandomNumericString(int length);
+
+public static String getUUID();
+
+public static <T> T getRandomElement(List<T> list);
+
+public static <T> List<T> getRandomUniqueElements(List<T> list, int count);
+
+public static <T> T getWeightedRandomElement(Map<T, Double> weightMap);
+

@@ -1,0 +1,14 @@
+Package Path: com.yinhai.tools.basic.string.sensitive
+
+public static String maskIdCard(String idCard);
+
+public static String maskName(String name);
+
+public static String maskSocialCreditCode(String socialCreditCode);
+
+public static String maskCustom(String content, int prefix, int suffix);
+
+public static String maskCustom(String content, String regex);
+
+public static String maskCustom(String content, String character, Pattern pattern);
+

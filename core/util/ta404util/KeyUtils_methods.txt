@@ -1,0 +1,6 @@
+Package Path: com.yinhai.tools.deps.crypto
+
+public static String loadKeyFromFile(String filePath);
+
+public static void writeToFile(String filePath, byte[] data);
+

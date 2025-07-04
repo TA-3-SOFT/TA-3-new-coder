@@ -1,0 +1,22 @@
+Package Path: com.yinhai.tools.basic.file
+
+public static void addExtraFileTypeMap(Map<String, String> extraMap);
+
+public static void addExtraTxtFileTypeSet(Set<String> extraTxtSuffix);
+
+public static void addFileType(String fileName, String hex);
+
+public static String getFileTypeBySuffix(String fileName);
+
+public static String[] getFileTypeByStream(byte[] bytes);
+
+public static String getImageFileType(File file);
+
+public static String[] getFileTypeByFile(File file);
+
+public static boolean isSupportByFileTypeHeader(byte[] bytes, String fileSuffix, boolean supportTxt);
+
+public static boolean isImage(File file);
+
+public static boolean isImage(InputStream inputStream);
+

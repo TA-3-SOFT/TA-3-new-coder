@@ -1,0 +1,18 @@
+Package Path: com.yinhai.tools.deps.image.qrcode
+
+public static String generateQRCode(String content);
+
+public static String generateQRCodeToBase64DataUri(String content, int width, int height);
+
+public static BitMatrix generateBitMatrix(String content, int width, int height, Map<EncodeHintType, Object> hints) throws WriterException;
+
+public static String recognizeQRCode(String imgBase64DataUri);
+
+public static String recognizeQRCode(BufferedImage qrCodeImage);
+
+public static String generateSVGQRCode(String content, int width, int height);
+
+public static String recognizeSVGQRCode(String svg);
+
+public static String toSVG(BitMatrix matrix, Integer foreColor, Integer backColor, Image logoImg, int ratio);
+

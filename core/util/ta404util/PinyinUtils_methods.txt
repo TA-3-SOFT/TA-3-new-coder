@@ -1,0 +1,20 @@
+Package Path: com.yinhai.tools.deps.pinyin
+
+public static String toPinyin(String chinese);
+
+public static String getFirstLettersUp(String chineseLanguage);
+
+public static String getFirstLetters(String chineseLanguage, HanyuPinyinCaseType caseType);
+
+public static String getPinyinString(String chineseLanguage);
+
+public static String getFirstLetter(String chineseLanguage);
+
+public static String converterToFirstSpell(String chines, boolean upperCase);
+
+public static String converterToSpell(String chines, boolean upperCase);
+
+public static String getFieldName(String encryptionAll);
+
+public static String getName(int index, String[] names);
+

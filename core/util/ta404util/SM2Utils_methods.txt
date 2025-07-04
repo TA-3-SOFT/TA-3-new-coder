@@ -1,0 +1,26 @@
+Package Path: com.yinhai.tools.deps.crypto
+
+public static void generateKeyPairAndSave(String path);
+
+public static void generateKeyPairAndSave(String pubPath, String priPath);
+
+public static AsymmetricCipherKeyPair generateCipherKeyPair();
+
+public static String decrypt(ECPrivateKeyParameters priKey, String sm2CipherText);
+
+public static byte[] sign(byte[] privateKey, byte[] srcData);
+
+public static byte[] sign(ECPrivateKeyParameters priKey, byte[] srcData);
+
+public static boolean verify(ECPublicKeyParameters pubKey, String srcData, String sign);
+
+public static boolean verify(byte[] publicKey, byte[] srcData, byte[] sign);
+
+public static String convertEcPubKeyToHex(ECPublicKeyParameters pubKey);
+
+public static String convertEcPriKeyToHex(ECPrivateKeyParameters privateKey);
+
+public static void convertEcPriKeyToPem(AsymmetricCipherKeyPair keyPair, String filePath);
+
+public static ECPublicKeyParameters pem2PublicKey(String filePath);
+

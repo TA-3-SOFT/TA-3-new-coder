@@ -1,0 +1,8 @@
+Package Path: com.yinhai.tools.basic.string.regex.phone
+
+public static boolean matches(String phone);
+
+public static String generateRandomPhoneNumber();
+
+public String getType();
+

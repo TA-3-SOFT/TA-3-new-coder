@@ -1,0 +1,28 @@
+Package Path: com.yinhai.tools.basic.string
+
+public static Character toCharacterObject(final String str);
+
+public static char c(final Character ch);
+
+public static char toChar(final String str);
+
+public static int toIntValue(final char ch);
+
+public static int toIntValue(final char ch, final int defaultValue);
+
+public static int toIntValue(final Character ch);
+
+public static String toString(final char ch);
+
+public static String toString(final Character ch);
+
+public static String unicodeEscaped(final char ch);
+
+public static boolean isAscii(final char ch);
+
+public static boolean isAsciiControl(final char ch);
+
+public static boolean isAsciiAlphaUpper(final char ch);
+
+public static boolean isAsciiNumeric(final char ch);
+

@@ -1,0 +1,80 @@
+Package Path: com.yinhai.tools.basic.assertion
+
+public static void assertNotContains(String str, String substring);
+
+public static void assertInstanceOf(Object obj, Class<?> clazz);
+
+public static void assertSubclass(Class<?> childClass, Class<?> parentClass);
+
+public static <T extends RuntimeException> void isTrue(boolean expression, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void isTrue(boolean expression, String message);
+
+public static <T extends RuntimeException> void isFalse(boolean expression, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void isFalse(boolean expression, String message);
+
+public static <T extends RuntimeException> void isNull(Object object, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void isNull(Object object, String message);
+
+public static <T extends RuntimeException> void isNull(Object object);
+
+public static <T extends RuntimeException> void notNull(Object object, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void notNull(Object object, String message);
+
+public static <T extends RuntimeException> void hasLength(String text, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void hasLength(String text, String message);
+
+public static <T extends RuntimeException> void hasText(String text, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void hasText(String text, String message);
+
+public static <T extends RuntimeException> void doesNotContain(String textToSearch, String substring, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void doesNotContain(String textToSearch, String substring, String message);
+
+public static <T extends RuntimeException> void notEmpty(Object[] array, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void notEmpty(Object[] array, String message);
+
+public static <T extends RuntimeException> void noNullElements(Object[] array, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void noNullElements(Object[] array, String message);
+
+public static <T extends RuntimeException> void notEmpty(Collection<?> collection, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void notEmpty(Collection<?> collection, String message);
+
+public static <T extends RuntimeException> void noNullElements(Collection<?> collection, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void notEmpty(Map<?, ?> map, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void notEmpty(Map<?, ?> map, String message);
+
+public static <T extends RuntimeException> void isInstanceOf(Class<?> type, Object obj, String message, Class<T> exceptionClass);
+
+public static void isInstanceOf(Class<?> type, Object obj, String message);
+
+public static <T extends RuntimeException> void isAssignable(Class<?> superType, Class<?> subType, String message, Class<T> exceptionClass);
+
+public static void isAssignable(Class<?> superType, Class<?> subType, String message);
+
+public static <T extends RuntimeException> void checkBetween(int value, int min, int max, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void checkBetween(int value, int min, int max, String message);
+
+public static <T extends RuntimeException> void checkBetween(long value, long min, long max, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void checkBetween(long value, long min, long max, String message);
+
+public static <T extends RuntimeException> void checkBetween(double value, double min, double max, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void checkBetween(double value, double min, double max, String message);
+
+public static <T extends RuntimeException> void checkBetween(Number value, Number min, Number max, String message, Class<T> exceptionClass);
+
+public static <T extends RuntimeException> void checkBetween(Number value, Number min, Number max, String message);
+

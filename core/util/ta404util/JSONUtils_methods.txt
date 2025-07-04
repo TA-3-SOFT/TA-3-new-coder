@@ -1,0 +1,26 @@
+Package Path: com.yinhai.tools.deps.json
+
+public static ObjectMapper getMapper();
+
+public static <T> T json2Collection(String json, TypeReference<T> typeReference);
+
+public static String collectionToJson(Collection<?> collection);
+
+public static String mapToJson(Map<?, ?> map);
+
+public static String xmlToJson(String xml);
+
+public static String arrayToJson(Object[] array);
+
+public static String objectToJsonString(Object obj);
+
+public static String jsonToXml(String json);
+
+public static <T> T jsonToBean(String json, Class<T> clazz);
+
+public static String getJson(String data);
+
+public static String toJson(String data);
+
+public static String escapeJson(String json);
+

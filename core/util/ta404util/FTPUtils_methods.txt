@@ -1,0 +1,16 @@
+Package Path: com.yinhai.tools.deps.ftp
+
+public static FTPClient createFTPConnection(String host, int port, String username, String password);
+
+public static void uploadFileToFTP(File localFile, String remoteFilePath, FTPClient ftpClient);
+
+public static void downloadFileFromFTP(String remoteFilePath, File localFile, FTPClient ftpClient);
+
+public static void deleteFileFromFTP(String remoteFilePath, FTPClient ftpClient);
+
+public static void moveFileOnFTP(String sourcePath, String destinationPath, FTPClient ftpClient);
+
+public static void renameFileOnFTP(String oldPath, String newPath, FTPClient ftpClient);
+
+public static void closeFTPConnection(FTPClient ftpClient);
+

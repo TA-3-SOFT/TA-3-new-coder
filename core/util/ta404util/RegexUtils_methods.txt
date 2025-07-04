@@ -1,0 +1,18 @@
+Package Path: com.yinhai.tools.basic.string.regex
+
+public static boolean matches(String input, String regex);
+
+public static boolean matchChinese(String input);
+
+public static boolean matchDecimalNonZero(String input);
+
+public static boolean matchNumber(String input);
+
+public static boolean matchLetters(String input);
+
+public static boolean matchDateLoose(String date);
+
+public static boolean matchTime(String time);
+
+public static boolean matchBankCard(String cardNumber);
+

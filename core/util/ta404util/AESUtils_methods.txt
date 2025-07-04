@@ -1,0 +1,12 @@
+Package Path: com.yinhai.tools.deps.crypto
+
+public static String getKey(String keyStr);
+
+public static String encrypt(String key, String content);
+
+public static String encrypt(String key, String content, byte[] iv);
+
+public static String decrypt(String key,String cipherText);
+
+public static String decrypt(String key, String cipherText, byte[] iv);
+

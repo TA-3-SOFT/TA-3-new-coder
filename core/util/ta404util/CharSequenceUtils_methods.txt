@@ -1,0 +1,6 @@
+Package Path: com.yinhai.tools.basic.string
+
+public static CharSequence subSequence(final CharSequence cs, final int start);
+
+public static char[] toCharArray(final CharSequence source);
+

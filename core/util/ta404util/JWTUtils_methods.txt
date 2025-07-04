@@ -1,0 +1,14 @@
+Package Path: com.yinhai.tools.deps.jwt
+
+public static Key getSecretKey();
+
+public static String createJWT(String subject, long ttlMillis);
+
+public static String createJWT(String subject, long ttlMillis, Key secretKey);
+
+public static String parseJWT(String jwt,String keyString);
+
+public static boolean validateJWT(String jwt, String keyString);
+
+public static String signJWTWithSymmetricKey(String jwt, String secretKey);
+

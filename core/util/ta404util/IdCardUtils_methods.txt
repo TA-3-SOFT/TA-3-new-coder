@@ -1,0 +1,22 @@
+Package Path: com.yinhai.tools.basic.string.regex.idcard
+
+public static boolean matches(String idCard);
+
+public static String convert15To18(String idCard);
+
+public static String convert18To15(String idCard);
+
+public static Date getBirthdayDate(String idCard);
+
+public static String getBirthday(String idCard);
+
+public static String getGender(String idCard);
+
+public static int getBirthYear(String idCard);
+
+public static int getBirthMonth(String idCard);
+
+public static int getBirthDay(String idCard);
+
+public static int getMonthsToRetire(String idCard, Date retirementDate);
+

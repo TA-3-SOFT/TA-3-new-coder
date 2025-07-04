@@ -1,0 +1,14 @@
+Package Path: com.yinhai.tools.basic.collection
+
+public static <T> int findIndex(List<T> list, T element);
+
+public static <T> List<T> mergeLists(List<T> list1, List<T> list2);
+
+public static <T> List<T> paginate(List<T> list, int page, int pageSize);
+
+public static <T> List<T> filterList(List<T> list, Predicate<T> predicate);
+
+public static <T> Map<String, List<T>> groupList(List<T> list, Function<T, String> groupingFunction);
+
+public static <T> List<List<T>> splitList(List<T> list, int segmentSize);
+

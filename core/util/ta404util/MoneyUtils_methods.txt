@@ -1,0 +1,16 @@
+Package Path: com.yinhai.tools.basic.math.money
+
+public static String formatMoney(BigDecimal amount);
+
+public static String toChineseUpperCase(BigDecimal amount);
+
+public static String toChineseUpperCase(String amount);
+
+public static String addMoney(String amount1, String amount2);
+
+public static String subtractMoney(String amount1, String amount2);
+
+public static String multiplyMoney(String amount1, String amount2);
+
+public static String divideMoney(String amount1, String amount2);
+

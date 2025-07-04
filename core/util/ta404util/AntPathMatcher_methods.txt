@@ -1,0 +1,38 @@
+Package Path: com.yinhai.tools.basic.string.url
+
+public AntPathMatcher();
+
+public void setPathSeparator(String pathSeparator);
+
+public void setTrimTokens(boolean trimTokens);
+
+public boolean isPattern(String path);
+
+public boolean match(String pattern, String path);
+
+public String extractPathWithinPattern(String pattern, String path);
+
+public Map<String, String> extractUriTemplateVariables(String pattern, String path);
+
+public String combine(String pattern1, String pattern2);
+
+public Comparator<String> getPatternComparator(String path);
+
+public AntPathStringMatcher(String pattern);
+
+public boolean matchStrings(String str, Map<String, String> uriTemplateVariables);
+
+public AntPatternComparator(String path);
+
+public PatternInfo( String pattern);
+
+public int getUriVars();
+
+public int getDoubleWildcards();
+
+public boolean isPrefixPattern();
+
+public int getLength();
+
+public PathSeparatorPatternCache(String pathSeparator);
+

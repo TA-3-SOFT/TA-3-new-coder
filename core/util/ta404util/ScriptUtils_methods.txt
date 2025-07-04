@@ -1,0 +1,4 @@
+Package Path: com.yinhai.tools.basic.script
+
+public static Object executeJavaScript(String script) throws ScriptException;
+

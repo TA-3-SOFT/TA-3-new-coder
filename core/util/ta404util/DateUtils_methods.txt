@@ -1,0 +1,258 @@
+Package Path: com.yinhai.tools.basic.date
+
+public static long daysBetween(Date startDate, Date endDate);
+
+public static long daysBetween(java.sql.Date startDate, java.sql.Date endDate);
+
+public static long daysBetween(String startDateStr, String endDateStr, String pattern) throws ParseException;
+
+public static long daysBetween(LocalDateTime startDate, LocalDateTime endDate);
+
+public static long daysBetween(Timestamp startDate, Timestamp endDate);
+
+public static int monthsBetween(Date firstDate, Date secondDate);
+
+public static int monthsBetween(LocalDate startDate, LocalDate endDate);
+
+public static int monthsBetween(java.sql.Date startDate, java.sql.Date endDate) throws BasicToolException;
+
+public static long monthsBetween(LocalDateTime startDate, LocalDateTime endDate);
+
+public static int monthsBetween(Timestamp startDate, Timestamp endDate);
+
+public static int yearsBetween(Date startDate, Date endDate);
+
+public static int yearsBetween(java.sql.Date startDate, java.sql.Date endDate);
+
+public static int yearsBetween(LocalDateTime startDate, LocalDateTime endDate);
+
+public static int yearsBetween(Timestamp startDate, Timestamp endDate);
+
+public static LocalDate addDays(LocalDate date, int days);
+
+public static LocalDateTime addDays(LocalDateTime date, int days);
+
+public static Date getLastDayOfMonth(Date date);
+
+public static java.sql.Date getLastDayOfMonth(java.sql.Date sqlDate);
+
+public static Timestamp getLastDayOfMonth(Timestamp timestamp);
+
+public static LocalDate getLastDayOfQuarter(LocalDate localDate);
+
+public static LocalDateTime getLastDayOfQuarter(LocalDateTime localDateTime);
+
+public static LocalDateTime getFirstDayOfMonth(LocalDateTime date);
+
+public static LocalDate getFirstDayOfMonth(LocalDate date);
+
+public static LocalDateTime getFirstDayOfMonth(Date date);
+
+public static LocalDateTime getFirstDayOfMonth(java.sql.Date date);
+
+public static Date getFirstDayOfQuarter(Date date);
+
+public static java.sql.Date getFirstDayOfQuarter(java.sql.Date sqlDate);
+
+public static Timestamp getFirstDayOfQuarter(Timestamp timestamp);
+
+public static java.util.Date getFirstDayOfYear(java.util.Date date);
+
+public static LocalDate getFirstDayOfYear(LocalDate date);
+
+public static java.sql.Date getFirstDayOfYear(java.sql.Date date);
+
+public static Date getLastDayOfYear(Date date);
+
+public static LocalDate getLastDayOfYear(LocalDate localDate);
+
+public static Timestamp getLastDayOfYear(Timestamp timestamp);
+
+public static long calculateAgeInDays(java.sql.Date birthDate) throws BasicToolException;
+
+public static long calculateAgeInDays(LocalDate birthDate);
+
+public static long calculateAgeInDays(LocalDateTime birthDate);
+
+public static long calculateAgeInDays(Timestamp birthDate);
+
+public static int getQuarter(Date date);
+
+public static int getQuarter(LocalDate localDate);
+
+public static int getQuarter(Timestamp timestamp);
+
+public static Date getCurrentDate();
+
+public static java.sql.Date getCurrentSqlDate();
+
+public static Timestamp getCurrentTimestamp();
+
+public static int getYear(Date date);
+
+public static int getYear(java.sql.Date sqlDate);
+
+public static int getYear(Timestamp timestamp);
+
+public static int getQuarterFromDate(LocalDate localDate);
+
+public static int getQuarterFromDate(LocalDateTime localDateTime);
+
+public static int getMonth(Date date);
+
+public static int getMonth(java.sql.Date sqlDate);
+
+public static int getMonth(Timestamp timestamp);
+
+public static int getWeekOfYear(LocalDate localDate);
+
+public static int getWeekOfYear(LocalDateTime localDateTime);
+
+public static int getWeekOfMonth(Date date);
+
+public static int getWeekOfMonth(java.sql.Date sqlDate);
+
+public static int getWeekOfMonth(Timestamp timestamp);
+
+public static int getDaysOfYear(LocalDate localDate);
+
+public static int getDaysOfYear(LocalDateTime localDateTime);
+
+public static int getDaysOfMonth(Date date);
+
+public static int getDaysOfMonth(LocalDate localDate);
+
+public static int getDaysOfMonth(LocalDateTime localDateTime);
+
+public static int getDayOfWeek(Date date);
+
+public static int getDayOfWeek(java.sql.Date sqlDate);
+
+public static int getDayOfWeek(Timestamp timestamp);
+
+public static int getHour(LocalDateTime localDateTime);
+
+public static int getMinute(Date date);
+
+public static int getMinute(LocalDateTime localDateTime);
+
+public static int getSecond(Date date);
+
+public static int getSecond(Timestamp timestamp);
+
+public static int getMillisecond(LocalDateTime localDateTime);
+
+public static boolean isAM(Date date);
+
+public static boolean isAM(Timestamp timestamp);
+
+public static boolean isPM(LocalDateTime localDateTime);
+
+public static Date getEndDateOfMonth(Date date);
+
+public static java.sql.Date getEndDateOfMonth(java.sql.Date sqlDate);
+
+public static Timestamp getEndDateOfMonth(Timestamp timestamp);
+
+public static boolean isDateBetween(LocalDate date, LocalDate startDate, LocalDate endDate);
+
+public static boolean isDateBetween(LocalDateTime date, LocalDateTime startDate, LocalDateTime endDate);
+
+public static boolean isSameDay(Date date1, Date date2);
+
+public static boolean isSameDay(java.sql.Date date1, java.sql.Date date2);
+
+public static boolean isSameDay(Timestamp date1, Timestamp date2);
+
+public static boolean isSameMonth(LocalDate date1, LocalDate date2);
+
+public static boolean isSameMonth(LocalDateTime date1, LocalDateTime date2);
+
+public static int getDatePart(Date date, int field);
+
+public static Date getStartOfDay(Date date);
+
+public static Date addTime(Date date, int field, int amount);
+
+public static int getYearsFromNow(Date date);
+
+public static int getYearsFromNow(java.sql.Date date);
+
+public static int getYearsFromNow(Timestamp date);
+
+public static long stopAndCalTimer(long startTime);
+
+public static Timestamp getDateBefore(Timestamp t, int day);
+
+public static java.sql.Date getDateBefore(java.sql.Date date, int day);
+
+public static Date getDateAfter(Date t, int day);
+
+public static LocalDate getDateAfter(LocalDate date, int day);
+
+public static LocalDateTime getDateAfter(LocalDateTime date, int day);
+
+public static LocalDateTime getNext(LocalDateTime date, DayOfWeek dayOfWeek);
+
+public static Date getNext(Date date, DayOfWeek dayOfWeek);
+
+public static Date getPrevious(Date date, DayOfWeek dayOfWeek);
+
+public static LocalDateTime localDateTimePlusWeekCal(LocalDateTime localDateTime, int week);
+
+public static LocalDate localDatePlusCal(LocalDate localDate, int year, int month, int day);
+
+public static LocalDate localDatePlusWeekCal(LocalDate localDate, int week);
+
+public static LocalTime localTimePlusCal(LocalTime localTime, int hour, int minute, int second);
+
+public static java.util.Date datePlusCal(java.util.Date date, int year, int month, int day, int hour, int minute, int second);
+
+public static java.sql.Timestamp timestampPlusCal(java.sql.Timestamp timestamp, int year, int month, int day, int hour, int minute, int second);
+
+public static java.sql.Date sqlDatePlusCal(java.sql.Date date, int year, int month, int day);
+
+public static java.sql.Time sqlTimePlusCal(java.sql.Time time, int hour, int minute, int second);
+
+public static Duration intervalResultInDuration(LocalDateTime first, LocalDateTime second);
+
+public static Long intervalResultInMill(LocalDateTime first, LocalDateTime second);
+
+public static Duration intervalResultInDuration(LocalTime first, LocalTime second);
+
+public static Period intervalResultInPeriod(LocalDate first, LocalDate second);
+
+public static int intervalResultInMonth(LocalDate first, LocalDate second);
+
+public static Long intervalResultInDay(LocalDateTime first, LocalDateTime second);
+
+public static int intervalResultInYear(String firstDateStr, String secondDateStr, TimeFormat timeFormat);
+
+public static int intervalResultInYear(java.sql.Date first, java.sql.Date second);
+
+public static int intervalResultInMonth(java.sql.Timestamp first, java.sql.Timestamp second);
+
+public static Long intervalResultInDay(java.util.Date first, java.util.Date second);
+
+public static Long intervalResultInDay(java.sql.Timestamp first, java.sql.Timestamp second);
+
+public static Long intervalResultInHour(String firstTimeStr, String secondTimeStr, TimeFormat timeFormat);
+
+public static Long intervalResultInHour(java.util.Date first, java.util.Date second);
+
+public static Long intervalResultInMinute(java.util.Date first, java.util.Date second);
+
+public static Long intervalResultInMill(java.util.Date first, java.util.Date second);
+
+public static LocalDate getLocalDateByZone(ZoneId zoneId);
+
+public static LocalTime getLocalTimeByZone(ZoneId zoneId);
+
+public static LocalDateTime getLocalDateTimeByZone(LocalDateTime localDateTime, ZoneId srcZoneId, ZoneId destZoneId);
+
+public static LocalDate getLocalDateByZone(LocalDate localDate, ZoneId srcZoneId, ZoneId destZoneId);
+
+public static LocalDate getLocalDateByZone(LocalDate localDate, ZoneId zoneId);
+
+public static java.util.Date getDateByZone(java.util.Date date, ZoneId zoneId);
+

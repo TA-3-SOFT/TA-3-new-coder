@@ -165,6 +165,27 @@ async function downloadRipgrepForTarget(target, targetDir) {
 
   cleanSlate();
 
+  // Copy ta404util directory with all .txt files early in the process
+  console.log("[info] Copying ta404util directory...");
+  const ta404utilSrcDir = path.join(__dirname, "..", "core", "util", "ta404util");
+  const ta404utilDestDir = path.join(__dirname, "out", "ta404util");
+
+  if (fs.existsSync(ta404utilSrcDir)) {
+    await new Promise((resolve, reject) => {
+      ncp(ta404utilSrcDir, ta404utilDestDir, { dereference: true }, (error) => {
+        if (error) {
+          console.warn("[error] Error copying ta404util directory", error);
+          reject(error);
+        } else {
+          console.log("[info] Successfully copied ta404util directory");
+          resolve();
+        }
+      });
+    });
+  } else {
+    console.warn("[warn] ta404util directory not found at", ta404utilSrcDir);
+  }
+
   // Informs of where to look for node_sqlite3.node https://www.npmjs.com/package/bindings#:~:text=The%20searching%20for,file%20is%20found
   // This is only needed for our `pkg` command at build time
   fs.writeFileSync(
@@ -231,6 +252,8 @@ async function downloadRipgrepForTarget(target, targetDir) {
     );
     console.log(`[info] Copied ${path.basename(f)}`);
   }
+
+
 
   console.log("[info] Cleaning up artifacts from previous builds...");
 

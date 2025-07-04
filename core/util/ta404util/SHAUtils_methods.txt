@@ -1,0 +1,6 @@
+Package Path: com.yinhai.tools.deps.crypto
+
+public static String sha256(String input);
+
+public static boolean verifySHA256(String input, String hashToVerify);
+

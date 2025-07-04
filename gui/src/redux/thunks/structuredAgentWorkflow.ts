@@ -134,6 +134,7 @@ ${requirementFinal}
 1. 能实现所有需求的开发任务列表
 2. 每个任务的具体实施步骤、相关文件修改的详细计划
 3. 只管设计工作，不要完成代码编写这类开发工作
+4. 设计计划之前先调用'agent_development'工具查看项目开发可能用到的工具类和开发规范
 
 回答完成后请输出以下固定的完整内容：
 ---
@@ -147,6 +148,7 @@ ${requirementFinal}
       BuiltInToolNames.FileGlobSearch,
       BuiltInToolNames.LSTool,
       BuiltInToolNames.ViewDiff,
+      BuiltInToolNames.AgentDevelopment,
     ],
   },
   {

@@ -1,5 +1,7 @@
 import { ConfigDependentToolParams, Tool } from "..";
+import { agentDevelopmentTool } from "./definitions/agentDevelopment";
 import { codeChunkAnalysisTool } from "./definitions/codeChunkAnalysis";
+// import { codeVectorAnalysisTool } from "./definitions/codeVectorAnalysis";
 import { createNewFileTool } from "./definitions/createNewFile";
 import { createRuleBlock } from "./definitions/createRuleBlock";
 import { editFileTool } from "./definitions/editFile";
@@ -27,6 +29,8 @@ export const baseToolDefinitions = [
   lsTool,
   projectAnalysisTool,
   codeChunkAnalysisTool,
+  // codeVectorAnalysisTool,
+  agentDevelopmentTool,
   createRuleBlock,
   // replacing with ls tool for now
   // viewSubdirectoryTool,

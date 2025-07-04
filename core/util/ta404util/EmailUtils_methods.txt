@@ -1,0 +1,4 @@
+Package Path: com.yinhai.tools.basic.string.regex.email
+
+public static boolean matches(String email);
+

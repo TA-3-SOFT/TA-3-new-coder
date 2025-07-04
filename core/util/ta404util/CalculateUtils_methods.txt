@@ -1,0 +1,10 @@
+Package Path: com.yinhai.tools.basic.math
+
+public static double conversion(String expression);
+
+public static String cleanBlank(CharSequence str);
+
+public static String removeSuffix(CharSequence str, CharSequence suffix);
+
+public static String sub(CharSequence str, int fromIndexInclude, int toIndexExclude);
+

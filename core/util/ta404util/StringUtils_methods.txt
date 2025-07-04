@@ -1,0 +1,466 @@
+Package Path: com.yinhai.tools.basic.string
+
+public static String encodeBase64(String input);
+
+public static String encodeBase64(byte[] input);
+
+public static String decodeBase64(String input, String charsetName);
+
+public static String trimPrefixSuffix(String input, String prefix, String suffix);
+
+public static String trimPrefixSuffixIgnoreCase(String input, String prefix, String suffix);
+
+public static String convertEncoding(String input, String fromEncoding, String toEncoding);
+
+public static String binaryToHex(String binaryNum);
+
+public static String binaryToHex(byte[] binaryNum);
+
+public static byte[] hexToBinary(String hex);
+
+public static String hexToBinaryString(String hexNum);
+
+public static String toFullWidth(String input);
+
+public static String trimTrailingZeros(String input);
+
+public static String padRight(String input, int size, char padChar);
+
+public static String padLeft(String input, int size, char padChar);
+
+public String getPrefixBeforeLastDot(String path);
+
+public static boolean isNullOrEmpty(String str);
+
+public static boolean hasLength(CharSequence cs);
+
+public static boolean isNotBlank(final CharSequence cs);
+
+public static boolean hasText(CharSequence str);
+
+public static boolean containsWhitespace(CharSequence str);
+
+public static String trimWhitespace(String str);
+
+public static String trimAllWhitespace(String str);
+
+public static String trimLeadingWhitespace(String str);
+
+public static String trimTrailingWhitespace(String str);
+
+public static String trimLeadingCharacter(String str, char leadingCharacter);
+
+public static String trimTrailingCharacter(String str, char trailingCharacter);
+
+public static boolean matchesCharacter(String str, char singleCharacter);
+
+public static boolean startsWith(String str, String prefix);
+
+public static boolean endsWithIgnoreCase(String str, String suffix);
+
+public static boolean substringMatch(CharSequence str, int index, CharSequence substring);
+
+public static int countOccurrencesOf(String str, String sub);
+
+public static String replace(final String text, final String searchString, final String replacement);
+
+public static String replace(final String text, String searchString, final String replacement, int max, final boolean ignoreCase);
+
+public static String delete(String inString, String pattern);
+
+public static String quote(String str);
+
+public static String unqualify(String qualifiedName);
+
+public static String capitalize(String str);
+
+public static String getPYString(String str);
+
+public static String getPYChar(String c);
+
+public static String getFilename(String path);
+
+public static String getFilenameExtension(String path);
+
+public static String stripFilenameExtension(String path);
+
+public static String applyRelativePath(String path, String relativePath);
+
+public static String cleanPath(String path);
+
+public static boolean pathEquals(String path1, String path2);
+
+public static Locale parseLocale(String localeValue);
+
+public static Locale parseLocaleString(String localeString);
+
+public static TimeZone parseTimeZoneString(String timeZoneString);
+
+public static String[] addStringToArray(String[] array, String str);
+
+public static String[] concatenateStringArrays(String[] array1, String[] array2);
+
+public static String[] sortStringArray(String[] array);
+
+public static String[] toStringArray(Collection<String> collection);
+
+public static String[] trimArrayElements(String[] array);
+
+public static String[] removeDuplicateStrings(String[] array);
+
+public static String[] splitFirst(String toSplit, String delimiter);
+
+public static Set<String> commaDelimitedListToSet(String str);
+
+public static Properties splitArrayElementsIntoProperties(String[] array, String delimiter, String charsToDelete);
+
+public static String[] split(final String str, final char separatorChar);
+
+public static String[] split(final String str, final String separatorChars, final int max);
+
+public static String[] splitByCharacterTypeCamelCase(final String str);
+
+public static String[] splitByWholeSeparator(final String str, final String separator, final int max);
+
+public static String[] splitByWholeSeparatorPreserveAllTokens(final String str, final String separator, final int max);
+
+public static String[] splitPreserveAllTokens(final String str, final char separatorChar);
+
+public static String[] splitPreserveAllTokens(final String str, final String separatorChars, final int max);
+
+public static String[] tokenizeToStringArray(String str, String delimiters);
+
+public static String[] delimitedListToStringArray(String str, String delimiter);
+
+public static String[] commaDelimitedListToStringArray(String str);
+
+public static String collectionToDelimitedString(Collection<?> coll, String delim);
+
+public static String arrayToDelimitedString(Object[] arr, String delim);
+
+public static String arrayToCommaDelimitedString(Object[] arr);
+
+public static String toChinese(String strvalue);
+
+public static int compareTo(String szStr1, String szStr2);
+
+public static String leftGBKBytePad(String str, int len, char pad);
+
+public static String getRandomString(int length) throws NoSuchAlgorithmException;
+
+public static String delUrlParam(String url);
+
+public static <T> List<T> string2List(String str);
+
+public static <T> List<T> string2List(String str, String regex);
+
+public static String abbreviate(final String str, final int maxWidth);
+
+public static String abbreviate(final String str, final String abbrevMarker, final int maxWidth);
+
+public static String abbreviateMiddle(final String str, final String middle, final int length);
+
+public static String appendIfMissing(final String str, final CharSequence suffix, final boolean ignoreCase, final CharSequence... suffixes);
+
+public static String center(final String str, final int size);
+
+public static String center(String str, final int size, String padStr);
+
+public static String chomp(final String str);
+
+public static String chomp(final String str, final String separator);
+
+public static int compare(final String str1, final String str2);
+
+public static int compareIgnoreCase(final String str1, final String str2);
+
+public static boolean contains(final CharSequence seq, final CharSequence searchSeq);
+
+public static boolean contains(final CharSequence seq, final int searchChar);
+
+public static boolean containsAny(final CharSequence cs, final char... searchChars);
+
+public static boolean containsAny(final CharSequence cs, final CharSequence searchChars);
+
+public static boolean containsIgnoreCase(final CharSequence str, final CharSequence searchStr);
+
+public static boolean containsNone(final CharSequence cs, final char... searchChars);
+
+public static boolean containsNone(final CharSequence cs, final String invalidChars);
+
+public static boolean containsOnly(final CharSequence cs, final char... valid);
+
+public static boolean containsOnly(final CharSequence cs, final String validChars);
+
+public static int countMatches(final CharSequence str, final char ch);
+
+public static int countMatches(final CharSequence str, final CharSequence sub);
+
+public static String difference(final String str1, final String str2);
+
+public static boolean equals(final CharSequence cs1, final CharSequence cs2);
+
+public static boolean equalsAny(final CharSequence string, final CharSequence... searchStrings);
+
+public static boolean equalsAnyIgnoreCase(final CharSequence string, final CharSequence... searchStrings);
+
+public static boolean equalsIgnoreCase(final CharSequence cs1, final CharSequence cs2);
+
+public static <T extends CharSequence> T firstNonBlank(final T... values);
+
+public static <T extends CharSequence> T firstNonEmpty(final T... values);
+
+public static byte[] getBytes(final String string, final Charset charset);
+
+public static String getCommonPrefix(final String... strs);
+
+public static String getDigits(final String str);
+
+public static <T extends CharSequence> T getIfBlank(final T str, final Supplier<T> defaultSupplier);
+
+public static int indexOf(final CharSequence seq, final CharSequence searchSeq);
+
+public static int indexOf(final CharSequence seq, final CharSequence searchSeq, final int startPos);
+
+public static int indexOf(final CharSequence seq, final int searchChar);
+
+public static int indexOf(final CharSequence seq, final int searchChar, final int startPos);
+
+public static int indexOfAny(final CharSequence cs, final char... searchChars);
+
+public static int indexOfAny(final CharSequence str, final CharSequence... searchStrs);
+
+public static int indexOfAny(final CharSequence cs, final String searchChars);
+
+public static int indexOfAnyBut(final CharSequence cs, final char... searchChars);
+
+public static int indexOfAnyBut(final CharSequence seq, final CharSequence searchChars);
+
+public static int indexOfDifference(final CharSequence... css);
+
+public static int indexOfDifference(final CharSequence cs1, final CharSequence cs2);
+
+public static int indexOfIgnoreCase(final CharSequence str, final CharSequence searchStr);
+
+public static boolean isAllBlank(final CharSequence... css);
+
+public static boolean isAllEmpty(final CharSequence... css);
+
+public static boolean isAllLowerCase(final CharSequence cs);
+
+public static boolean isAllUpperCase(final CharSequence cs);
+
+public static boolean isAlpha(final CharSequence cs);
+
+public static boolean isAlphanumeric(final CharSequence cs);
+
+public static boolean isAlphanumericSpace(final CharSequence cs);
+
+public static boolean isAlphaSpace(final CharSequence cs);
+
+public static boolean isAnyBlank(final CharSequence... css);
+
+public static boolean isAnyEmpty(final CharSequence... css);
+
+public static boolean isAsciiPrintable(final CharSequence cs);
+
+public static boolean isMixedCase(final CharSequence cs);
+
+public static boolean isNoneBlank(final CharSequence... css);
+
+public static boolean isNotEmpty(final CharSequence cs);
+
+public static boolean isNumericSpace(final CharSequence cs);
+
+public static boolean isWhitespace(final CharSequence cs);
+
+public static String join(final boolean[] array, final char delimiter);
+
+public static String join(final boolean[] array, final char delimiter, final int startIndex, final int endIndex);
+
+public static String join(final byte[] array, final char delimiter);
+
+public static String join(final byte[] array, final char delimiter, final int startIndex, final int endIndex);
+
+public static String join(final char[] array, final char delimiter);
+
+public static String join(final char[] array, final char delimiter, final int startIndex, final int endIndex);
+
+public static String join(final double[] array, final char delimiter);
+
+public static String join(final double[] array, final char delimiter, final int startIndex, final int endIndex);
+
+public static String join(final float[] array, final char delimiter);
+
+public static String join(final float[] array, final char delimiter, final int startIndex, final int endIndex);
+
+public static String join(final int[] array, final char delimiter);
+
+public static String join(final int[] array, final char delimiter, final int startIndex, final int endIndex);
+
+public static String join(final Iterable<?> iterable, final char separator);
+
+public static String join(final Iterable<?> iterable, final String separator);
+
+public static String join(final Iterator<?> iterator, final char separator);
+
+public static String join(final Iterator<?> iterator, final String separator);
+
+public static String join(final List<?> list, final char separator, final int startIndex, final int endIndex);
+
+public static String join(final List<?> list, final String separator, final int startIndex, final int endIndex);
+
+public static String join(final long[] array, final char delimiter);
+
+public static String join(final long[] array, final char delimiter, final int startIndex, final int endIndex);
+
+public static String join(final Object[] array, final char delimiter);
+
+public static String join(final Object[] array, final char delimiter, final int startIndex, final int endIndex);
+
+public static String join(final Object[] array, final String delimiter);
+
+public static String join(final Object[] array, final String delimiter, final int startIndex, final int endIndex);
+
+public static String join(final short[] array, final char delimiter);
+
+public static String join(final short[] array, final char delimiter, final int startIndex, final int endIndex);
+
+public static <T> String join(final T... elements);
+
+public static int lastIndexOf(final CharSequence seq, final CharSequence searchSeq);
+
+public static int lastIndexOf(final CharSequence seq, final CharSequence searchSeq, final int startPos);
+
+public static int lastIndexOf(final CharSequence seq, final int searchChar, final int startPos);
+
+public static int lastIndexOfAny(final CharSequence str, final CharSequence... searchStrs);
+
+public static int lastIndexOfIgnoreCase(final CharSequence str, final CharSequence searchStr);
+
+public static int lastIndexOfIgnoreCase(final CharSequence str, final CharSequence searchStr, int startPos);
+
+public static String left(final String str, final int len);
+
+public static String leftPad(final String str, final int size);
+
+public static String leftPad(final String str, final int size, String padStr);
+
+public static String lowerCase(final String str);
+
+public static String lowerCase(final String str, final Locale locale);
+
+public static String mid(final String str, int pos, final int len);
+
+public static int lastOrdinalIndexOf(final CharSequence str, final CharSequence searchStr, final int ordinal);
+
+public static String overlay(final String str, String overlay, int start, int end);
+
+public static String prependIfMissing(final String str, final CharSequence prefix, final CharSequence... prefixes);
+
+public static String remove(final String str, final char remove);
+
+public static String remove(final String str, final String remove);
+
+public static String removeAll(final String text, final String regex);
+
+public static String removeEnd(final String str, final String remove);
+
+public static String removeEndIgnoreCase(final String str, final String remove);
+
+public static String removeFirst(final String text, final String regex);
+
+public static String removePattern(final String source, final String regex);
+
+public static String removeStart(final String str, final String remove);
+
+public static String removeStartIgnoreCase(final String str, final String remove);
+
+public static String repeat(final char ch, final int repeat);
+
+public static String repeat(final String str, final int repeat);
+
+public static String repeat(final String str, final String separator, final int repeat);
+
+public static String replaceFirst(String text, String regex, String replacement);
+
+public static String replaceEachRepeatedly(final String text, final String[] searchList, final String[] replacementList);
+
+public static String replaceIgnoreCase(final String text, final String searchString, final String replacement, final int max);
+
+public static String replaceOnceIgnoreCase(final String text, final String searchString, final String replacement);
+
+public static String reverseDelimited(final String str, final char separatorChar);
+
+public static String right(final String str, final int len);
+
+public static String rightPad(final String str, final int size);
+
+public static String rightPad(final String str, final int size, String padStr);
+
+public static String rotate(final String str, final int shift);
+
+public static String strip(final String str);
+
+public static String stripAccents(final String input);
+
+public static String[] stripAll(final String... strs);
+
+public static String stripEnd(final String str, final String stripChars);
+
+public static String stripStart(final String str, final String stripChars);
+
+public static String stripToEmpty(final String str);
+
+public static String substring(final String str, int start);
+
+public static String substring(final String str, int start, int end);
+
+public static String substringAfter(final String str, final int separator);
+
+public static String substringAfter(final String str, final String separator);
+
+public static String substringAfterLast(final String str, final int separator);
+
+public static String substringAfterLast(final String str, final String separator);
+
+public static String substringBefore(final String str, final int separator);
+
+public static String substringBefore(final String str, final String separator);
+
+public static String substringBeforeLast(final String str, final String separator);
+
+public static String substringBetween(final String str, final String tag);
+
+public static String[] substringsBetween(final String str, final String open, final String close);
+
+public static String swapCase(final String str);
+
+public static int[] toCodePoints(final CharSequence cs);
+
+public static String toEncodedString(final byte[] bytes, final Charset charset);
+
+public static String toRootUpperCase(final String source);
+
+public static String trim(final String str);
+
+public static String trimToNull(final String str);
+
+public static String truncate(final String str, final int offset, final int maxWidth);
+
+public static String unwrap(final String str, final char wrapChar);
+
+public static String unwrap(final String str, final String wrapToken);
+
+public static String upperCase(final String str);
+
+public static String upperCase(final String str, final Locale locale);
+
+public static String valueOf(final char[] value);
+
+public static String wrap(final String str, final String wrapWith);
+
+public static String wrapIfMissing(final String str, final char wrapWith);
+
+public static String wrapIfMissing(final String str, final String wrapWith);
+

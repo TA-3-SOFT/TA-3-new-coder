@@ -1,0 +1,38 @@
+Package Path: com.yinhai.tools.deps.image.captcha.core.generator.common.util
+
+public static BufferedImage wrapFile2BufferedImage(URL resourceImage);
+
+public static BufferedImage wrapFile2BufferedImage(InputStream resource);
+
+public static BufferedImage createTransparentImage(int width, int height);
+
+public static Shape getImageShape(Image img, boolean transparent) throws InterruptedException;
+
+public static BufferedImage cutImage(BufferedImage oriImage, BufferedImage templateImage, int xPos, int yPos);
+
+public static BufferedImage rotateImage(final BufferedImage bufferedImage, final double degree);
+
+public static void centerOverlayAndRotateImage(BufferedImage baseBufferedImage, BufferedImage coverBufferedImage, final double degree);
+
+public static BufferedImage[] splitImage(int pos, boolean direction, BufferedImage img);
+
+public static BufferedImage concatImage(boolean direction, int width, int height, BufferedImage... imgArr);
+
+public static BufferedImage drawWordImg(Color fontColor, String word, Font font, float fontTopCoef, int imgWidth, int imgHeight, float deg);
+
+public static void drawOval(int num, Color color, Graphics2D g, int width, int height, Random random);
+
+public static void drawBesselLine(int num, Color color, Graphics2D g, int width, int height, ThreadLocalRandom random);
+
+public static BufferedImage genSimpleImgCaptcha(String data, Font font, int width, int height, float startX, float startY, int interferenceLineNum, int interferencePointNum);
+
+public static Color getRandomColor(Random random);
+
+public static BufferedImage toBufferedImage(Image image, int imageType);
+
+public static BufferedImage copyImage(Image img, int imageType);
+
+public static Graphics2D createGraphics(BufferedImage image, Color color);
+
+public static boolean isJpeg(String type);
+

@@ -1,0 +1,44 @@
+Package Path: com.yinhai.tools.basic.reflection
+
+public static List<Method> getAllDeclaredMethods(Class<?> clazz);
+
+public static Method getMethod(Class<?> clazz, String methodName, Class<?>... paramTypes);
+
+public static Object invokeMethod(Object object, Method method, Object... args) throws InvocationTargetException, IllegalAccessException;
+
+public static List<Field> getAllDeclaredFields(Class<?> clazz);
+
+public static List<Field> getAllFields(Class<?> clazz);
+
+public static Object getFieldValue(Object object, Field field);
+
+public static Object getFieldValue(Object object, String fieldName);
+
+public static List<Constructor<?>> getAllDeclaredConstructors(Class<?> clazz);
+
+public static List<Class<?>> getMethodParameterTypes(Method method);
+
+public static Class<?> getMethodReturnType(Method method);
+
+public static List<Type> getMethodGenericParameterTypes(Method method);
+
+public static List<Annotation> getAnnotations(AnnotatedElement accessibleObject, boolean includeInherited, boolean recursion);
+
+public static List<Annotation> getAnnotations(AnnotatedElement accessibleObject);
+
+public static <T extends Annotation> T getAnnotation(AnnotatedElement accessibleObject, Class<T> annotationClass, boolean includeInherited, boolean recursion);
+
+public static <T extends Annotation> T getAnnotation(AnnotatedElement accessibleObject, Class<T> annotationClass);
+
+public static Object getAnnotationAttributeValue(Annotation annotation, String attributeName);
+
+public static Set<Class<?>> getClasses(String pack, Class<? extends Annotation> annotation, boolean recursive);
+
+public static Set<Class<?>> getClassesIncludeInnerClass(String pack, Class<? extends Annotation> annotation, boolean recursive);
+
+public static void findClassedInJar(URL url, String packageDirName, Set<Class<?>> classes, Class<? extends Annotation> annotation, boolean recursive);
+
+public static void findClassedInPackage(String packageName, String packagePath, final boolean recursive, Set<Class<?>> classes, Class<? extends Annotation> annotation);
+
+public static Class<?>[] ParamTypeChange(Class<?>[] parameterTypes);
+

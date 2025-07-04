@@ -1,0 +1,20 @@
+Package Path: com.yinhai.tools.deps.crypto
+
+public static void generateKeyAndSave(String keyPath);
+
+public static String generateKey();
+
+public static String getKey(String filePath);
+
+public static String decrypt(String key, String cipherText);
+
+public static String encryptWithCBC(String key, String paramStr);
+
+public static byte[] encrypt_Cbc_Padding(byte[] key, byte[] data);
+
+public static AlgorithmParameters generateIVParameter();
+
+public static byte[] generateIV();
+
+public static byte[] decrypt_Cbc_Padding(byte[] key, byte[] cipherText);
+

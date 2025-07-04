@@ -1,0 +1,22 @@
+Package Path: com.yinhai.tools.deps.office.word
+
+public static String readWord(File wordFile);
+
+public static String readWord(String wordFilePath);
+
+public static void generateWordFile(String wordFilePath, String content);
+
+public static List<File> extractImagesFromWord(String wordFilePath);
+
+public static void mergeWordFiles(List<String> wordFilePaths, String outputFilePath);
+
+public static void fillWordTemplate(File templateFile, File outputFile, String placeholder, String content);
+
+public static void fillWordTemplate(String templateFilePath, String outputFilePath, String placeholder, String content);
+
+public static void addWatermarkToWord(String wordFilePath, String watermarkText, String outputFilePath);
+
+public static void wordToPdf(String wordFilePath, String pdfFilePath);
+
+public static List<WordLocation> wordSearchAndLocate(File wordFile, String keyword);
+

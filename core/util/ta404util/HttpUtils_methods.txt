@@ -1,0 +1,38 @@
+Package Path: com.yinhai.tools.deps.http
+
+public static CloseableHttpClient createHttpClient();
+
+public static String sendGetRequest(String url);
+
+public static String sendGetRequest(String url, Map<String, String> params);
+
+public static String sendGetRequest(String url, Map<String, Object> headers, Map<String, String> params);
+
+public static <T> T sendGetRequest(String url, Map<String, Object> headers, Map<String, String> params, CloseableHttpClient client, final HttpClientResponseHandler<? extends T> responseHandler);
+
+public static String sendPostRequest(String url);
+
+public static String sendPostRequest(String url, Map<String, Object> headers);
+
+public static String sendPostRequest(String url, CloseableHttpClient client);
+
+public static String sendPostRequest(String url, Map<String, Object> headers, CloseableHttpClient client);
+
+public static String sendPostRequest(String url, Map<String, Object> headers, Serializable body, CloseableHttpClient client);
+
+public static <T> T sendPostRequest(String url, Map<String, Object> headers, Serializable body, CloseableHttpClient client, final HttpClientResponseHandler<? extends T> responseHandler);
+
+public static String uploadFile(String url, FileUploadRequest request);
+
+public static byte[] downloadFile(String url);
+
+public static void downloadFile(String url, String savePath);
+
+public static String mapToUrlParams(Map<String, String> params);
+
+public static Map<String, String> urlParamsToMap(String urlParams);
+
+public static String encodeUrlParams(String urlParams);
+
+public static String getIpv4FromLong(long ipLong);
+

@@ -1,0 +1,8 @@
+Package Path: com.yinhai.tools.basic.collection
+
+public static List<Map<String, Object>> generateTreeList(List<Map<String, Object>> list, String idKey, String pidKey);
+
+public static Map<String, Object> findSubTree(List<Map<String, Object>> treeList, String idkey, String idKeyValue);
+
+public static List<Map<String, Object>> generateCommonList(List<Map<String, Object>> list, String childKey, String idKey);
+

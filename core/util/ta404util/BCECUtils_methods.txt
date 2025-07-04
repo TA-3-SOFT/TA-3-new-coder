@@ -1,0 +1,30 @@
+Package Path: com.yinhai.tools.deps.crypto
+
+public static AsymmetricCipherKeyPair generateCipherKeyPair(ECDomainParameters domainParameters, SecureRandom random);
+
+public static KeyPair generateKeyPair(ECDomainParameters domainParameters, SecureRandom random);
+
+public static int getCurveLength(ECKeyParameters ecKey);
+
+public static ECPrivateKeyParameters createEcPrivateKey(BigInteger d, ECDomainParameters domainParameters);
+
+public static ECPublicKeyParameters createEcPublicKey(String xHex, String yHex, ECCurve curve, ECDomainParameters domainParameters);
+
+public static ECPublicKeyParameters createEcPublicKey(byte[] xBytes, byte[] yBytes, ECCurve curve, ECDomainParameters domainParameters);
+
+public static byte[] convertEcPriKeyToPkcs8Der(ECPrivateKeyParameters priKey, ECPublicKeyParameters pubKey);
+
+public static String convertPkcs8DerEcPriKeyToPem(byte[] encodedKey);
+
+public static byte[] convertEcPriKeyToPkcs1Der(ECPrivateKeyParameters priKey, ECPublicKeyParameters pubKey);
+
+public static byte[] convertEcPubKeyToX509Der(ECPublicKeyParameters pubKey);
+
+public static byte[] convertPemToX509DerEcPubKey(String pemString);
+
+public static BCECPrivateKey convertPKCS8ToECPrivateKey(byte[] pkcs8Key);
+
+public static ECPublicKeyParameters convertX509DerToEcPrublicKey(byte[] encodedKey);
+
+public static byte[] pem2PubByte(String path);
+

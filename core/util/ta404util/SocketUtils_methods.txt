@@ -1,0 +1,10 @@
+Package Path: com.yinhai.tools.basic.socket
+
+public static Socket createSocket(String host, int port);
+
+public static void sendRequest(Socket socket, String request);
+
+public static String receiveResponse(Socket socket, String charset);
+
+public static String receiveResponse(Socket socket);
+

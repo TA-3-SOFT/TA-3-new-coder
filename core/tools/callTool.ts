@@ -3,6 +3,7 @@ import { MCPManagerSingleton } from "../context/mcp/MCPManagerSingleton";
 import { canParseUrl } from "../util/url";
 import { BuiltInToolNames } from "./builtIn";
 
+import { agentDevelopmentImpl } from "./implementations/agentDevelopment";
 import { codeChunkAnalysisImpl } from "./implementations/codeChunkAnalysis";
 import { createNewFileImpl } from "./implementations/createNewFile";
 import { createRuleBlockImpl } from "./implementations/createRuleBlock";
@@ -160,6 +161,8 @@ async function callBuiltInTool(
       return await projectAnalysisImpl(args, extras);
     case BuiltInToolNames.CodeChunkAnalysis:
       return await codeChunkAnalysisImpl(args, extras);
+    case BuiltInToolNames.AgentDevelopment:
+      return await agentDevelopmentImpl(args, extras);
     case BuiltInToolNames.ReadCurrentlyOpenFile:
       return await readCurrentlyOpenFileImpl(args, extras);
     case BuiltInToolNames.CreateRuleBlock:

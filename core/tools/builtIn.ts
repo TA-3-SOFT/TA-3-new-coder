@@ -11,8 +11,10 @@ export enum BuiltInToolNames {
   LSTool = "builtin_ls",
   ProjectAnalysis = "project_analysis",
   CodeChunkAnalysis = "code_chunk_analysis",
+  // CodeVectorAnalysis = "code_vector_analysis",
   CreateRuleBlock = "builtin_create_rule_block",
   RequestRule = "builtin_request_rule",
+  AgentDevelopment = "agent_development",
 
   // excluded from allTools for now
   ViewRepoMap = "builtin_view_repo_map",

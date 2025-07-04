@@ -1,0 +1,34 @@
+Package Path: com.yinhai.tools.deps.office.ofd
+
+public static String readOfd(File ofdFile);
+
+public static String readOfd(String ofdFilePath);
+
+public static void generateOfd(File ofdFile, String content);
+
+public static void generateOfd(String ofdFilePath, String content);
+
+public static void mergeOfdFiles(List<String> ofdFilePaths, String outputFilePath);
+
+public static void splitOfdFile(File ofdFile, File outputDir);
+
+public static void splitOfdFile(String ofdFilePath, String outputDirPath);
+
+public static void insertWatermarkToOfd(String ofdFilePath, String outputFilePath, String watermarkText);
+
+public static List<KeywordPosition> searchKeywordsInOfd(String ofdFilePath, String keyword);
+
+public static void ofdToPdf(String ofdFilePath, String pdfFilePath);
+
+public static void ofdToImage(File ofdFile, File imageDir, String imageFormat);
+
+public static void ofdToImage(String ofdFilePath, String imageDirPath, String imageFormat);
+
+public static void ofdToText(File ofdFile, File textFile);
+
+public static void ofdToText(String ofdFilePath, String textFilePath);
+
+public static void ofdToHtml(File ofdFile, File htmlFile);
+
+public static void ofdToHtml(String ofdFilePath, String htmlFilePath);
+

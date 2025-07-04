@@ -1,0 +1,32 @@
+Package Path: com.yinhai.tools.basic.object
+
+public static <T> Class<T> getClass(final T object);
+
+public static boolean isString(Object obj);
+
+public static boolean isCollection(Object obj);
+
+public static boolean isDate(Object obj);
+
+public static boolean isNull(Object obj);
+
+public static boolean isNotEmpty(Object obj);
+
+public static <T> T clone(T obj, boolean deep);
+
+public static <T> T deserialize(final byte[] objectData);
+
+public static byte[] serialize(final Serializable obj);
+
+public static void serialize(final Serializable obj, final OutputStream outputStream);
+
+public static <T> T mapToBean(Map<String, Object> map, Class<T> clazz);
+
+public static Map<String, Object> beanToMap(Object bean);
+
+public static void copyBeanProperties(Object sourceBean, Object targetBean);
+
+public static void copyBeanProperties(Object sourceBean, Object targetBean, String... ignoreProperties);
+
+public static String nullSafeToString(Object obj);
+

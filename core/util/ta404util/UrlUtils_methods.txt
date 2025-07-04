@@ -1,0 +1,10 @@
+Package Path: com.yinhai.tools.basic.string.url
+
+public static String decode(String input);
+
+public static String encode(String input);
+
+public static String getUrlWithoutParameters(String url);
+
+public static Map<String, String> getUrlParameters(String url);
+

@@ -1,0 +1,30 @@
+Package Path: com.yinhai.tools.basic.system
+
+public static boolean isLocalHost(String host);
+
+public static boolean isValidHost(String host);
+
+public static boolean isValidDomain(String host);
+
+public static boolean isValidInternalIp(String ipAddress);
+
+public static boolean isAnyIp(String ipAddress);
+
+public static String getIp();
+
+public static int getPort();
+
+public static InetAddress getNetworkAddress();
+
+public static InetAddress findRealNetworkAddress();
+
+public static String getHostByAddress(String address);
+
+public static String getIpByHost(String hostName);
+
+public static InetSocketAddress getLocalSocketAddress(String host, int port);
+
+public static InetSocketAddress toAddress(String address);
+
+public static String toShortIPv6(String fullIPv6);
+

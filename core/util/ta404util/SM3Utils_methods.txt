@@ -1,0 +1,14 @@
+Package Path: com.yinhai.tools.deps.crypto
+
+public static String hash(String srcData);
+
+public static byte[] hash2Byte(String srcData);
+
+public static boolean verify(String srcData, String sm3Hash);
+
+public static boolean verify2Hex(String srcData, String sm3Hash);
+
+public static String hash(byte[] srcByte);
+
+public static String hashFile(InputStream inputStream, int threshold);
+

@@ -1,0 +1,198 @@
+Package Path: com.yinhai.tools.basic.math
+
+public static boolean isNumber(String str);
+
+public static boolean isFloat(String str);
+
+public static String toBinaryString(int number);
+
+public static String toBinaryString(Number number);
+
+public static long binaryToLong(String binary);
+
+public static int lcm(int a, int b);
+
+public static double add(float v1, double v2);
+
+public static double add(double v1, float v2);
+
+public static double add(double v1, double v2);
+
+public static double add(Double v1, Double v2);
+
+public static BigDecimal add(Number... values);
+
+public static BigDecimal add(String... values);
+
+public static BigDecimal add(BigDecimal... values);
+
+public static double sub(float v1, float v2);
+
+public static double sub(float v1, double v2);
+
+public static double sub(double v1, float v2);
+
+public static double sub(double v1, double v2);
+
+public static double sub(Double v1, Double v2);
+
+public static BigDecimal sub(Number v1, Number v2);
+
+public static BigDecimal sub(Number... values);
+
+public static BigDecimal sub(String... values);
+
+public static BigDecimal sub(BigDecimal... values);
+
+public static double mul(float v1, float v2);
+
+public static double mul(float v1, double v2);
+
+public static double mul(double v1, float v2);
+
+public static double mul(double v1, double v2);
+
+public static double mul(Double v1, Double v2);
+
+public static BigDecimal mul(Number v1, Number v2);
+
+public static BigDecimal mul(Number... values);
+
+public static BigDecimal mul(String v1, String v2);
+
+public static BigDecimal mul(String... values);
+
+public static BigDecimal mul(BigDecimal... values);
+
+public static double div(float v1, float v2);
+
+public static double div(double v1, float v2);
+
+public static double div(Double v1, Double v2);
+
+public static BigDecimal div(String v1, String v2);
+
+public static double div(float v1, double v2, int scale);
+
+public static double div(double v1, double v2, int scale);
+
+public static BigDecimal div(Number v1, Number v2, int scale);
+
+public static double div(float v1, float v2, int scale, RoundingMode roundingMode);
+
+public static double div(float v1, double v2, int scale, RoundingMode roundingMode);
+
+public static double div(double v1, float v2, int scale, RoundingMode roundingMode);
+
+public static double div(double v1, double v2, int scale, RoundingMode roundingMode);
+
+public static double div(Double v1, Double v2, int scale, RoundingMode roundingMode);
+
+public static BigDecimal div(Number v1, Number v2, int scale, RoundingMode roundingMode);
+
+public static BigDecimal div(String v1, String v2, int scale, RoundingMode roundingMode);
+
+public static BigDecimal round(double v, int scale);
+
+public static BigDecimal round(String numberStr, int scale);
+
+public static String roundStr(String numberStr, int scale);
+
+public static String roundStr(double v, int scale, RoundingMode roundingMode);
+
+public static BigDecimal round(BigDecimal number, int scale, RoundingMode roundingMode);
+
+public static String roundStr(String numberStr, int scale, RoundingMode roundingMode);
+
+public static BigDecimal roundHalfEven(BigDecimal value, int scale);
+
+public static BigDecimal roundDown(BigDecimal value, int scale);
+
+public static String decimalFormat(String pattern, long value);
+
+public static String decimalFormat(String pattern, Object value, RoundingMode roundingMode);
+
+public static String decimalFormatMoney(double value);
+
+public static boolean isGreater(BigDecimal bigNum1, BigDecimal bigNum2);
+
+public static boolean isLess(BigDecimal bigNum1, BigDecimal bigNum2);
+
+public static boolean isIn(final BigDecimal value, final BigDecimal minInclude, final BigDecimal maxInclude);
+
+public static boolean equals(float num1, float num2);
+
+public static boolean equals(long num1, long num2);
+
+public static boolean equals(BigDecimal bigNum1, BigDecimal bigNum2);
+
+public static <T extends Comparable<? super T>> T min(T[] numberArray);
+
+public static int min(int... numberArray);
+
+public static short min(short... numberArray);
+
+public static double min(double... numberArray);
+
+public static float min(float... numberArray);
+
+public static BigDecimal min(BigDecimal... numberArray);
+
+public static long max(long... numberArray);
+
+public static int max(int... numberArray);
+
+public static short max(short... numberArray);
+
+public static double max(double... numberArray);
+
+public static float max(float... numberArray);
+
+public static BigDecimal max(BigDecimal... numberArray);
+
+public static String toStr(Number number);
+
+public static String toStr(BigDecimal bigDecimal);
+
+public static BigDecimal toBigDecimal(Number number);
+
+public static BigDecimal toBigDecimal(String numberStr);
+
+public static double toDouble(Number value);
+
+public static int nullToZero(Integer number);
+
+public static double nullToZero(Double number);
+
+public static short nullToZero(Short number);
+
+public static BigDecimal nullToZero(BigDecimal number);
+
+public static BigDecimal pow(Number number, int n);
+
+public static int parseInt(String number) throws NumberFormatException;
+
+public static long parseLong(String number);
+
+public static float parseFloat(String number);
+
+public static double parseDouble(String number);
+
+public static Number parseNumber(String numberStr) throws NumberFormatException;
+
+public static Integer parseInt(String numberStr, Integer defaultValue);
+
+public static Long parseLong(String numberStr, Long defaultValue);
+
+public static Float parseFloat(String numberStr, Float defaultValue);
+
+public static Double parseDouble(String numberStr, Double defaultValue);
+
+public static Number parseNumber(String numberStr, Number defaultValue);
+
+public static boolean isValidNumber(Number number);
+
+public static boolean isValid(double number);
+
+public static boolean numberIsNull(Float v1);
+

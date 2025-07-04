@@ -1,0 +1,12 @@
+Package Path: com.yinhai.tools.basic.string.html
+
+public static String escapeHtml(String input);
+
+public static String unescapeHtml(String input);
+
+public static String removeHtmlTag(String input, String tag);
+
+public static String removeHtmlAttribute(String input, String attribute);
+
+public static String removeAllAttributes(String input, String tag);
+

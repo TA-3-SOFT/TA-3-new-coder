@@ -1,0 +1,94 @@
+Package Path: com.yinhai.tools.basic.file
+
+public static FileSystemUtil getDefaultInstance();
+
+public static FileSystemUtil getCustomInstance(String workDirectory);
+
+public static File readFileAbsolute(String absoluteFilePathName);
+
+public static FileInputStream readFileInputStreamAbsolute(String absoluteFilePathName);
+
+public static FileInputStream readFile(File file);
+
+public static byte[] readFileByteAbsolute(String absoluteFilePathName);
+
+public static byte[] readFileToByte(File file);
+
+public static byte[] readFileToByte(FileInputStream fileInputStream);
+
+public static File copyFileAbsolute(String targetFilePath, String srcFilePath);
+
+public static File copyFileAbsolute(File targetFile, File srcFile);
+
+public static File saveFileAbsolute(String absoluteFilePathName, InputStream in);
+
+public static File saveFileAbsolute(String absoluteFilePathName, byte[] bytes);
+
+public static void deleteFile(String absoluteFilePathName);
+
+public static void deleteFile(File file);
+
+public static void createDirectory(String directoryPath);
+
+public static void createFileDirectory(String filePath);
+
+public static void batchDownloadFilePaths(List<String> filePaths, String zipFilePath);
+
+public static void batchDownloadFiles(List<File> files, String zipFilePath);
+
+public static boolean isDirectoryEmpty(String dirPath);
+
+public static List<String> getAllFilePathsInDirectory(String dirPath);
+
+public static List<File> getAllFilesInDirectory(String dirPath);
+
+public static String getAbsolutePath(String fileClassPath);
+
+public static File createFile(String filePath);
+
+public static File moveFile(String sourceFilePath, String targetFilePath);
+
+public static File renameFile(String filePath, String newFileName);
+
+public static boolean isFileExists(String filePath);
+
+public static boolean isFileParentDirExists(String filePath);
+
+public static long getFileSize(File file);
+
+public static boolean isNotEmpty(String path);
+
+public static boolean isNotEmpty(File file);
+
+public static boolean isDirectory(String path);
+
+public static boolean isFile(String path);
+
+public static String getRandomFileName(String suffix);
+
+public static String getRandomFileName(String name, String suffix);
+
+public String getFilePath(String filename);
+
+public String getDirectoryPath();
+
+public File readFile(String filename);
+
+public byte[] readFileByte(String filename);
+
+public FileInputStream readFileInputStream(String directoryPath, String filename);
+
+public byte[] readFileByte(String directoryPath, String filename);
+
+public File save(String filename, byte[] bytes);
+
+public File save(String filename, File srcFile);
+
+public File save(String directoryPath, String filename, InputStream in);
+
+public File save(String directoryPath, String filename, File srcFile);
+
+public void delete(String directoryPath, String filename);
+
+public String getFileType(String fileName);
+

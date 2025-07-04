@@ -1,0 +1,176 @@
+Package Path: com.yinhai.tools.basic.collection
+
+public static boolean isEmpty(final boolean[] array);
+
+public static boolean isEmpty(final char[] array);
+
+public static boolean isEmpty(final float[] array);
+
+public static boolean isEmpty(final long[] array);
+
+public static boolean isEmpty(final short[] array);
+
+public static boolean isNotEmpty(final boolean[] array);
+
+public static boolean isNotEmpty(final char[] array);
+
+public static boolean isNotEmpty(final float[] array);
+
+public static boolean isNotEmpty(final long[] array);
+
+public static <T> boolean isNotEmpty(final T[] array);
+
+public static byte[] concat(final byte[] array1, final byte[] array2);
+
+public static char[] concat(final char[] array1, final char[] array2);
+
+public static double[] concat(final double[] array1, final double[] array2);
+
+public static float[] concat(final float[] array1, final float[] array2);
+
+public static int[] concat(final int[] array1, final int[] array2);
+
+public static long[] concat(final long[] array1, final long[] array2);
+
+public static short[] concat(final short[] array1, final short[] array2);
+
+public static <T> T[] concat(final T[] array1, final T[] array2);
+
+public static boolean[] filter(boolean[] array, boolean predicate);
+
+public static byte[] filter(byte[] array, BytePredicate predicate);
+
+public static char[] filter(char[] array, CharPredicate predicate);
+
+public static double[] filter(double[] array, DoublePredicate predicate);
+
+public static float[] filter(float[] array, FloatPredicate predicate);
+
+public static int[] filter(int[] array, IntPredicate predicate);
+
+public static long[] filter(long[] array, LongPredicate predicate);
+
+public static short[] filter(short[] array, ShortPredicate predicate);
+
+public static <T> T[] filter(T[] array, Predicate<T> predicate);
+
+public static boolean[][] partition(boolean[] array, int size);
+
+public static byte[][] partition(byte[] array, int size);
+
+public static char[][] partition(char[] array, int size);
+
+public static double[][] partition(double[] array, int size);
+
+public static float[][] partition(float[] array, int size);
+
+public static int[][] partition(int[] array, int size);
+
+public static long[][] partition(long[] array, int size);
+
+public static short[][] partition(short[] array, int size);
+
+public static <T> T[][] partition(T[] array, int size);
+
+public static boolean[][] groupBy(boolean[] array);
+
+public static byte[][] groupBy(byte[] array, ByteFunction<String> groupingFunction);
+
+public static char[][] groupBy(char[] array, CharFunction<String> groupingFunction);
+
+public static double[][] groupBy(double[] array, DoubleFunction<String> groupingFunction);
+
+public static float[][] groupBy(float[] array, FloatFunction<String> groupingFunction);
+
+public static int[][] groupBy(int[] array, IntFunction<String> groupingFunction);
+
+public static long[][] groupBy(long[] array, LongFunction<String> groupingFunction);
+
+public static short[][] groupBy(short[] array, ShortFunction<String> groupingFunction);
+
+public static <T> T[][] groupBy(T[] array, Function<T, String> groupingFunction);
+
+public static boolean contains(final boolean[] array, final boolean valueToFind);
+
+public static boolean contains(final char[] array, final char valueToFind);
+
+public static boolean contains(final double[] array, final double valueToFind, final double tolerance);
+
+public static boolean contains(final int[] array, final int valueToFind);
+
+public static <T> boolean contains(final T[] array, final T objectToFind);
+
+public static int indexOf(final boolean[] array, final boolean valueToFind);
+
+public static int indexOf(final byte[] array, final byte valueToFind);
+
+public static int indexOf(final char[] array, final char valueToFind);
+
+public static int indexOf(final double[] array, final double valueToFind);
+
+public static int indexOf(final double[] array, final double valueToFind, int startIndex);
+
+public static int indexOf(final double[] array, final double valueToFind, int startIndex, final double tolerance);
+
+public static int indexOf(final float[] array, final float valueToFind);
+
+public static int indexOf(final int[] array, final int valueToFind);
+
+public static int indexOf(final long[] array, final long valueToFind);
+
+public static int indexOf(final short[] array, final short valueToFind);
+
+public static <T> int indexOf(final T[] array, final T objectToFind);
+
+public static void reverse(final boolean[] array);
+
+public static void reverse(final boolean[] array, final int startIndexInclusive, final int endIndexExclusive);
+
+public static void reverse(final byte[] array);
+
+public static void reverse(final byte[] array, final int startIndexInclusive, final int endIndexExclusive);
+
+public static void reverse(final char[] array);
+
+public static void reverse(final char[] array, final int startIndexInclusive, final int endIndexExclusive);
+
+public static void reverse(final double[] array);
+
+public static void reverse(final double[] array, final int startIndexInclusive, final int endIndexExclusive);
+
+public static void reverse(final float[] array);
+
+public static void reverse(final float[] array, final int startIndexInclusive, final int endIndexExclusive);
+
+public static void reverse(final int[] array);
+
+public static void reverse(final int[] array, final int startIndexInclusive, final int endIndexExclusive);
+
+public static void reverse(final long[] array);
+
+public static void reverse(final long[] array, final int startIndexInclusive, final int endIndexExclusive);
+
+public static void reverse(final Object[] array);
+
+public static void reverse(final Object[] array, final int startIndexInclusive, final int endIndexExclusive);
+
+public static void reverse(final short[] array);
+
+public static void reverse(final short[] array, final int startIndexInclusive, final int endIndexExclusive);
+
+public static byte[] sort(byte[] array);
+
+public static char[] sort(char[] array);
+
+public static double[] sort(double[] array);
+
+public static float[] sort(float[] array);
+
+public static int[] sort(int[] array);
+
+public static long[] sort(long[] array);
+
+public static short[] sort(short[] array);
+
+public static <T> T[] sort(T[] array);
+

@@ -1,0 +1,76 @@
+Package Path: com.yinhai.tools.deps.compression
+
+public static void zip(String sourceDir, String outputZipFile);
+
+public static void zip(File zFile, List<File> filesToAdd, char[] password, CompressionMethod compressionMethod, CompressionLevel compressionLevel, boolean encrypt, EncryptionMethod encryptionMethod, AesKeyStrength aesKeyStrength) throws IOException;
+
+public static void unzip(String zipFilePath, String destDirectory);
+
+public static void zipByPassword(String sourceDir, String outputZipFile, String password);
+
+public static byte[] zipForBytes(String sourceDir);
+
+public static byte[] zipByPasswordForBytes(String sourceDir, String password);
+
+public static File zipForFile(String sourceDir);
+
+public static File zipByPasswordForFile(String sourceDir, String password);
+
+public static void zip(File sourceDir, String outputZipFile);
+
+public static byte[] zipForBytes(File sourceDir);
+
+public static File zipForFile(File sourceDir);
+
+public static void zip(byte[] bytes, String outputZipFile);
+
+public static void zipByPassword(byte[] bytes, String outputZipFile, String password);
+
+public static byte[] zipForBytes(byte[] bytes);
+
+public static byte[] zipByPasswordForBytes(byte[] bytes, String password);
+
+public static File zipForFile(byte[] bytes);
+
+public static File zipByPasswordForFile(byte[] bytes, String password);
+
+public static void zip(List<File> sourceDirList, String outputZipFile);
+
+public static void zipByPassword(List<File> sourceDirList, String outputZipFile, String password);
+
+public static byte[] zipForBytes(List<File> sourceDirList);
+
+public static byte[] zipByPasswordForBytes(List<File> sourceDirList, String password);
+
+public static File zipForFile(List<File> sourceDirList);
+
+public static File zipByPasswordForFile(List<File> sourceDirList, String password);
+
+public static void unzip(File zipFile, String destDirectory);
+
+public static byte[] gzipCompress(byte[] data);
+
+public static byte[] gzipDecompress(byte[] data);
+
+public static void compressWith7Zip(byte[] bytes, String destination);
+
+public static void compressWith7Zip(byte[] data, String destination, String entryName, int compressionLevel);
+
+public static void compressWith7Zip(File file, String destination);
+
+public static void compressWith7Zip(String source, String destination);
+
+public static void tarDirectory(String sourceDir, String outputTarFile);
+
+public static byte[] zlibCompress(byte[] data);
+
+public static byte[] zlibDecompress(byte[] data);
+
+public static void decompress7Zip(String archivePath, String destination);
+
+public static void decompress7Zip(String archivePath);
+
+public static void decompress7Zip(File archiveFile, String destination);
+
+public static void decompress7Zip(File archiveFile);
+

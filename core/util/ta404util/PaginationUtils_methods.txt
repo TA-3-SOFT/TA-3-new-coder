@@ -1,0 +1,8 @@
+Package Path: com.yinhai.tools.basic.math.page
+
+public static int getPageStartOffset(int page, int pageSize);
+
+public static int getPageEndOffset(int page, int pageSize);
+
+public static int getTotalPage(int total, int pageSize);
+

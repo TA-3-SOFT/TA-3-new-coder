@@ -1,0 +1,36 @@
+Package Path: com.yinhai.tools.deps.office.pdf
+
+public static String readPdf(File pdfFile);
+
+public static String readPdf(String pdfFilePath);
+
+public static void mergeImagesToPdf(List<String> imageFilePaths, String pdfFilePath);
+
+public static void generatePdf(String pdfFilePath, String content);
+
+public static List<String> searchKeywordsInPdf(String pdfFilePath, String keyword);
+
+public static List<PDFLocationInfo> getKeywordPositions(String pdfFilePath, String keyword);
+
+public static void addWatermarkToPdf(File pdfFile, File outputFile, String watermarkText);
+
+public static void addWatermarkToPdf(String filePath, String outputFilePath, String watermarkText);
+
+public static void signPdf(File pdfFile, File outputFile, File signatureFile, File privateKeyFile, PDFSignatureInfo pdfSignatureInfo, PDFLocationInfo pdfLocationInfo);
+
+public static void signPdf(String pdfFilePath, String outputFilePath, String signatureFilePath, String privateKeyFilePath, PDFSignatureInfo pdfSignatureInfo, PDFLocationInfo pdfLocationInfo);
+
+public static boolean verifyPdfSignature(String pdfFilePath, String publicKeyFilePath);
+
+public static void pdfToOfd(String pdfFilePath, String ofdFilePath);
+
+public static void pdfToImage(String pdfFilePath, String outputDirPath, String imageFormat);
+
+public static void pdfToText(String pdfFilePath, String outputFilePath);
+
+public static void encryptPdf(String filePath, String outputFilePath, String password);
+
+public static void decryptPdf(File pdfFile, File outputFile, String password);
+
+public static void decryptPdf(String filePath, String outputFilePath, String password);
+

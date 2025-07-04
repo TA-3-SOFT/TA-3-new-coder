@@ -1,0 +1,20 @@
+Package Path: com.yinhai.tools.deps.xml
+
+public static Document readXMLFile(String filePath);
+
+public static void writeXMLToFile(Document doc, String filePath);
+
+public static List<Element> getChildNodesByName(Element parent, String nodeName);
+
+public static String getFirstChildNodeText(Element parent, String nodeName);
+
+public static <T> T xmlToObject(String xml, Class<T> clazz);
+
+public static String objectToXml(Object obj);
+
+public static void removeNode(Element parent, Element node);
+
+public static void setNodeAttribute(Element node, String name, String value);
+
+public static List<Element> findNodesByAttribute(Element parent, String attrName, String attrValue);
+

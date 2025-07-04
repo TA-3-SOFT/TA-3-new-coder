@@ -1,0 +1,48 @@
+Package Path: com.yinhai.tools.deps.image
+
+public static BufferedImage getImageByFilePath(String imagePath);
+
+public static BufferedImage scaleImage(String imagePath, int width, int height);
+
+public static BufferedImage cropImage(String imagePath, int x, int y, int width, int height);
+
+public static BufferedImage rotateImage(String imagePath, double degrees);
+
+public static BufferedImage convertToBlackAndWhite(String imagePath);
+
+public static BufferedImage addWatermark(String imagePath, String watermarkText);
+
+public static BufferedImage addWatermark(BufferedImage image, String watermarkText, Font font);
+
+public static String ocrRecognize(BufferedImage image);
+
+public static BufferedImage compressImage(BufferedImage image, float quality);
+
+public static String toBase64DataUri(Image image, String imageType);
+
+public static String getDataUri(String mimeType, Charset charset, String encoding, String data);
+
+public static String toBase64(Image image, String imageType);
+
+public static void write(Image image, String imageType, OutputStream out) throws DepsToolException;
+
+public static boolean write(Image image, String imageType, ImageOutputStream destImageStream) throws DepsToolException;
+
+public static boolean write(Image image, String imageType, ImageOutputStream destImageStream, float quality, Color backgroundColor) throws DepsToolException;
+
+public static boolean write(Image image, ImageWriter writer, ImageOutputStream output, float quality);
+
+public static RenderedImage castToRenderedImage(final Image img, final String imageType);
+
+public static BufferedImage toBufferedImage(Image image, String imageType);
+
+public static BufferedImage toBufferedImage(Image image, String imageType, Color backgroundColor);
+
+public static BufferedImage copyImage(Image img, int imageType, Color backgroundColor);
+
+public static Graphics2D createGraphics(BufferedImage image, Color color);
+
+public static BufferedImage convertSvgToBufferedImage(String svg);
+
+public static BufferedImage base64DataUriToBufferedImage(String imgBase64DataUri, String imageType);
+

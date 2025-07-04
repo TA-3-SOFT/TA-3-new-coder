@@ -1,0 +1,52 @@
+Package Path: com.yinhai.tools.deps.office.excel
+
+public static List<List<String>> readExcelFromFile(File file);
+
+public static List<List<String>> readExcelFromFile(String filePath);
+
+public static <T> List<T> readExcelFromFile(File file, Class<T> clazz);
+
+public static List<List<String>> readSheet(File file, String sheetName);
+
+public static List<List<String>> readSheet(String filePath, String sheetName);
+
+public static <T> List<T> readSheet(File file, String sheetName, Class<T> clazz);
+
+public static ExcelLocation excelSearchAndLocateFirst(File file, String keyword);
+
+public static List<ExcelLocation> excelSearchAndLocate(String filePath, String keyword);
+
+public static void excelToWord(File excelFile, File wordFile);
+
+public static void excelToWord(String excelFilePath, String wordFilePath);
+
+public static void excelToOfd(File excelFile, File ofdFile);
+
+public static void excelToHtml(File excelFile, File htmlFile);
+
+public static void excelToPdf(String excelFilePath, String pdfFilePath);
+
+public static void excelToHtml(String excelFilePath, String htmlFilePath);
+
+public static void createExcelWithObjectDataAndComplexHeader(File templateFile, File outputFile, List<Object> data);
+
+public static void createExcelWithObjectDataAndComplexHeader(String templateFilePath, String outputFilePath, List<Object> data);
+
+public static void convertXlsxToXls(String xlsxFilePath, String xlsFilePath);
+
+public static void generateExcelFile(String excelFile, List<List<String>> data);
+
+public static void generateExcelFile(String excelFilePath, List<String> headers, List<List<String>> data);
+
+public static void generateExcelFileWithObject(String excelFilePath, List<Object> data);
+
+public static void generateExcelFileWithObject(String excelFilePath, List<Object> data, Class<?> clazz);
+
+public BigDataExcelWriter<T> begin(File excelFile, Class<?> clazz);
+
+public BigDataExcelWriter<T> begin(File excelFile, List<String> headers);
+
+public BigDataExcelWriter<T> begin(String excelFilePath, List<String> headers);
+
+public void end();
+

@@ -1,0 +1,30 @@
+Package Path: com.yinhai.tools.basic.system
+
+public static String getMacAddress();
+
+public static String getRuntimeInfo();
+
+public static String getServerInfo();
+
+public static ServerDetector getInstance();
+
+public static synchronized void reset();
+
+public static synchronized void init(String serverId);
+
+public static boolean isGlassfish();
+
+public static boolean isJetty();
+
+public static boolean isOC4J();
+
+public static boolean isSupportsComet();
+
+public static void setSupportsHotDeploy(boolean supportsHotDeploy);
+
+public static boolean isWebLogic();
+
+public static boolean isWildfly();
+
+public static boolean isApusic();
+

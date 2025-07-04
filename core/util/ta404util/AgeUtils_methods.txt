@@ -1,0 +1,42 @@
+Package Path: com.yinhai.tools.basic.date
+
+public static String getAgeWithUnit(LocalDate birthDate);
+
+public static String getAgeWithUnit(Date birthDate);
+
+public static String getAgeWithUnit(String birthDate);
+
+public static String getAgeWithUnit(java.sql.Date birthDate);
+
+public static String getAgeWithUnit(Date birthDate, String timeZone);
+
+public static int getAgeInYears(LocalDate birthDate);
+
+public static int getAgeInYears(Date birthDate);
+
+public static int getAgeInYears(Date birthDate, String timeZone);
+
+public static int getAgeInYears(String birthDate);
+
+public static int getAgeInYears(java.sql.Date birthDate);
+
+public static int getAgeInMonths(LocalDate birthDate);
+
+public static int getAgeInMonths(Date birthDate);
+
+public static int getAgeInMonths(Date birthDate, String timeZone);
+
+public static int getAgeInMonths(String birthDate);
+
+public static int getAgeInMonths(java.sql.Date birthDate);
+
+public static int getAgeInDays(LocalDate birthDate);
+
+public static int getAgeInDays(Date birthDate);
+
+public static int getAgeInDays(Date birthDate, String timeZone);
+
+public static int getAgeInDays(String birthDate);
+
+public static int getAgeInDays(java.sql.Date birthDate);
+

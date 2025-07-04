@@ -1,0 +1,14 @@
+Package Path: com.yinhai.tools.basic.string.area
+
+public static boolean isProvince(String code);
+
+public static boolean isCounty(String code);
+
+public static boolean isCommunity(String code);
+
+public static boolean is6DigitCode(String code);
+
+public static boolean is12DigitCode(String code);
+
+public static String getAreaLevel(String code);
+

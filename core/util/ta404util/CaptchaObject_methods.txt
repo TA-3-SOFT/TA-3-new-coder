@@ -1,0 +1,70 @@
+Package Path: com.yinhai.tools.deps.image.captcha.core.common.util
+
+public static boolean isCheckedException(Throwable ex);
+
+public static boolean isArray(Object obj);
+
+public static boolean isEmpty(Object obj);
+
+public static Object unwrapOptional(Object obj);
+
+public static boolean containsElement(Object[] array, Object element);
+
+public static boolean containsConstant(Enum<?>[] enumValues, String constant);
+
+public static <E extends Enum<?>> E caseInsensitiveValueOf(E[] enumValues, String constant);
+
+public static <A, O extends A> A[] addObjectToArray(A[] array, O obj);
+
+public static Object[] toObjectArray(Object source);
+
+public static boolean nullSafeEquals(Object o1, Object o2);
+
+public static int nullSafeHashCode(Object obj);
+
+public static int nullSafeHashCode(Object[] array);
+
+public static int nullSafeHashCode(boolean[] array);
+
+public static int nullSafeHashCode(byte[] array);
+
+public static int nullSafeHashCode(char[] array);
+
+public static int nullSafeHashCode(double[] array);
+
+public static int nullSafeHashCode(float[] array);
+
+public static int nullSafeHashCode(int[] array);
+
+public static int nullSafeHashCode(long[] array);
+
+public static int nullSafeHashCode(short[] array);
+
+public static int hashCode(boolean bool);
+
+public static int hashCode(float flt);
+
+public static String identityToString(Object obj);
+
+public static String getIdentityHexString(Object obj);
+
+public static String nullSafeClassName(Object obj);
+
+public static String nullSafeToString(Object[] array);
+
+public static String nullSafeToString(boolean[] array);
+
+public static String nullSafeToString(byte[] array);
+
+public static String nullSafeToString(char[] array);
+
+public static String nullSafeToString(double[] array);
+
+public static String nullSafeToString(float[] array);
+
+public static String nullSafeToString(int[] array);
+
+public static String nullSafeToString(long[] array);
+
+public static String nullSafeToString(short[] array);
+

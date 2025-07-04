@@ -1,0 +1,14 @@
+Package Path: com.yinhai.tools.deps.crypto
+
+public static byte[] changeC1C3C2ToAsn1(byte[] c1c3c2);
+
+public static byte[] changeC1C2C3ToC1C3C2(byte[] c1c2c3);
+
+public static byte[] asn12c1c2c3(byte[] asn1);
+
+public static byte[] changeC1C3C2ToC1C2C3(byte[] c1c3c2);
+
+public static byte[] rsPlainByteArrayToAsn1(byte[] sign);
+
+public static byte[] short2byte(short s);
+

@@ -1,0 +1,24 @@
+Package Path: com.yinhai.tools.basic.collection.map
+
+public static <K> Map<String, Object> getToMap(Map<K, Object> source, K key);
+
+public static <K> String getString(Map<K, ?> map, K key);
+
+public static <K> Long getLong(Map<K, ?> map, K key);
+
+public static <K> String getAmount(Map<K, ?> map, K key);
+
+public static <K> Date getDate(Map<K, ?> map, K key);
+
+public static <K> Long getTimestamp(Map<K, ?> map, K key);
+
+public static <T, K, V> List<T> getList(Map<K, V> map, K key);
+
+public static <K, V> List<V> filterList(Map<K, V> map, Predicate<K> predicate);
+
+public static <K, V> boolean isEmpty(Map<K, V> map);
+
+public static <K, V> void replaceNullWithEmptyString(Map<K, String> map);
+
+public static <K, V> Map<K, V> removeNullOrEmptyKeys(Map<K, V> map);
+

@@ -1,0 +1,18 @@
+Package Path: com.yinhai.tools.deps.image.captcha
+
+public static Captcha generateCaptcha(CaptchaType type);
+
+public static Captcha generateNumberCaptcha();
+
+public static Captcha generateNumberCaptcha(Integer width, Integer height, Integer level);
+
+public static Captcha generatePointCaptcha(Integer width, Integer height);
+
+public static Captcha generateSliderCaptcha(Integer width, Integer height);
+
+public static Captcha generateConcatCaptcha(Integer width, Integer height);
+
+public static Captcha generateRotateCaptcha(Integer width, Integer height);
+
+public void setDefaultTolerant(float defaultTolerant);
+

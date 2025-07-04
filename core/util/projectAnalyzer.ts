@@ -377,8 +377,8 @@ ${modules.map((module) => `- ${module.name}: ${module.description}`).join("\n")}
 
 **Instructions:**
 - Analyze the requirement and match it to the module descriptions.
-- Recommend up to three most relevant leaf module(s) based on functionality.
-- If fewer than three leaf modules are relevant, return only those.
+- Recommend up to five most relevant leaf module(s) based on functionality.
+- If fewer than five leaf modules are relevant, return only those.
 - Ensure all recommended modules are leaf modules (no submodules).
 - Return the response in JSON format.
 - IMPORTANT: Return ONLY pure JSON text without any markdown formatting (no \`\`\`json code blocks). The response must be valid JSON that can be directly parsed.

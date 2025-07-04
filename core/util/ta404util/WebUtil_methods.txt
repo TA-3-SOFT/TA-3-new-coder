@@ -1,0 +1,12 @@
+Package Path: com.yinhai.tools.basic.system
+
+public static boolean isAjaxRequest(HttpServletRequest request);
+
+public static String getUserAgent(HttpServletRequest request);
+
+public static String getBasePath(HttpServletRequest request, boolean isWithSlash);
+
+public static String getBatchNo(HttpServletRequest request, String type);
+
+public static Object getSessionValue(HttpServletRequest request, String name);
+
