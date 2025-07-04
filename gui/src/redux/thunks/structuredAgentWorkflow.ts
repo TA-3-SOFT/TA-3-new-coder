@@ -8,6 +8,7 @@ import {
 import { BuiltInToolNames } from "core/tools/builtIn";
 import { ThunkApiType } from "../store";
 import {
+  ChatHistoryItemWithMessageId,
   resetStructuredAgentWorkflow,
   setStructuredAgentUserFeedback,
   setStructuredAgentWaitingForConfirmation,
@@ -17,6 +18,7 @@ import {
 } from "../slices/sessionSlice";
 import { streamResponseThunk } from "./streamResponse";
 import { findToolCall } from "../util";
+import { history } from "@headlessui/react/dist/utils/active-element-history";
 
 let requirementFinal: string | null = null;
 // 工作流程步骤配置
@@ -31,42 +33,49 @@ let WORKFLOW_STEPS: Array<{
     step: "requirement-breakdown",
     title: "需求拆分",
     systemPrompt:
-      () => `你是一个很有用的软件需求设计分析助手，你能帮助用户按照他提供的需求设计进行拆解和分析。
+      () => `作为软件需求设计分析助手，您的职责是帮助用户分析和细化他们提供的需求。
 
-## 你的任务如下：
-1. 如果是复杂需求和设计，请将需求分解为子需求和设计，需求和设计一一对应。
-2. 如果需求设计中不太明确的地方，请将疑问记下来并问用户。
-3. 每个子需求和设计需要完整，逻辑清晰，可以实现。
-4. 请将子需求以要求的格式输出，方便我后续使用。
-5. 如果没有必要分解，就不要分解。
-6. 如果不需要进一步分解，直接整理成一个输出。
-7. 不要调用任何tools工具
+## 任务
+
+- 将涉及多个模块的复杂需求分解为子需求（子需求），并为每个模块定义独立的功能任务。
+- 对每个子任务，全面地定义其功能需求和设计需求，以确保其完成。
+- 确保每个子需求和设计逻辑完整、清晰、可实施。
+- 以指定格式输出子需求。
+- 仅在需求复杂时分解需求。
+- 在此过程中不使用任何外部工具。
+- 使用中文进行分析。
+
+## 需求定义
+
+复杂需求：包含多个模块功能。例如：我要开发一个购物功能；我要开发一个小说网站；我要开发一个系统权限管理功能。  
+子需求：可独立为一个模块进行开发设计的。例如：购物车管理功能；商品管理功能；用户管理功能；权限管理功能；用户权限授权功能。
+
+## 需求和设计分析结果格式和输出格式
+
+每个“子需求”按以下格式整理：
+
+# **子需求 1**
+  ## 1. 功能需求
+    ### 1.1. 核心业务流程
+    ### 1.2. 关键业务规则
+    ### 1.3. 特定场景示例
+  ## 2. 设计需求
+    ### 2.1. 数据表
+    ### 2.2. 接口
+    ### 2.3. 第三方依赖
+
+# **子需求 2**
+  ## 1. 功能需求
+    ### 1.1. 核心业务流程
+    ### 1.2. 关键业务规则
+    ### 1.3. 特定场景示例
+  ## 2. 设计需求
+    ### 2.1. 数据表
+    ### 2.2. 接口
+    ### 2.3. 第三方依赖
 
 
-## 参考格式
-
-子需求1
-1. 功能需求
-1.1 核心业务流程
-1.2 关键业务规则
-1.3 具体场景示例
-2. 需求设计
-2.1 库表
-2.2 接口
-2.3 三方依赖
----
-子需求2
-1. 功能需求
-1.1 核心业务流程
-1.2 关键业务规则
-1.3 具体场景示例
-2. 需求设计
-2.1 库表
-2.2 接口
-2.3 三方依赖
-
-
-回答完成后请输出以下固定的完整内容：
+在您的回复结尾使用以下固定格式：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
 请在输入框中输入："确认"继续流程下一步，或输入具体的调整建议`,
@@ -83,7 +92,7 @@ ${requirementFinal}
 
 你是一名资深软件设计工程师，基于上面的详细需求，了解项目结构相关知识。要求：
 1. 使用project_analysis工具来分析当前Maven项目的结构，禁止传递任何参数给该工具（都使用默认的）。
-2. 调用project_analysis工具后，根据结果总结回答，不要再调用其他tools了。
+2. 调用project_analysis工具后，根据结果做出简单总结回答。
 
 回答完成后请输出以下固定的完整内容：
 ---
@@ -103,7 +112,7 @@ ${requirementFinal}
 你是一名资深软件设计工程师，基于上面的详细需求和用户给出的项目理解的结果，进行详细的代码分析。要求：
 1. 使用code_chunk_analysis工具，基于用户给出的project_analysis结果，调用code_chunk_analysis工具，传入每个模块和每个模块下对应的所有推荐文件作为moduleFileMap参数，不要传入userRequest参数（使用默认的）分析推荐的每个模块下的代码文件
 2. 例如：project_analysis返回的结果中有3个模块，每个模块下分别有5个推荐文件，则调用code_chunk_analysis工具，调用传入所有模块和推荐文件作为moduleFileMap参数，moduleFileMap格式：{"模块1": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）..."],"模块2": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）..."], "模块3": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）..."]}
-3. 依次调用完code_chunk_analysis工具后，如果code_chunk_analysis调用成功，不要再调用其他tools了，根据结果代码分析，完成回答
+3. 依次调用完code_chunk_analysis工具后，如果code_chunk_analysis调用成功，根据调用结果做出简单总结回答
 4. 只管设计工作，不要完成代码编写这类开发工作
 
 回答完成后请输出以下固定的完整内容：
@@ -238,18 +247,7 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     }
 
     if (step === "project-understanding") {
-      requirementFinal =
-        state.session.history[
-          state.session.history.length - 1
-        ].message.content.toString();
-      // 如果requirementFinal包含"***用户操作***"，只取分隔符之前的内容
-      if (requirementFinal && requirementFinal.includes("***【用户操作】***")) {
-        const lastSeparatorIndex =
-          requirementFinal.lastIndexOf("***【用户操作】***");
-        requirementFinal = requirementFinal
-          .substring(0, lastSeparatorIndex)
-          .trim();
-      }
+      requirementFinal = getSessionHistoryLastContent(state.session.history);
     }
 
     // 如果是代码分析步骤，添加 project_analysis 的结果
@@ -274,15 +272,12 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     }
 
     if (step === "plan-execution") {
-      let planResult =
-        state.session.history[
-          state.session.history.length - 1
-        ].message.content.toString();
-      if (planResult && planResult.includes("***【用户操作】***")) {
-        const lastSeparatorIndex = planResult.lastIndexOf("***【用户操作】***");
-        planResult = planResult.substring(0, lastSeparatorIndex).trim();
-      }
-      promptPreamble += `## 实施计划如下：\n${planResult}\n\n`;
+      const planResult = getSessionHistoryLastContent(state.session.history);
+      const codeChunkAnalysisResult = getProjectToolResult(
+        state.session.history,
+        "code_chunk_analysis",
+      );
+      promptPreamble += `## 实施计划如下：\n${planResult}\n\n ## 相关的代码片段如下：\n${codeChunkAnalysisResult}\n\n`;
     }
 
     // 构建用户消息内容（简洁的步骤说明）
@@ -496,7 +491,7 @@ export const getToolCallResult = (
   toolName: string,
 ): ContextItem[][] | null => {
   // 从历史记录中查找最近的指定工具调用
-  let result = [];
+  // let result = [];
   for (let i = history.length - 1; i >= 0; i--) {
     const historyItem = history[i];
     if (
@@ -507,13 +502,15 @@ export const getToolCallResult = (
         if (toolCall.function.name === toolName) {
           const toolCallState = findToolCall(history, toolCall.id);
           if (toolCallState && toolCallState.output) {
-            result.push(toolCallState.output);
+            // result.push(toolCallState.output);
+            return [toolCallState.output];
           }
         }
       }
     }
   }
-  return result.length > 0 ? result : null;
+  // return result.length > 0 ? result : null;
+  return null;
 };
 
 // 获取项目工具调用的返回结果
@@ -536,6 +533,18 @@ export const getProjectToolResult = (
       }
       result += analysisResult.content + "\n\n";
     }
+  }
+  return result;
+};
+
+// 获取会话历史最后一条信息
+export const getSessionHistoryLastContent = (
+  history: ChatHistoryItemWithMessageId[],
+): string => {
+  let result = history[history.length - 1].message.content.toString();
+  if (result && result.includes("***【用户操作】***")) {
+    const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
+    result = result.substring(0, lastSeparatorIndex).trim();
   }
   return result;
 };

@@ -43,8 +43,7 @@ const EditContainer = styled.div`
 
 const EditTextarea = styled.textarea`
   min-height: 300px;
-  max-height: 60vh;
-  height: 800px;
+  height: 500px;
   padding: 12px;
   border: 1px solid ${varWithFallback("border-focus")};
   border-radius: 6px;
@@ -53,7 +52,7 @@ const EditTextarea = styled.textarea`
   font-size: ${getFontSize()}px;
   font-family: "JetBrains Mono", "Consolas", "Monaco", monospace;
   line-height: 1.5;
-  resize: vertical;
+  resize: none;
   outline: none;
   transition: all 0.2s ease;
 
