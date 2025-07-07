@@ -15,7 +15,7 @@ import { IdeMessengerContext } from "../../../../context/IdeMessenger";
 import { useAppSelector } from "../../../../redux/hooks";
 import { ToolTip } from "../../../gui/Tooltip";
 import AssistantSelect from "../../../modelSelection/platform/AssistantSelect";
-import FreeTrialButton from "../../../modelSelection/platform/FreeTrialButton";
+import OrgSelect from "../../../modelSelection/platform/OrgSelect";
 import { useFontSize } from "../../../ui/font";
 import HoverItem from "../../InputToolbar/HoverItem";
 import { useLump } from "../LumpContext";
@@ -213,17 +213,14 @@ export function BlockSettingsTopToolbar() {
         </div>
       </div>
       <div className="flex gap-0.5">
+        <OrgSelect />
         <HoverItem
           data-tooltip-id="assistant-select-tooltip"
           className="!m-0 !p-0"
         >
-          {isUsingFreeTrial ? (
-            <FreeTrialButton freeTrialStatus={freeTrialStatus} />
-          ) : (
-            <AssistantSelect />
-          )}
+          <AssistantSelect />
           <ToolTip id="assistant-select-tooltip" place="top">
-            {isUsingFreeTrial ? "View free trial usage" : "Select Assistant"}
+            选择智能体
           </ToolTip>
         </HoverItem>
       </div>

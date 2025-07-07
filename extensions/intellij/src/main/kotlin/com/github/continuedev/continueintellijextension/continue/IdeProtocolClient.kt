@@ -112,8 +112,8 @@ class IdeProtocolClient(
                             val sessionInfo = authService.loadControlPlaneSessionInfo()
                             respond(sessionInfo)
                         } else {
-                            authService.startAuthFlow(project, params.useOnboarding)
-                            respond(null)
+                            val sessionInfo = authService.startAuthFlowWithResult(project, params.useOnboarding)
+                            respond(sessionInfo)
                         }
                     }
 
@@ -341,6 +341,10 @@ class IdeProtocolClient(
 
                         val result = ide.showToast(type, message, *otherParams)
                         respond(result)
+                    }
+
+                    "log" -> {
+                        println(dataElement)
                     }
 
                     "closeSidebar" -> {

@@ -4,11 +4,13 @@ import com.github.continuedev.continueintellijextension.services.ContinueExtensi
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService
 import com.github.continuedev.continueintellijextension.utils.Desktop
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.intellij.credentialStore.Credentials
 import com.intellij.ide.passwordSafe.PasswordSafe
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes
@@ -48,21 +50,106 @@ class ContinueAuthService {
     }
 
     init {
-        setupRefreshTokenInterval()
     }
 
     fun startAuthFlow(project: Project, useOnboarding: Boolean) {
-        // Open login page
-        val url = openSignInPage(project, useOnboarding)
-
-        // Open a dialog where the user should paste their sign-in token
-        ApplicationManager.getApplication().invokeLater {
-            val dialog = ContinueAuthDialog(useOnboarding, url) { token ->
-                // Store the token
-                updateRefreshToken(token)
-            }
-            dialog.show()
+        coroutineScope.launch {
+            startAuthFlowWithResult(project, useOnboarding)
         }
+    }
+
+    suspend fun startAuthFlowWithResult(project: Project, useOnboarding: Boolean): ControlPlaneSessionInfo? {
+            val uid = getEncryptedUid()
+            if (uid == null) {
+                reportError(project, "无法从银海通获取 token")
+                return null
+            }
+
+            val client = OkHttpClient()
+            val request = Request.Builder()
+                .url("http://localhost:8081/lowcodeback/aiContinueLogin")
+                .header("Authorization", uid)
+                .post("".toRequestBody())
+                .build()
+
+            var response: okhttp3.Response
+            try {
+                response = client.newCall(request).execute()
+            } catch (e: java.io.IOException) {
+                reportError(project, "无法连接到登录服务")
+                System.err.println(e)
+                return null
+            }
+
+            val responseMap = jsonFromResponse(response)
+            if (responseMap == null) {
+                reportError(project, "登录失败")
+                System.err.println(response)
+                return null
+            }
+
+            val code = responseMap.get("code") as? Double
+            if (code != 200.0) {
+                reportError(project, "登录失败")
+                System.err.println(responseMap)
+                return null
+            }
+
+            val data = responseMap.get("data") as? Map<*, *>
+            val label = data?.get("label") as? String ?: ""
+
+            val sessionInfo = ControlPlaneSessionInfo(uid, ControlPlaneSessionInfo.Account(label, label))
+            setControlPlaneSessionInfo(sessionInfo)
+
+        return sessionInfo
+    }
+
+    private suspend fun getEncryptedUid (): String? {
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url("http://localhost:13631/getuid")
+            .get()
+            .build()
+
+        var response: okhttp3.Response
+        try {
+            response = client.newCall(request).execute()
+        } catch (e: java.io.IOException) {
+            System.err.println(e)
+            return null
+        }
+
+        val responseMap = jsonFromResponse(response)
+        val success = responseMap?.get("success") as? Boolean
+        if (success == null || !success) {
+            System.err.println(responseMap)
+            return null
+        }
+
+        val data = responseMap.get("data") as? Map<*, *>
+        val uid = data?.get("uid") as? String
+        return uid
+    }
+
+    private fun jsonFromResponse (response: okhttp3.Response): Map<*, *>? {
+        val responseBody = response.body?.string()
+        val gson = Gson()
+        var responseMap: Map<*, *>
+        try {
+            responseMap = gson.fromJson(responseBody, Map::class.java)
+        } catch (e: JsonSyntaxException) {
+            return null
+        }
+
+        return responseMap
+    }
+
+    private fun reportError (project: Project, message: String) {
+        val continuePluginService = ServiceManager.getService(
+            project,
+            ContinuePluginService::class.java
+        )
+        continuePluginService.ideProtocolClient?.handleMessage("{\"messageType\": \"showToast\", \"data\": [\"error\", \"${message}\"]}", {})
     }
 
     fun signOut() {

@@ -136,17 +136,78 @@ export class ConfigHandler {
     await this.reloadConfig();
   }
 
-  private async getOrgs(): Promise<OrgWithProfiles[]> {
-    if (await this.controlPlaneClient.isSignedIn()) {
-      const orgDescs = await this.controlPlaneClient.listOrganizations();
-      const personalHubOrg = await this.getPersonalHubOrg();
-      const hubOrgs = await Promise.all(
-        orgDescs.map((org) => this.getNonPersonalHubOrg(org)),
-      );
-      return [...hubOrgs, personalHubOrg];
-    } else {
-      return [await this.getLocalOrg()];
+  private async loadProfiles (org: any) {
+    const response = await fetch('http://localhost:8081/lowcodeback/ai/continue/ide/list-assistants?organizationId=' + org.id, {
+      method: 'POST',
+    })
+    if (!response.ok) {
+      return org
     }
+
+    let profiles
+    try {
+      profiles = await response.json()
+    } catch (e) {
+      return org
+    }
+
+    if (!Array.isArray(profiles)) {
+      return org
+    }
+
+      for (let i=0; i<profiles.length; i++) {
+        const profile = profiles[i]
+        const loader = await PlatformProfileLoader.create({
+          configResult: profile.configResult,
+          ownerSlug: profile.ownerSlug,
+          packageSlug: profile.packageSlug,
+          iconUrl: profile.iconUrl,
+          versionSlug: profile.configResult?.config?.version ?? "latest",
+          controlPlaneClient: this.controlPlaneClient,
+          ide: this.ide,
+          ideSettingsPromise: this.ideSettingsPromise,
+          llmLogger: this.llmLogger,
+          rawYaml: profile.rawYaml,
+          orgScopeId: null,
+        })
+        profiles[i] = new ProfileLifecycleManager(loader, this.ide)
+      }
+
+      org = await this.rectifyProfilesForOrg(org, profiles)
+      return org
+  }
+
+  private async loadOrgs () {
+    const response = await fetch('http://localhost:8081/lowcodeback/ai/continue/ide/list-organizations', {
+      method: 'POST',
+    })
+    if (!response.ok) {
+      return null
+    }
+
+    let orgs
+    try {
+      orgs = await response.json()
+    } catch (e) {
+      return null
+    }
+
+    orgs = orgs.organizations ?? []
+    for (let j=0; j<orgs.length; j++) {
+      orgs[j] = await this.loadProfiles(orgs[j])
+    }
+
+    return orgs
+  }
+
+  private async getOrgs(): Promise<OrgWithProfiles[]> {
+    let orgs = await this.loadOrgs()
+    orgs ??= []
+    if (orgs.length <= 0) {
+      orgs.push(await this.getLocalOrg())
+    }
+
+    return orgs
   }
 
   getSerializedOrgs(): SerializedOrgWithProfiles[] {
