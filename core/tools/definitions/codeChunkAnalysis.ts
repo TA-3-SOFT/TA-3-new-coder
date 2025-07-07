@@ -20,7 +20,7 @@ export const codeChunkAnalysisTool: Tool = {
         moduleFileMap: {
           type: "object",
           description:
-            '模块名到文件列表的映射，格式：{"模块路径": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）"]}',
+            '模块名到文件列表的映射，一次将所有的模块和文件都传过来调用，格式：{"模块路径1": ["文件1.java（相对于模块路径）", "文件2.java（相对于模块路径）"],"模块路径2": ["文件3.java（相对于模块路径）", "文件4.java（相对于模块路径）"]}',
           additionalProperties: {
             type: "array",
             items: {

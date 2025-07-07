@@ -162,9 +162,6 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
       content += `---\n\n`;
     });
 
-    // 输出content
-    console.log(content);
-
     return [
       {
         name: "代码片段相关性分析报告",

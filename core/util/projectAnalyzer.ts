@@ -354,6 +354,140 @@ export class ProjectAnalyzer {
   }
 
   /**
+   * 标准化模块路径，确保路径格式一致
+   */
+  private normalizeModulePath(modulePath: string): string {
+    // 移除前后空白字符
+    let normalized = modulePath.trim();
+
+    // 统一使用正斜杠作为路径分隔符
+    normalized = normalized.replace(/\\/g, "/");
+
+    // 移除开头的 "./"
+    if (normalized.startsWith("./")) {
+      normalized = normalized.substring(2);
+    }
+
+    // 移除开头和结尾的斜杠
+    normalized = normalized.replace(/^\/+|\/+$/g, "");
+
+    return normalized;
+  }
+
+  /**
+   * 计算两个路径的相似度
+   */
+  private calculatePathSimilarity(path1: string, path2: string): number {
+    const parts1 = path1.split("/");
+    const parts2 = path2.split("/");
+    const maxLength = Math.max(parts1.length, parts2.length);
+
+    let matches = 0;
+    for (let i = 0; i < maxLength; i++) {
+      if (parts1[i] === parts2[i]) {
+        matches++;
+      }
+    }
+
+    return matches / maxLength;
+  }
+
+  /**
+   * 提取路径中的模块名（最后一个路径段）
+   */
+  private extractModuleName(modulePath: string): string {
+    const normalizedPath = this.normalizeModulePath(modulePath);
+    const parts = normalizedPath.split("/");
+    return parts[parts.length - 1] || normalizedPath;
+  }
+
+  /**
+   * 标准化模块名，用于比较
+   */
+  private normalizeModuleName(moduleName: string): string {
+    return moduleName.toLowerCase()
+      .replace(/[-_]/g, "") // 移除连字符和下划线
+      .replace(/\s+/g, ""); // 移除空格
+  }
+
+  /**
+   * 检查两个模块名是否匹配（考虑各种变体）
+   */
+  private isModuleNameMatch(name1: string, name2: string): boolean {
+    const normalized1 = this.normalizeModuleName(name1);
+    const normalized2 = this.normalizeModuleName(name2);
+
+    // 精确匹配
+    if (normalized1 === normalized2) {
+      return true;
+    }
+
+    // 检查是否一个包含另一个
+    if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 验证模块路径是否存在于项目结构中
+   */
+  private async validateModulePath(modulePath: string, projectStructure: ProjectStructure): Promise<string | null> {
+    const modules = await this.loadModuleInfo(projectStructure);
+    const normalizedPath = this.normalizeModulePath(modulePath);
+
+    // 1. 精确匹配
+    const exactMatch = modules.find(m => this.normalizeModulePath(m.name) === normalizedPath);
+    if (exactMatch) {
+      return exactMatch.name;
+    }
+
+    // 2. 模块名匹配：提取模块名进行匹配
+    const inputModuleName = this.extractModuleName(normalizedPath);
+    const moduleNameMatches = modules.filter(m => {
+      const moduleNameFromPath = this.extractModuleName(m.name);
+      return this.isModuleNameMatch(moduleNameFromPath, inputModuleName);
+    });
+
+    if (moduleNameMatches.length === 1) {
+      return moduleNameMatches[0].name;
+    }
+
+    // 如果有多个模块名匹配，选择路径最相似的
+    if (moduleNameMatches.length > 1) {
+      const bestMatch = moduleNameMatches.reduce((best, current) => {
+        const bestSimilarity = this.calculatePathSimilarity(normalizedPath, this.normalizeModulePath(best.name));
+        const currentSimilarity = this.calculatePathSimilarity(normalizedPath, this.normalizeModulePath(current.name));
+        return currentSimilarity > bestSimilarity ? current : best;
+      });
+      return bestMatch.name;
+    }
+
+    // 3. 部分路径匹配：查找包含该路径的模块
+    const partialMatches = modules.filter(m => {
+      const normalizedModuleName = this.normalizeModulePath(m.name);
+      return normalizedModuleName.includes(normalizedPath) || normalizedPath.includes(normalizedModuleName);
+    });
+
+    if (partialMatches.length === 1) {
+      return partialMatches[0].name;
+    }
+
+    // 如果有多个部分匹配，选择最相似的
+    if (partialMatches.length > 1) {
+      const bestMatch = partialMatches.reduce((best, current) => {
+        const bestSimilarity = this.calculatePathSimilarity(normalizedPath, this.normalizeModulePath(best.name));
+        const currentSimilarity = this.calculatePathSimilarity(normalizedPath, this.normalizeModulePath(current.name));
+        return currentSimilarity > bestSimilarity ? current : best;
+      });
+      return bestMatch.name;
+    }
+
+    return null;
+  }
+
+  /**
    * 根据需求推荐最多三个叶子模块 (对应Python的recommend_modules函数)
    */
   async recommendModules(
@@ -382,6 +516,7 @@ ${modules.map((module) => `- ${module.name}: ${module.description}`).join("\n")}
 - Ensure all recommended modules are leaf modules (no submodules).
 - Return the response in JSON format.
 - IMPORTANT: Return ONLY pure JSON text without any markdown formatting (no \`\`\`json code blocks). The response must be valid JSON that can be directly parsed.
+- CRITICAL: Use the EXACT module paths as provided in the Leaf Modules Information list. Do not modify, abbreviate, or change the paths in any way.
 `;
 
     // 调用LLM推荐模块
@@ -409,6 +544,24 @@ ${modules.map((module) => `- ${module.name}: ${module.description}`).join("\n")}
 
       const content = response.content;
       const result = JSON.parse(<string>content) as ModuleRecommendationResult;
+
+      // 验证和修正返回的模块路径
+      if (result.recommended_modules) {
+        const validatedModules: string[] = [];
+        const invalidModules: string[] = [];
+
+        for (const modulePath of result.recommended_modules) {
+          const validPath = await this.validateModulePath(modulePath, projectStructure);
+          if (validPath) {
+            validatedModules.push(validPath);
+          } else {
+            invalidModules.push(modulePath);
+            console.warn(`LLM返回的模块路径无效: ${modulePath}`);
+          }
+        }
+
+        result.recommended_modules = validatedModules;
+      }
 
       if (result.recommended_modules && result.recommended_modules.length > 3) {
         result.recommended_modules = result.recommended_modules.slice(0, 3);
@@ -525,5 +678,87 @@ ${fileList}
     }
 
     return result;
+  }
+
+  /**
+   * 验证和修正模块文件映射中的模块路径
+   * @param moduleFileMap 原始的模块文件映射
+   * @param projectStructure 项目结构
+   * @returns 修正后的模块文件映射
+   */
+  async validateModuleFileMap(
+    moduleFileMap: { [moduleName: string]: string[] },
+    projectStructure: ProjectStructure,
+  ): Promise<{ [moduleName: string]: string[] }> {
+    const validatedMap: { [moduleName: string]: string[] } = {};
+
+    for (const [originalPath, files] of Object.entries(moduleFileMap)) {
+      const validPath = await this.validateModulePath(originalPath, projectStructure);
+
+      if (validPath) {
+        validatedMap[validPath] = files;
+      } else {
+        console.warn(`跳过无效的模块路径: ${originalPath}`);
+      }
+    }
+
+    return validatedMap;
+  }
+
+  /**
+   * 获取项目中所有可用的模块路径列表
+   * @param projectStructure 项目结构
+   * @returns 所有模块路径的数组
+   */
+  async getAllModulePaths(projectStructure: ProjectStructure): Promise<string[]> {
+    const modules = await this.loadModuleInfo(projectStructure);
+    return modules.map(module => module.name);
+  }
+
+  /**
+   * 检查模块路径是否有效
+   * @param modulePath 要检查的模块路径
+   * @param projectStructure 项目结构
+   * @returns 是否有效
+   */
+  async isValidModulePath(modulePath: string, projectStructure: ProjectStructure): Promise<boolean> {
+    const validPath = await this.validateModulePath(modulePath, projectStructure);
+    return validPath !== null;
+  }
+
+  /**
+   * 获取模块路径的建议修正
+   * @param modulePath 原始模块路径
+   * @param projectStructure 项目结构
+   * @returns 建议的修正路径，如果无法修正则返回null
+   */
+  async suggestModulePathCorrection(modulePath: string, projectStructure: ProjectStructure): Promise<string | null> {
+    return await this.validateModulePath(modulePath, projectStructure);
+  }
+
+  /**
+   * 调试方法：显示模块路径匹配的详细过程
+   * @param modulePath 要匹配的模块路径
+   * @param projectStructure 项目结构
+   */
+  async debugModulePathMatching(modulePath: string, projectStructure: ProjectStructure): Promise<void> {
+    const modules = await this.loadModuleInfo(projectStructure);
+    const normalizedPath = this.normalizeModulePath(modulePath);
+    const inputModuleName = this.extractModuleName(normalizedPath);
+
+    console.log(`调试模块路径匹配: "${modulePath}"`);
+    console.log(`标准化路径: "${normalizedPath}"`);
+    console.log(`提取的模块名: "${inputModuleName}"`);
+    console.log(`标准化模块名: "${this.normalizeModuleName(inputModuleName)}"`);
+    console.log(`\n可用的模块:`);
+
+    modules.forEach((module, index) => {
+      const moduleNameFromPath = this.extractModuleName(module.name);
+      const isMatch = this.isModuleNameMatch(moduleNameFromPath, inputModuleName);
+      console.log(`${index + 1}. ${module.name} (模块名: ${moduleNameFromPath}) ${isMatch ? '✓ 匹配' : ''}`);
+    });
+
+    const result = await this.validateModulePath(modulePath, projectStructure);
+    console.log(`\n匹配结果: ${result || '无匹配'}`);
   }
 }
