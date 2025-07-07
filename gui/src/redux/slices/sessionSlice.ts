@@ -402,6 +402,16 @@ export const sessionSlice = createSlice({
       state.isStreaming = false;
       state.symbols = {};
 
+      // 重置结构化智能体工作流程状态
+      state.structuredAgentWorkflow = {
+        isActive: false,
+        currentStep: "requirement-input",
+        stepIndex: 0,
+        totalSteps: 5,
+        isWaitingForConfirmation: false,
+        stepHistoryStartIndex: undefined,
+      };
+
       if (payload) {
         state.history = payload.history as any;
         state.title = payload.title;
