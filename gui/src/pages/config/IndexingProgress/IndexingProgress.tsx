@@ -51,20 +51,25 @@ function IndexingProgress() {
   }, [paused]);
 
   function onClickRetry() {
-    // For now, we don't show in JetBrains since the re-index command
-    // is not yet implemented
-    if (update.shouldClearIndexes && !isJetBrains()) {
+    // 在IDEA中始终显示确认对话框，在其他环境中只有在需要清除索引时才显示
+    if (update.shouldClearIndexes || isJetBrains()) {
       dispatch(setShowDialog(true));
       dispatch(
         setDialogMessage(
           <ConfirmationDialog
-            title="Rebuild codebase index"
-            confirmText="Rebuild"
+            title="重建代码库索引"
+            confirmText="重建"
             text={
-              "Your index appears corrupted. We recommend clearing and rebuilding it, " +
-              "which may take time for large codebases.\n\n" +
-              "For a faster rebuild without clearing data, press 'Shift + Command + P' to open " +
-              "the Command Palette, and type out 'Continue: Force Codebase Re-Indexing'"
+              update.shouldClearIndexes
+                ? "您的索引可能已损坏。我们建议清除并重建索引，" +
+                  "这对于大型代码库可能需要一些时间。\n\n" +
+                  (isJetBrains()
+                    ? "重建将清除现有索引数据并完全重新构建，确保索引的准确性和完整性。"
+                    : "如需更快的重建而不清除数据，请按 'Shift + Command + P' 打开命令面板，" +
+                      "然后输入 'Continue: Force Codebase Re-Indexing'")
+                : "确认重新索引代码库？\n\n" +
+                  "重建将清除现有索引数据并完全重新构建，确保索引的准确性和完整性。" +
+                  "这对于大型代码库可能需要一些时间。"
             }
             onConfirm={() => {
               posthog.capture("rebuild_index_clicked");
@@ -76,8 +81,32 @@ function IndexingProgress() {
         ),
       );
     } else {
+      // 对于VSCode中不需要清除索引的情况，直接重新索引
       ideMessenger.post("index/forceReIndex", undefined);
     }
+  }
+
+  function showReindexConfirmation() {
+    dispatch(setShowDialog(true));
+    dispatch(
+      setDialogMessage(
+        <ConfirmationDialog
+          title="重建代码库索引"
+          confirmText="重建"
+          text={
+            "确认重新索引代码库？\n\n" +
+            "重建将清除现有索引数据并完全重新构建，确保索引的准确性和完整性。" +
+            "这对于大型代码库可能需要一些时间。"
+          }
+          onConfirm={() => {
+            posthog.capture("rebuild_index_clicked");
+            ideMessenger.post("index/forceReIndex", {
+              shouldClearIndexes: true,
+            });
+          }}
+        />,
+      ),
+    );
   }
 
   function onClick() {
@@ -91,7 +120,12 @@ function IndexingProgress() {
         if (update.progress < 1 && update.progress >= 0) {
           setPaused((prev) => !prev);
         } else {
-          ideMessenger.post("index/forceReIndex", undefined);
+          // 在IDEA中显示确认框，在其他环境中直接重新索引
+          if (isJetBrains()) {
+            showReindexConfirmation();
+          } else {
+            ideMessenger.post("index/forceReIndex", undefined);
+          }
         }
         break;
       case "disabled":
@@ -100,7 +134,13 @@ function IndexingProgress() {
         });
         break;
       case "done":
-        ideMessenger.post("index/forceReIndex", undefined);
+        // 在IDEA中显示确认框，在其他环境中直接重新索引
+        if (isJetBrains()) {
+          showReindexConfirmation();
+        } else {
+          ideMessenger.post("index/forceReIndex", undefined);
+        }
+        break;
       default:
         break;
     }

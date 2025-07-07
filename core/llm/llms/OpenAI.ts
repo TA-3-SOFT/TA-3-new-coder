@@ -62,7 +62,7 @@ class OpenAI extends BaseLLM {
   static defaultOptions: Partial<LLMOptions> | undefined = {
     apiBase: "https://api.openai.com/v1/",
     maxEmbeddingBatchSize: 100,
-    maxEmbeddingChunkSize: 5000,
+    maxEmbeddingChunkSize: 1000,
   };
 
   protected useOpenAIAdapterFor: (LlmApiRequestType | "*")[] = [
@@ -436,6 +436,7 @@ class OpenAI extends BaseLLM {
       body: JSON.stringify({
         input: chunks,
         model: this.model,
+        dimensions: 1024,
         ...this.extraBodyProperties(),
       }),
       headers: {

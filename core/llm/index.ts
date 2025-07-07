@@ -1040,6 +1040,7 @@ export abstract class BaseLLM implements ILLM {
               if (this.shouldUseOpenAIAdapter("embed") && this.openaiAdapter) {
                 const result = await this.openaiAdapter.embed({
                   model: this.model,
+                  dimensions: 1024,
                   input: batch,
                 });
 

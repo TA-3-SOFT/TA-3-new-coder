@@ -34,7 +34,7 @@ function ConfirmationDialog(props: ConfirmationDialogProps) {
               props.onCancel?.();
             }}
           >
-            Cancel
+            取消
           </SecondaryButton>
         )}
         <Button
