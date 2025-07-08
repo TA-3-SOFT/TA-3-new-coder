@@ -182,4 +182,15 @@ export class ControlPlaneClient {
       return null;
     }
   }
+
+  async setAuthHeader (header: any = {}) {
+    const sessionInfo: any = await this.sessionInfoPromise
+    const token = sessionInfo?.accessToken
+    if (!token) {
+      return header
+    }
+
+    header.Authorization = token
+    return header
+  }
 }

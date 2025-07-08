@@ -59,6 +59,12 @@ class ContinueAuthService {
     }
 
     suspend fun startAuthFlowWithResult(project: Project, useOnboarding: Boolean): ControlPlaneSessionInfo? {
+        // 优先使用保存的用户信息
+        val savedInfo = loadControlPlaneSessionInfo()
+        if (savedInfo != null) {
+            return savedInfo
+        }
+
             val uid = getEncryptedUid()
             if (uid == null) {
                 reportError(project, "无法从银海通获取 token")
@@ -67,7 +73,7 @@ class ContinueAuthService {
 
             val client = OkHttpClient()
             val request = Request.Builder()
-                .url("http://192.168.20.195:8081/lowcodeback/aiContinueLogin")
+                .url("http://localhost:8081/lowcodeback/aiContinueLogin")
                 .header("Authorization", uid)
                 .post("".toRequestBody())
                 .build()

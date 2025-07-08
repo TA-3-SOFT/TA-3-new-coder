@@ -138,10 +138,11 @@ export class ConfigHandler {
 
   private async loadProfiles(org: any) {
     const response = await fetch(
-      "http://192.168.20.195:8081/lowcodeback/ai/continue/ide/list-assistants?organizationId=" +
+      "http://localhost:8081/lowcodeback/ai/continue/ide/list-assistants?organizationId=" +
         org.id,
       {
         method: "POST",
+        headers: await this.controlPlaneClient.setAuthHeader({}),
       },
     );
     if (!response.ok) {
@@ -183,9 +184,10 @@ export class ConfigHandler {
 
   private async loadOrgs() {
     const response = await fetch(
-      "http://192.168.20.195:8081/lowcodeback/ai/continue/ide/list-organizations",
+      "http://localhost:8081/lowcodeback/ai/continue/ide/list-organizations",
       {
         method: "POST",
+        headers: await this.controlPlaneClient.setAuthHeader({}),
       },
     );
     if (!response.ok) {
