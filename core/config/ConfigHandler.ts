@@ -136,78 +136,85 @@ export class ConfigHandler {
     await this.reloadConfig();
   }
 
-  private async loadProfiles (org: any) {
-    const response = await fetch('http://localhost:8081/lowcodeback/ai/continue/ide/list-assistants?organizationId=' + org.id, {
-      method: 'POST',
-    })
+  private async loadProfiles(org: any) {
+    const response = await fetch(
+      "http://192.168.20.195:8081/lowcodeback/ai/continue/ide/list-assistants?organizationId=" +
+        org.id,
+      {
+        method: "POST",
+      },
+    );
     if (!response.ok) {
-      return org
+      return org;
     }
 
-    let profiles
+    let profiles;
     try {
-      profiles = await response.json()
+      profiles = await response.json();
     } catch (e) {
-      return org
+      return org;
     }
 
     if (!Array.isArray(profiles)) {
-      return org
+      return org;
     }
 
-      for (let i=0; i<profiles.length; i++) {
-        const profile = profiles[i]
-        const loader = await PlatformProfileLoader.create({
-          configResult: profile.configResult,
-          ownerSlug: profile.ownerSlug,
-          packageSlug: profile.packageSlug,
-          iconUrl: profile.iconUrl,
-          versionSlug: profile.configResult?.config?.version ?? "latest",
-          controlPlaneClient: this.controlPlaneClient,
-          ide: this.ide,
-          ideSettingsPromise: this.ideSettingsPromise,
-          llmLogger: this.llmLogger,
-          rawYaml: profile.rawYaml,
-          orgScopeId: null,
-        })
-        profiles[i] = new ProfileLifecycleManager(loader, this.ide)
-      }
+    for (let i = 0; i < profiles.length; i++) {
+      const profile = profiles[i];
+      const loader = await PlatformProfileLoader.create({
+        configResult: profile.configResult,
+        ownerSlug: profile.ownerSlug,
+        packageSlug: profile.packageSlug,
+        iconUrl: profile.iconUrl,
+        versionSlug: profile.configResult?.config?.version ?? "latest",
+        controlPlaneClient: this.controlPlaneClient,
+        ide: this.ide,
+        ideSettingsPromise: this.ideSettingsPromise,
+        llmLogger: this.llmLogger,
+        rawYaml: profile.rawYaml,
+        orgScopeId: null,
+      });
+      profiles[i] = new ProfileLifecycleManager(loader, this.ide);
+    }
 
-      org = await this.rectifyProfilesForOrg(org, profiles)
-      return org
+    org = await this.rectifyProfilesForOrg(org, profiles);
+    return org;
   }
 
-  private async loadOrgs () {
-    const response = await fetch('http://localhost:8081/lowcodeback/ai/continue/ide/list-organizations', {
-      method: 'POST',
-    })
+  private async loadOrgs() {
+    const response = await fetch(
+      "http://192.168.20.195:8081/lowcodeback/ai/continue/ide/list-organizations",
+      {
+        method: "POST",
+      },
+    );
     if (!response.ok) {
-      return null
+      return null;
     }
 
-    let orgs
+    let orgs;
     try {
-      orgs = await response.json()
+      orgs = await response.json();
     } catch (e) {
-      return null
+      return null;
     }
 
-    orgs = orgs.organizations ?? []
-    for (let j=0; j<orgs.length; j++) {
-      orgs[j] = await this.loadProfiles(orgs[j])
+    orgs = orgs.organizations ?? [];
+    for (let j = 0; j < orgs.length; j++) {
+      orgs[j] = await this.loadProfiles(orgs[j]);
     }
 
-    return orgs
+    return orgs;
   }
 
   private async getOrgs(): Promise<OrgWithProfiles[]> {
-    let orgs = await this.loadOrgs()
-    orgs ??= []
+    let orgs = await this.loadOrgs();
+    orgs ??= [];
     if (orgs.length <= 0) {
-      orgs.push(await this.getLocalOrg())
+      orgs.push(await this.getLocalOrg());
     }
 
-    return orgs
+    return orgs;
   }
 
   getSerializedOrgs(): SerializedOrgWithProfiles[] {
