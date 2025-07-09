@@ -52,20 +52,21 @@ class ContinueSettingsComponent : DumbAware {
         constraints.gridx = 0
         constraints.gridy = GridBagConstraints.RELATIVE
 
-        panel.add(JLabel("Remote Config Server URL:"), constraints)
-        constraints.gridy++
-        constraints.gridy++
-        panel.add(remoteConfigServerUrl, constraints)
-        constraints.gridy++
-        panel.add(JLabel("Remote Config Sync Period (in minutes):"), constraints)
-        constraints.gridy++
-        panel.add(remoteConfigSyncPeriod, constraints)
-        constraints.gridy++
-        panel.add(JLabel("User Token:"), constraints)
-        constraints.gridy++
-        panel.add(userToken, constraints)
-        constraints.gridy++
+//        panel.add(JLabel("Remote Config Server URL:"), constraints)
+//        constraints.gridy++
+//        constraints.gridy++
+//        panel.add(remoteConfigServerUrl, constraints)
+//        constraints.gridy++
+//        panel.add(JLabel("Remote Config Sync Period (in minutes):"), constraints)
+//        constraints.gridy++
+//        panel.add(remoteConfigSyncPeriod, constraints)
+//        constraints.gridy++
+//        panel.add(JLabel("User Token:"), constraints)
+//        constraints.gridy++
+//        panel.add(userToken, constraints)
+//        constraints.gridy++
         panel.add(JLabel("快捷操作显示模式:"), constraints)
+        constraints.gridy++
         constraints.gridy++
         // 单选按钮组  互斥
         ButtonGroup().apply { interactionModeRadioButtons.forEach { add(it) } }
