@@ -34,10 +34,10 @@ class ContinueSettingsComponent : DumbAware {
     val remoteConfigServerUrl: JTextField = JTextField()
     val remoteConfigSyncPeriod: JTextField = JTextField()
     val userToken: JTextField = JTextField()
-    val enableTabAutocomplete: JCheckBox = JCheckBox("Enable Tab Autocomplete")
-    val enableOSR: JCheckBox = JCheckBox("Enable Off-Screen Rendering")
-    val displayEditorTooltip: JCheckBox = JCheckBox("Display Editor Tooltip")
-    val showIDECompletionSideBySide: JCheckBox = JCheckBox("Show IDE completions side-by-side")
+    val enableTabAutocomplete: JCheckBox = JCheckBox("启用 Tab 代码自动补全")
+    val enableOSR: JCheckBox = JCheckBox("启用离屏渲染（若插件聊天显示有异常，请禁用）")
+    val displayEditorTooltip: JCheckBox = JCheckBox("显示编辑器工具提示")
+    val showIDECompletionSideBySide: JCheckBox = JCheckBox("并列显示IDE的代码补全建议")
     // 添加单选按钮组件，标题为“快捷交互显示模式” 选项为"文字平铺"，“下拉图标”，“不显示”
     val interactionModeRadioButtons = arrayOf( "下拉图标", "文字平铺", "不显示").map { JBRadioButton(it) }
     // 创建一个水平面板来放置单选按钮

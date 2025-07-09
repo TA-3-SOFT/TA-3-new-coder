@@ -156,14 +156,14 @@ export function createEditorConfig(options: {
                   if (items) {
                     for (const item of items) {
                       const file = item.getAsFile();
-                      file &&
-                        void modelSupportsImages(
+                      if (file &&
+                        modelSupportsImages(
                           model.provider,
                           model.model,
                           model.title,
                           model.capabilities,
-                        ) &&
-                        handleImageFile(ideMessenger, file).then((resp) => {
+                        )) {
+                        void handleImageFile(ideMessenger, file).then((resp) => {
                           if (!resp) return;
                           const [img, dataUrl] = resp;
                           const { schema } = view.state;
@@ -173,6 +173,8 @@ export function createEditorConfig(options: {
                           const tr = view.state.tr.insert(0, node);
                           view.dispatch(tr);
                         });
+                        event.preventDefault();
+                      }
                     }
                   }
                 },

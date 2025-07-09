@@ -138,7 +138,7 @@ export class ConfigHandler {
 
   private async loadProfiles(org: any) {
     const response = await fetch(
-      "http://localhost:8081/lowcodeback/ai/continue/ide/list-assistants?organizationId=" +
+      "https://lc.yinhaiyun.com/lowcodeback-dev/ai/continue/ide/list-assistants?organizationId=" +
         org.id,
       {
         method: "POST",
@@ -184,7 +184,7 @@ export class ConfigHandler {
 
   private async loadOrgs() {
     const response = await fetch(
-      "http://localhost:8081/lowcodeback/ai/continue/ide/list-organizations",
+      "https://lc.yinhaiyun.com/lowcodeback-dev/ai/continue/ide/list-organizations",
       {
         method: "POST",
         headers: await this.controlPlaneClient.setAuthHeader({}),
