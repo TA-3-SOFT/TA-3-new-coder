@@ -67,6 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           const session = result.content;
           setSession(session);
 
+          refreshProfiles();
+
           resolve(true);
         });
     });
@@ -77,8 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     dispatch(
       setDialogMessage(
         <ConfirmationDialog
-          confirmText="Yes, log out"
-          text="Are you sure you want to log out of Continue?"
+          text="确定登出?"
           onConfirm={() => {
             ideMessenger.post("logoutOfControlPlane", undefined);
             dispatch(
@@ -120,10 +121,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const refreshProfiles = useCallback(async () => {
     try {
       await ideMessenger.request("config/refreshProfiles", undefined);
-      ideMessenger.post("showToast", ["info", "Config refreshed"]);
+      ideMessenger.post("showToast", ["info", "已刷新智能体配置"]);
     } catch (e) {
       console.error("Failed to refresh profiles", e);
-      ideMessenger.post("showToast", ["error", "Failed to refresh config"]);
+      ideMessenger.post("showToast", ["error", "智能体配置刷新失败"]);
     }
   }, [ideMessenger]);
 

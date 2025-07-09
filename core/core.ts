@@ -329,6 +329,14 @@ export class Core {
     });
 
     on("config/refreshProfiles", async (msg) => {
+      const sessionInfo = await this.messenger.request("getControlPlaneSessionInfo", {
+        silent: true,
+        useOnboarding: false,
+      });
+      if (sessionInfo) {
+        await this.configHandler.updateControlPlaneSessionInfo(sessionInfo)
+      }
+
       const { selectOrgId, selectProfileId } = msg.data ?? {};
       await this.configHandler.refreshAll();
       if (selectOrgId) {
