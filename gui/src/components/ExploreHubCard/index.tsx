@@ -25,13 +25,10 @@ export function ExploreHubCard() {
     >
       <div className="flex flex-col items-center gap-1 px-4 text-center">
         <div className="mb-4">
-          <h2 className="mb-1 text-xl font-semibold">
-            Create Your Own Assistant
-          </h2>
+          <h2 className="mb-1 text-xl font-semibold">快速开始</h2>
 
           <p className="text-lightgray my-0 max-w-lg text-sm font-light leading-relaxed">
-            Discover and remix popular assistants, or create your own from
-            scratch
+            查看 TA+3 牛码 插件文档，了解操作指南
           </p>
         </div>
 
@@ -39,24 +36,24 @@ export function ExploreHubCard() {
           className="w-full"
           onClick={() => {
             ideMessenger.request("controlPlane/openUrl", {
-              path: "/explore/assistants",
+              path: "http://172.20.23.216/ta3-ai-doc/docs/docs/code/README.html",
               orgSlug: undefined,
             });
           }}
         >
-          Explore Assistants
+          打开文档
         </Button>
 
         <ButtonSubtext
           onClick={() => {
             ideMessenger.request("controlPlane/openUrl", {
-              path: "/new?type=assistant",
+              path: "http://172.20.23.216/ta3-ai-doc/README.html",
               orgSlug: undefined,
             });
           }}
         >
           <div className="flex cursor-pointer items-center justify-center gap-1">
-            <span>Or, create your own assistant from scratch</span>
+            <span>或者了解其他 TA+3 AI 系列工具</span>
             <ChevronRightIcon className="h-3 w-3" />
           </div>
         </ButtonSubtext>

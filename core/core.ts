@@ -329,12 +329,15 @@ export class Core {
     });
 
     on("config/refreshProfiles", async (msg) => {
-      const sessionInfo = await this.messenger.request("getControlPlaneSessionInfo", {
-        silent: true,
-        useOnboarding: false,
-      });
+      const sessionInfo = await this.messenger.request(
+        "getControlPlaneSessionInfo",
+        {
+          silent: true,
+          useOnboarding: false,
+        },
+      );
       if (sessionInfo) {
-        await this.configHandler.updateControlPlaneSessionInfo(sessionInfo)
+        await this.configHandler.updateControlPlaneSessionInfo(sessionInfo);
       }
 
       const { selectOrgId, selectProfileId } = msg.data ?? {};
@@ -364,9 +367,17 @@ export class Core {
 
     on("controlPlane/openUrl", async (msg) => {
       const env = await getControlPlaneEnv(this.ide.getIdeSettings());
-      let url = `${env.APP_URL}${msg.data.path}`;
-      if (msg.data.orgSlug) {
-        url += `?org=${msg.data.orgSlug}`;
+      let url;
+      if (
+        msg.data.path.includes("http://") ||
+        msg.data.path.includes("https://")
+      ) {
+        url = msg.data.path;
+      } else {
+        url = `${env.APP_URL}${msg.data.path}`;
+        if (msg.data.orgSlug) {
+          url += `?org=${msg.data.orgSlug}`;
+        }
       }
       await this.messenger.request("openUrl", url);
     });

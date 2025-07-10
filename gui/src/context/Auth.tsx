@@ -79,7 +79,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     dispatch(
       setDialogMessage(
         <ConfirmationDialog
+          title="退出登录"
           text="确定登出?"
+          confirmText="确定"
           onConfirm={() => {
             ideMessenger.post("logoutOfControlPlane", undefined);
             dispatch(

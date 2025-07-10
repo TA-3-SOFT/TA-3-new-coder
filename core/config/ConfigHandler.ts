@@ -138,6 +138,7 @@ export class ConfigHandler {
 
   private async loadProfiles(org: any) {
     const response = await fetch(
+      // "http://192.168.20.195:8081/lowcodeback/ai/continue/ide/list-assistants?organizationId=" +
       "https://lc.yinhaiyun.com/lowcodeback-dev/ai/continue/ide/list-assistants?organizationId=" +
         org.id,
       {
@@ -184,6 +185,7 @@ export class ConfigHandler {
 
   private async loadOrgs() {
     const response = await fetch(
+      // "http://192.168.20.195:8081/lowcodeback/ai/continue/ide/list-organizations",
       "https://lc.yinhaiyun.com/lowcodeback-dev/ai/continue/ide/list-organizations",
       {
         method: "POST",
