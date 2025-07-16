@@ -20,7 +20,6 @@ import { useSubmenuContextProviders } from "../../../../context/SubmenuContextPr
 import { useInputHistory } from "../../../../hooks/useInputHistory";
 import useUpdatingRef from "../../../../hooks/useUpdatingRef";
 import { useAppSelector } from "../../../../redux/hooks";
-import { selectUseActiveFile } from "../../../../redux/selectors";
 import { selectSelectedChatModel } from "../../../../redux/slices/configSlice";
 import { AppDispatch } from "../../../../redux/store";
 import { exitEdit } from "../../../../redux/thunks/edit";
@@ -79,7 +78,9 @@ export function createEditorConfig(options: {
   const { getSubmenuContextItems } = useSubmenuContextProviders();
   const defaultModel = useAppSelector(selectSelectedChatModel);
   const isStreaming = useAppSelector((state) => state.session.isStreaming);
-  const useActiveFile = useAppSelector(selectUseActiveFile);
+  const useCurrentFileAsContext = useAppSelector(
+    (state) => state.config.config.experimental?.useCurrentFileAsContext ?? false
+  );
   const historyLength = useAppSelector((store) => store.session.history.length);
   const codeToEdit = useAppSelector((store) => store.editModeState.codeToEdit);
   const isInEdit = useAppSelector((store) => store.session.isInEdit);
@@ -204,7 +205,7 @@ export function createEditorConfig(options: {
 
               onEnterRef.current({
                 useCodebase: false,
-                noContext: !useActiveFile,
+                noContext: !useCurrentFileAsContext,
               });
               return true;
             },
@@ -212,7 +213,7 @@ export function createEditorConfig(options: {
             "Mod-Enter": () => {
               onEnterRef.current({
                 useCodebase: true,
-                noContext: !useActiveFile,
+                noContext: !useCurrentFileAsContext,
               });
               return true;
             },
@@ -221,7 +222,7 @@ export function createEditorConfig(options: {
 
               onEnterRef.current({
                 useCodebase: false,
-                noContext: !!useActiveFile,
+                noContext: !!useCurrentFileAsContext,
               });
 
               return true;

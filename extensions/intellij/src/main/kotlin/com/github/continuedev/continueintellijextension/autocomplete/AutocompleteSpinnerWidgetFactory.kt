@@ -49,8 +49,14 @@ class AutocompleteSpinnerWidget(project: Project) : EditorBasedWidget(project), 
         return null
     }
 
-    override fun getIcon(): Icon = if (isLoading) animatedIcon else
-        IconLoader.getIcon("/icons/continue.svg", javaClass)
+    override fun getIcon(): Icon {
+        val enabled = service<ContinueExtensionSettings>().state.enableTabAutocomplete
+        return when {
+            isLoading -> animatedIcon
+            enabled -> IconLoader.getIcon("/icons/continue.svg", javaClass)
+            else -> IconLoader.getIcon("/icons/continue_grey.svg", javaClass)
+        }
+    }
 
     fun setLoading(loading: Boolean) {
         isLoading = loading

@@ -23,6 +23,7 @@ export interface AutocompleteInput {
     range: Range;
   };
   injectDetails?: string;
+  symbolTable?: string;
 }
 
 export interface AutocompleteOutcome extends TabAutocompleteOptions {

@@ -63,6 +63,7 @@ import Voyage from "./Voyage";
 import WatsonX from "./WatsonX";
 import xAI from "./xAI";
 import LocalQwen from "./LocalQwen";
+import Yinhai from "./Yinhai";
 
 export const LLMClasses = [
   Anthropic,
@@ -118,6 +119,7 @@ export const LLMClasses = [
   Inception,
   Voyage,
   LocalQwen,
+  Yinhai,
 ];
 
 export async function llmFromDescription(

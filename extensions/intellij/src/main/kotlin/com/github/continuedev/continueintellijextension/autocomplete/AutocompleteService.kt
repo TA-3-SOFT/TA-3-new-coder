@@ -4,6 +4,9 @@ import com.github.continuedev.continueintellijextension.services.ContinueExtensi
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService
 import com.github.continuedev.continueintellijextension.utils.toUriOrNull
 import com.github.continuedev.continueintellijextension.utils.uuid
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.intellij.injected.editor.VirtualFileWindow
 import com.intellij.openapi.application.*
 import com.intellij.openapi.components.Service
@@ -16,8 +19,16 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.WindowManager
+import com.intellij.psi.JavaRecursiveElementVisitor
+import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiImportStatement
+import com.intellij.psi.PsiJavaFile
+import com.intellij.psi.PsiModifier
+import java.util.ArrayList
+import java.util.LinkedHashSet
+import java.util.Objects
 
 data class PendingCompletion(
     val editor: Editor,
@@ -88,6 +99,13 @@ class AutocompleteService(private val project: Project) {
 
         val line = editor.caretModel.primaryCaret.logicalPosition.line
         val column = editor.caretModel.primaryCaret.logicalPosition.column
+
+        // 转换为格式化的 JSON 字符串
+//        val gson = GsonBuilder().setPrettyPrinting().create()
+//        val symbolTable = gson.toJson(buildSymbolTable(editor))
+        // 不格式化 节约token 不影响效果
+        val symbolTable = buildSymbolTable(editor).toString()
+
         val input = mapOf(
             "completionId" to completionId,
             "filepath" to uri,
@@ -98,6 +116,7 @@ class AutocompleteService(private val project: Project) {
             "clipboardText" to "",
             "recentlyEditedRanges" to emptyList<Any>(),
             "recentlyVisitedRanges" to emptyList<Any>(),
+            "symbolTable" to symbolTable,
         )
 
         project.service<ContinuePluginService>().coreMessenger?.request(
@@ -322,5 +341,169 @@ class AutocompleteService(private val project: Project) {
                 it.dispose()
             }
         }
+    }
+
+
+    private fun buildSymbolTable(editor: Editor): MutableList<JsonObject?> {
+        val project = editor.getProject()
+        if (project == null) {
+            return ArrayList<JsonObject?>()
+        }
+
+        val psiFile = PsiDocumentManager.getInstance(Objects.requireNonNull<Project?>(editor.getProject()))
+            .getPsiFile(editor.getDocument())
+        if (psiFile == null) {
+            return ArrayList<JsonObject?>()
+        }
+
+        var currentFilePackageName = ""
+
+        if (psiFile is PsiJavaFile) {
+            val split: Array<String?> =
+                psiFile.getPackageName().split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            if (split.size >= 2) {
+                currentFilePackageName = split[0] + "." + split[1]
+            }
+        }
+
+        // 遍历当前文件中的所有元素，查找关联文件
+        val finalCurrentFilePackageName = currentFilePackageName
+
+
+        val symbolTableList: MutableList<JsonObject?> = ArrayList<JsonObject?>()
+
+        psiFile.accept(object : JavaRecursiveElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                super.visitElement(element)
+                // 查找导入的类
+                if (element is PsiImportStatement) {
+                    val importStatement = element
+                    val resolved = importStatement.resolve()
+                    if (resolved is PsiClass) {
+                        val psiClass = resolved
+                        if (psiClass.getQualifiedName() != null && (psiClass.getQualifiedName()!!
+                                .startsWith("com.yinhai") || (!finalCurrentFilePackageName.isEmpty() && psiClass.getQualifiedName()!!
+                                .startsWith(finalCurrentFilePackageName)))
+                        ) {
+                            val jsonObject: JsonObject = processPsiClass(psiClass)
+                            symbolTableList.add(jsonObject)
+                        }
+                    }
+                }
+
+                // 查找继承和实现关系
+                if (element is PsiClass) {
+                    val psiClass = element
+                    for (superClass in psiClass.getSupers()) {
+                        val jsonObject: JsonObject = processPsiClass(superClass)
+                        symbolTableList.add(jsonObject)
+                    }
+                }
+            }
+        })
+
+        //去重复
+        val set: MutableSet<JsonObject?> = LinkedHashSet<JsonObject?>(symbolTableList)
+        return ArrayList<JsonObject?>(set)
+    }
+
+    private fun processPsiClass(psiClass: PsiClass): JsonObject {
+        val className = psiClass.getQualifiedName()
+        val classSymbolTable = JsonObject()
+        if (className == null) {
+            return classSymbolTable
+        }
+
+        classSymbolTable.addProperty("className", className)
+        val psiClassComment = psiClass.getDocComment()
+        if (psiClassComment != null) {
+            val commentText = StringBuilder()
+            // 获取所有的描述性内容（不包括标签）
+            psiClassComment.getDescriptionElements()
+            for (element in psiClassComment.getDescriptionElements()) {
+                commentText.append(element.getText().trim { it <= ' ' }).append(" ")
+            }
+            classSymbolTable.addProperty("classComment", commentText.toString().trim { it <= ' ' })
+        }
+
+        val publicMethods = JsonArray()
+        val publicFields = JsonArray()
+
+        // 查找公共方法
+        for (method in psiClass.getMethods()) {
+            if (method.hasModifierProperty(PsiModifier.PUBLIC)) {
+                val methodSymbolTable = JsonObject()
+
+                //获取方法签名
+                val signature = StringBuilder()
+                // 获取方法的返回类型
+                val returnType = method.getReturnType()
+                if (returnType != null) {
+                    signature.append(returnType.getPresentableText()).append(" ")
+                }
+                // 获取方法的名称
+                signature.append(method.getName())
+                // 获取方法的参数列表
+                signature.append("(")
+                val parameters = method.getParameterList().getParameters()
+                for (i in parameters.indices) {
+                    val parameter = parameters[i]
+                    val parameterType = parameter.getType()
+                    signature.append(parameterType.getPresentableText()).append(" ").append(parameter.getName())
+                    if (i < parameters.size - 1) {
+                        signature.append(", ")
+                    }
+                }
+                signature.append(")")
+                methodSymbolTable.addProperty("methodSignature", signature.toString())
+
+                // 获取方法的注释
+                val docComment = method.getDocComment()
+                if (docComment != null) {
+//                    String commentText = docComment.getText();
+                    val commentText = StringBuilder()
+                    // 获取所有的描述性内容（不包括标签）
+                    docComment.getDescriptionElements()
+                    for (element in docComment.getDescriptionElements()) {
+                        commentText.append(element.getText().trim { it <= ' ' }).append(" ")
+                    }
+                    methodSymbolTable.addProperty("methodComment", commentText.toString().trim { it <= ' ' })
+                }
+                publicMethods.add(methodSymbolTable)
+            }
+        }
+
+        // 查找公共属性
+        for (field in psiClass.getFields()) {
+            if (field.hasModifierProperty(PsiModifier.PUBLIC)) {
+                val fieldSymbolTable = JsonObject()
+
+
+                // 获取字段签名
+                val signature = StringBuilder()
+                val fieldType = field.getType()
+                signature.append(fieldType.getPresentableText()).append(" ")
+                signature.append(field.getName())
+                fieldSymbolTable.addProperty("fieldSignature", signature.toString())
+
+                // 获取方法的注释
+                val docComment = field.getDocComment()
+                if (docComment != null) {
+//                    String commentText = docComment.getText();
+                    val commentText = StringBuilder()
+                    // 获取所有的描述性内容（不包括标签）
+                    docComment.getDescriptionElements()
+                    for (element in docComment.getDescriptionElements()) {
+                        commentText.append(element.getText().trim { it <= ' ' }).append(" ")
+                    }
+                    fieldSymbolTable.addProperty("fieldComment", commentText.toString().trim { it <= ' ' })
+                }
+                publicFields.add(fieldSymbolTable)
+            }
+        }
+
+        classSymbolTable.add("publicMethods", publicMethods)
+        classSymbolTable.add("publicFields", publicFields)
+        return classSymbolTable
     }
 }

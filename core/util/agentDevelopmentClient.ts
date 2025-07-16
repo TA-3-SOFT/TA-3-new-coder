@@ -1,6 +1,7 @@
 import { FetchFunction, ILLM } from "../index.js";
 import * as path from "path";
 import * as fs from "fs";
+// @ts-ignore
 import { cos_sim } from "../vendor/modules/@xenova/transformers/src/utils/maths.js";
 
 export interface DevelopmentKnowledgeResponse {

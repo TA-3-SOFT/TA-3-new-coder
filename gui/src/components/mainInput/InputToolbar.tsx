@@ -4,7 +4,6 @@ import { modelSupportsImages, modelSupportsTools } from "core/llm/autodetect";
 import { useContext, useRef } from "react";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { selectUseActiveFile } from "../../redux/selectors";
 import {
   selectCurrentToolCall,
   selectCurrentToolCallApplyState,
@@ -49,7 +48,9 @@ function InputToolbar(props: InputToolbarProps) {
   const ideMessenger = useContext(IdeMessengerContext);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const defaultModel = useAppSelector(selectSelectedChatModel);
-  const useActiveFile = useAppSelector(selectUseActiveFile);
+  const useCurrentFileAsContext = useAppSelector(
+    (state) => state.config.config.experimental?.useCurrentFileAsContext ?? false
+  );
   const isInEdit = useAppSelector((store) => store.session.isInEdit);
   const codeToEdit = useAppSelector((store) => store.editModeState.codeToEdit);
   const toolCallState = useAppSelector(selectCurrentToolCall);
@@ -165,7 +166,7 @@ function InputToolbar(props: InputToolbarProps) {
               {props.activeKey === "Alt" ? (
                 <HoverItem className="underline">
                   {`${getAltKeyLabel()}⏎
-                  ${useActiveFile ? "No active file" : "Active file"}`}
+                  ${useCurrentFileAsContext ? "No active file" : "Active file"}`}
                 </HoverItem>
               ) : (
                 <HoverItem
@@ -173,7 +174,7 @@ function InputToolbar(props: InputToolbarProps) {
                   onClick={(e) =>
                     props.onEnter?.({
                       useCodebase: true,
-                      noContext: !useActiveFile,
+                      noContext: !useCurrentFileAsContext,
                     })
                   }
                 >

@@ -230,6 +230,15 @@ export function UserSettingsForm() {
               }
               text="允许Chat模式使用读取工具"
             />
+            <ToggleSwitch
+              isToggled={useCurrentFileAsContext}
+              onToggle={() =>
+                handleUpdate({
+                  useCurrentFileAsContext: !useCurrentFileAsContext,
+                })
+              }
+              text="将当前文件默认作为上下文"
+            />
 
             {/* <ToggleSwitch
                     isToggled={useAutocompleteCache}
@@ -346,7 +355,7 @@ export function UserSettingsForm() {
             </form>
           </div>
 
-          <div className="flex flex-col gap-x-2 gap-y-4">
+          {/*<div className="flex flex-col gap-x-2 gap-y-4">
             <div
               className="flex cursor-pointer items-center gap-2 text-left text-sm font-semibold"
               onClick={() => setShowExperimental(!showExperimental)}
@@ -396,7 +405,7 @@ export function UserSettingsForm() {
                 />
               </div>
             </div>
-          </div>
+          </div>*/}
         </div>
       ) : null}
     </div>

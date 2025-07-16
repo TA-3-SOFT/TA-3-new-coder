@@ -86,7 +86,17 @@ export function renderPrompt({
     );
   } else {
     const formattedSnippets = formatSnippets(helper, snippets, workspaceDirs);
-    prefix = [formattedSnippets, prefix].join("\n");
+    if (helper.input.symbolTable) {
+      prefix = [
+        "以下是当前文件关联代码文件的符号表，该符号表是当前文件所直接引用的代码文件，包含应用文件的公共方法和属性，供代码补全时参考使用：",
+        helper.input.symbolTable,
+        "以下是当前文件代码补全的前缀prefix的代码：",
+        formattedSnippets,
+        prefix,
+      ].join("\n\n");
+    } else {
+      prefix = [formattedSnippets, prefix].join("\n");
+    }
   }
 
   const prompt =

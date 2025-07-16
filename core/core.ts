@@ -574,12 +574,15 @@ export class Core {
         return; // TODO silent in case of commands?
       }
       walkDirCache.invalidate();
-      if (data?.shouldClearIndexes) {
-        const codebaseIndexer = await this.codebaseIndexerPromise;
-        await codebaseIndexer.clearIndexes();
-      }
 
       const dirs = data?.dirs ?? (await this.ide.getWorkspaceDirs());
+
+      if (data?.shouldClearIndexes) {
+        const codebaseIndexer = await this.codebaseIndexerPromise;
+        // 只清除当前要重新索引的项目的索引数据
+        await codebaseIndexer.clearIndexes(dirs);
+      }
+
       await this.refreshCodebaseIndex(dirs);
     });
     on("index/setPaused", (msg) => {
