@@ -49,7 +49,8 @@ function InputToolbar(props: InputToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const defaultModel = useAppSelector(selectSelectedChatModel);
   const useCurrentFileAsContext = useAppSelector(
-    (state) => state.config.config.experimental?.useCurrentFileAsContext ?? false
+    (state) =>
+      state.config.config.experimental?.useCurrentFileAsContext ?? false,
   );
   const isInEdit = useAppSelector((store) => store.session.isInEdit);
   const codeToEdit = useAppSelector((store) => store.editModeState.codeToEdit);
@@ -211,7 +212,7 @@ function InputToolbar(props: InputToolbarProps) {
               if (props.onEnter) {
                 props.onEnter({
                   useCodebase: isMetaEquivalentKeyPressed(e as any),
-                  noContext: useActiveFile ? e.altKey : !e.altKey,
+                  noContext: useCurrentFileAsContext ? e.altKey : !e.altKey,
                 });
               }
             }}

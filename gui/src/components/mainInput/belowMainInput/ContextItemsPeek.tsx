@@ -176,11 +176,12 @@ export function ContextItemsPeek({
         title ??
         (isGatheringContext ? (
           <>
-            收集上下文
+            收集项目信息
             <AnimatedEllipsis />
           </>
         ) : (
-          `${ctxItems.length} context ${ctxItems.length > 1 ? "items" : "item"}`
+          // `${ctxItems.length} context ${ctxItems.length > 1 ? "items" : "item"}`
+          `${ctxItems.length} 个相关信息`
         ))
       }
     >
