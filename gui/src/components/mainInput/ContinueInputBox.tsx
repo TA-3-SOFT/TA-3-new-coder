@@ -117,7 +117,7 @@ function ContinueInputBox(props: ContinueInputBoxProps) {
       }
     : {};
 
-  const { appliedRules = [], contextItems = [] } = props;
+  // const { appliedRules = [], contextItems = [] } = props;
 
   return (
     <div
@@ -146,7 +146,7 @@ function ContinueInputBox(props: ContinueInputBoxProps) {
           />
         </GradientBorder>
       </div>
-      {(appliedRules.length > 0 || contextItems.length > 0) && (
+      {/*      {(appliedRules.length > 0 || contextItems.length > 0) && (
         <div className="mt-2 flex flex-col">
           <RulesPeek appliedRules={props.appliedRules} />
           <ContextItemsPeek
@@ -154,7 +154,14 @@ function ContinueInputBox(props: ContinueInputBoxProps) {
             isCurrentContextPeek={props.isLastUserInput}
           />
         </div>
-      )}
+      )}*/}
+      <div className="mt-2 flex flex-col">
+        <RulesPeek appliedRules={props.appliedRules} />
+        <ContextItemsPeek
+          contextItems={props.contextItems}
+          isCurrentContextPeek={props.isLastUserInput}
+        />
+      </div>
     </div>
   );
 }

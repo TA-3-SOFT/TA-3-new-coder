@@ -176,7 +176,7 @@ export function ContextItemsPeek({
         title ??
         (isGatheringContext ? (
           <>
-            Gathering context
+            收集上下文
             <AnimatedEllipsis />
           </>
         ) : (
