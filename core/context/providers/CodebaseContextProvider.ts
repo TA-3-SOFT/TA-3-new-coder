@@ -10,7 +10,7 @@ class CodebaseContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
     title: "codebase",
     displayTitle: "Codebase",
-    description: "Automatically find relevant files",
+    description: "在代码库中自动查找文件",
     type: "normal",
     renderInlineAs: "",
   };

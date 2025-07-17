@@ -45,8 +45,8 @@ interface Section {
 
 const sections: Section[] = [
   { id: "models", title: "模型", tooltip: "模型", icon: CubeIcon },
-  { id: "rules", title: "规则", tooltip: "规则", icon: PencilIcon },
-  { id: "docs", title: "文档", tooltip: "文档", icon: BookOpenIcon },
+  // { id: "rules", title: "规则", tooltip: "规则", icon: PencilIcon },
+  // { id: "docs", title: "文档", tooltip: "文档", icon: BookOpenIcon },
   {
     id: "prompts",
     title: "提示词",
@@ -59,12 +59,12 @@ const sections: Section[] = [
     tooltip: <ToolsSectionTooltip />,
     icon: WrenchScrewdriverIcon,
   },
-  {
-    id: "mcp",
-    title: "MCP服务",
-    tooltip: <McpSectionTooltip />,
-    icon: Squares2X2Icon,
-  },
+  // {
+  //   id: "mcp",
+  //   title: "MCP服务",
+  //   tooltip: <McpSectionTooltip />,
+  //   icon: Squares2X2Icon,
+  // },
   {
     id: "error",
     title: "Errors",

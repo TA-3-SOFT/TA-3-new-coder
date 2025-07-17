@@ -9,8 +9,8 @@ import { BaseContextProvider } from "../index.js";
 class ProblemsContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
     title: "problems",
-    displayTitle: "Problems",
-    description: "Reference problems in the current file",
+    displayTitle: "问题",
+    description: "当前文件的问题作为上下文",
     type: "normal",
   };
 

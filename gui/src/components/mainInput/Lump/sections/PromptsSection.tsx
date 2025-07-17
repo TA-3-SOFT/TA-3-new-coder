@@ -163,7 +163,7 @@ export function PromptsSection() {
           onEdit={() => handleEdit(prompt)}
         />
       ))}
-      <ExploreBlocksButton blockType="prompts" />
+      {/*<ExploreBlocksButton blockType="prompts" />*/}
     </div>
   );
 }

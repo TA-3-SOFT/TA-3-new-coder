@@ -16,8 +16,8 @@ import { retrieveContextItemsFromEmbeddings } from "../retrieval/retrieval.js";
 class FolderContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
     title: "folder",
-    displayTitle: "Folder",
-    description: "Type to search",
+    displayTitle: "文件夹",
+    description: "查找文件夹作为上下文",
     type: "submenu",
     dependsOnIndexing: true,
   };

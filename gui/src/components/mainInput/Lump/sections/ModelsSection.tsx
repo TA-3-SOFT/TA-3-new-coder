@@ -77,7 +77,7 @@ export function ModelsSection() {
           onSelect={(model) => handleRoleUpdate("rerank", model)}
         />
       </div>
-      <ExploreBlocksButton blockType={"models"} />
+      {/*<ExploreBlocksButton blockType={"models"} />*/}
     </div>
   );
 }

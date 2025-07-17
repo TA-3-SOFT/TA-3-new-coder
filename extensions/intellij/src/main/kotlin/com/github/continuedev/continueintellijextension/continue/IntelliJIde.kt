@@ -475,7 +475,7 @@ class IntelliJIDE(
 
         // Create the list of IndexTag objects
         return workspaceDirs.mapIndexed { index, directory ->
-            IndexTag(directory, branches[index], artifactId)
+            IndexTag(artifactId, branches[index], directory)
         }
     }
 
