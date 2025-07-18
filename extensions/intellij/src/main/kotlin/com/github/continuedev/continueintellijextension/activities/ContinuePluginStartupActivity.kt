@@ -133,7 +133,7 @@ class ContinuePluginStartupActivity : StartupActivity, DumbAware {
             if (!settings.continueState.shownWelcomeDialog) {
                 settings.continueState.shownWelcomeDialog = true
                 // Open tutorial file
-                showTutorial(project)
+//                showTutorial(project)
             }
 
             settings.addRemoteSyncJob()

@@ -10,7 +10,7 @@ class ProblemsContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
     title: "problems",
     displayTitle: "问题",
-    description: "当前文件的问题作为上下文",
+    description: "将当前文件的问题作为上下文",
     type: "normal",
   };
 

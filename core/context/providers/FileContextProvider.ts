@@ -19,7 +19,7 @@ class FileContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
     title: "file",
     displayTitle: "文件",
-    description: "查找文件作为上下文",
+    description: "选择文件作为上下文",
     type: "submenu",
   };
 

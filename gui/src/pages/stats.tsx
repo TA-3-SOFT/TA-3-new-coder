@@ -74,15 +74,15 @@ function Stats() {
         }}
       >
         <ArrowLeftIcon className="ml-4 inline-block h-3 w-3 cursor-pointer" />
-        <span className="m-2 inline-block text-base font-bold">More</span>
+        <span className="m-2 inline-block text-base font-bold">返回</span>
       </div>
 
       <div className="p-2">
         <div className="flex items-center gap-2">
-          <h2 className="ml-2">Tokens per Day</h2>
+          <h2 className="ml-2">每日Tokens统计</h2>
           <CopyIconButton
             text={generateTable(
-              ([["Day", "Generated Tokens", "Prompt Tokens"]] as any).concat(
+              ([["日期", "生成的 Tokens", "输入提示的 Tokens"]] as any).concat(
                 days.map((day) => [
                   day.day,
                   day.generatedTokens,
@@ -95,27 +95,32 @@ function Stats() {
         <table className="w-full border-collapse">
           <thead>
             <Tr>
-              <Th>Day</Th>
-              <Th>Generated Tokens</Th>
-              <Th>Prompt Tokens</Th>
+              <Th>日期</Th>
+              <Th>生成的 Tokens</Th>
+              <Th>输入提示的 Tokens</Th>
             </Tr>
           </thead>
           <tbody>
-            {days.map((day) => (
-              <Tr key={day.day} className="">
-                <Td>{day.day}</Td>
-                <Td>{day.generatedTokens.toLocaleString()}</Td>
-                <Td>{day.promptTokens.toLocaleString()}</Td>
-              </Tr>
-            ))}
+            {days
+              .slice()
+              .sort(
+                (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime(),
+              )
+              .map((day) => (
+                <Tr key={day.day} className="">
+                  <Td>{day.day}</Td>
+                  <Td>{day.generatedTokens.toLocaleString()}</Td>
+                  <Td>{day.promptTokens.toLocaleString()}</Td>
+                </Tr>
+              ))}
           </tbody>
         </table>
 
         <div className="flex items-center gap-2">
-          <h2 className="ml-2">Tokens per Model</h2>
+          <h2 className="ml-2">每个模型的Tokens统计</h2>
           <CopyIconButton
             text={generateTable(
-              ([["Model", "Generated Tokens", "Prompt Tokens"]] as any).concat(
+              ([["模型", "生成的 Tokens", "输入提示的 Tokens"]] as any).concat(
                 models.map((model) => [
                   model.model,
                   model.generatedTokens.toLocaleString(),
@@ -128,9 +133,9 @@ function Stats() {
         <table className="w-full border-collapse">
           <thead>
             <Tr>
-              <Th>Model</Th>
-              <Th>Generated Tokens</Th>
-              <Th>Prompt Tokens</Th>
+              <Th>模型</Th>
+              <Th>生成的 Tokens</Th>
+              <Th>输入提示的 Tokens</Th>
             </Tr>
           </thead>
           <tbody>

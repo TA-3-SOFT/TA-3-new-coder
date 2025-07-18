@@ -23,24 +23,18 @@ export function HelpCenterSection() {
       <h3 className="mb-4 mt-0 text-xl">帮助中心</h3>
       <div className="-mx-4 flex flex-col">
         <MoreHelpRow
-          title="Continue Hub"
-          description="Visit hub.continue.dev to explore custom assistants and blocks"
+          title="快速开始"
+          description="学习如何使用TA+3 牛码"
           Icon={ArrowTopRightOnSquareIcon}
           onClick={() =>
-            ideMessenger.post("openUrl", "https://hub.continue.dev/")
+            ideMessenger.post(
+              "openUrl",
+              "http://172.20.23.216/ta3-ai-doc/docs/docs/code/README.html",
+            )
           }
         />
 
-        <MoreHelpRow
-          title="Documentation"
-          description="Learn how to configure and use Continue"
-          Icon={ArrowTopRightOnSquareIcon}
-          onClick={() =>
-            ideMessenger.post("openUrl", "https://docs.continue.dev/")
-          }
-        />
-
-        <MoreHelpRow
+        {/*        <MoreHelpRow
           title="Have an issue?"
           description="Let us know on GitHub and we'll do our best to resolve it"
           Icon={ArrowTopRightOnSquareIcon}
@@ -50,25 +44,25 @@ export function HelpCenterSection() {
               "https://github.com/continuedev/continue/issues/new/choose",
             )
           }
-        />
+        />*/}
 
-        <MoreHelpRow
+        {/*        <MoreHelpRow
           title="Join the community!"
           description="Join us on Discord to stay up-to-date on the latest developments"
           Icon={ArrowTopRightOnSquareIcon}
           onClick={() =>
             ideMessenger.post("openUrl", "https://discord.gg/vapESyrFmJ")
           }
-        />
+        />*/}
 
         <MoreHelpRow
-          title="Token usage"
-          description="Daily token usage across models"
+          title="Token 使用情况"
+          description="模型每日Token使用情况"
           Icon={TableCellsIcon}
           onClick={() => navigate("/stats")}
         />
 
-        <MoreHelpRow
+        {/*<MoreHelpRow
           title="Quickstart"
           description="Reopen the quickstart and tutorial file"
           Icon={DocumentArrowUpIcon}
@@ -84,7 +78,20 @@ export function HelpCenterSection() {
             dispatch(setOnboardingCard({ show: true, activeTab: "Best" }));
             ideMessenger.post("showTutorial", undefined);
           }}
+        />*/}
+
+        <MoreHelpRow
+          title="TA+3 AI 系列工具"
+          description="了解TA+3 AI 系列工具的详细信息"
+          Icon={ArrowTopRightOnSquareIcon}
+          onClick={() =>
+            ideMessenger.post(
+              "openUrl",
+              "http://172.20.23.216/ta3-ai-doc/README.html",
+            )
+          }
         />
+
         {process.env.NODE_ENV === "development" && (
           <MoreHelpRow
             title="Theme Test Page"

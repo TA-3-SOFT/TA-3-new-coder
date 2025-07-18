@@ -17,7 +17,7 @@ class FolderContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
     title: "folder",
     displayTitle: "文件夹",
-    description: "查找文件夹作为上下文",
+    description: "选择文件夹作为上下文",
     type: "submenu",
     dependsOnIndexing: true,
   };
