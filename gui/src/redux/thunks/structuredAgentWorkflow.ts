@@ -79,7 +79,8 @@ let WORKFLOW_STEPS: Array<{
 在您的回复结尾使用以下固定格式：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-请在输入框中输入："确认"继续流程下一步，或输入具体的调整建议`,
+* 执行下一步：点击下方“确认”按钮进入下一步，或在输入框中输入："确认"。
+* 调整回答内容：点击下方“编辑”按钮进入修改，或在输入框中输入具体的调整建议。`,
     needsConfirmation: true,
     allowedTools: [], // 需求拆分步骤不使用任何工具
   },
@@ -98,7 +99,8 @@ ${requirementFinal}
 回答完成后请输出以下固定的完整内容：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-请在输入框中输入："确认"继续流程下一步，或输入具体的调整建议`,
+* 执行下一步：点击下方“确认”按钮进入下一步，或在输入框中输入："确认"。
+* 调整回答内容：点击下方“编辑”按钮进入修改，或在输入框中输入具体的调整建议。`,
     needsConfirmation: true,
     allowedTools: [BuiltInToolNames.ProjectAnalysis], // 项目理解步骤只允许使用项目分析工具
   },
@@ -119,7 +121,8 @@ ${requirementFinal}
 回答完成后请输出以下固定的完整内容：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-请在输入框中输入："确认"继续流程下一步，或输入具体的调整建议`,
+* 执行下一步：点击下方“确认”按钮进入下一步，或在输入框中输入："确认"。
+* 调整回答内容：点击下方“编辑”按钮进入修改，或在输入框中输入具体的调整建议。`,
     needsConfirmation: true,
     allowedTools: [BuiltInToolNames.CodeChunkAnalysis], // 代码分析步骤只允许使用代码块分析工具
   },
@@ -140,7 +143,8 @@ ${requirementFinal}
 回答完成后请输出以下固定的完整内容：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-请在输入框中输入："确认"继续流程下一步，或输入具体的调整建议`,
+* 执行下一步：点击下方“确认”按钮进入下一步，或在输入框中输入："确认"。
+* 调整回答内容：点击下方“编辑”按钮进入修改，或在输入框中输入具体的调整建议。`,
     needsConfirmation: true,
     allowedTools: [
       // 制定计划步骤允许使用只读工具来查看和分析代码
@@ -169,7 +173,8 @@ ${requirementFinal}
 回答完成后请输出以下固定的完整内容：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-请在输入框中输入："确认"结束流程，或输入具体的调整建议`,
+* 结束流程：点击下方“确认”按钮结束，或在输入框中输入："确认"。
+* 继续执行：请在输入框中输入您的要求。`,
     needsConfirmation: true,
     allowedTools: [
       // 执行计划步骤允许使用所有工具
@@ -456,7 +461,7 @@ export const handleStructuredAgentUserInputThunk = createAsyncThunk<
     const trimmedInput = userInput.trim().toLowerCase();
 
     // 检测确认指令
-    const confirmKeywords = ["确认", "confirm", "ok", "yes"];
+    const confirmKeywords = ["确认", "confirm", "ok", "yes", "continue"];
     const isConfirm = confirmKeywords.some(
       (keyword) => trimmedInput === keyword || trimmedInput.includes(keyword),
     );

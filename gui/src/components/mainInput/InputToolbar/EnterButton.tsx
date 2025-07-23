@@ -11,7 +11,7 @@ import { varWithFallback } from "../../../styles/theme";
 
 export const EnterButton = styled.button<{
   isPrimary?: boolean;
-  variant?: "default" | "danger" | "warning";
+  variant?: "default" | "danger" | "warning" | "success";
 }>`
   all: unset;
   font-size: ${fontSize(-3)};
@@ -29,13 +29,21 @@ export const EnterButton = styled.button<{
       return varWithFallback("warning");
     }
 
+    if (props.variant === "success") {
+      return varWithFallback("success");
+    }
+
     return props.isPrimary ? vscButtonBackground : lightGray + "33";
   }};
   border-radius: ${defaultBorderRadius};
   color: ${(props) => {
     if (props.disabled) return vscForeground;
 
-    if (props.variant === "danger" || props.variant === "warning") {
+    if (
+      props.variant === "danger" ||
+      props.variant === "warning" ||
+      props.variant === "success"
+    ) {
       return "#ffffff";
     }
 

@@ -92,7 +92,7 @@ export function HelpCenterSection() {
           }
         />
 
-        {process.env.NODE_ENV === "development" && (
+        {/*        {process.env.NODE_ENV === "development" && (
           <MoreHelpRow
             title="Theme Test Page"
             description="Development page for testing themes"
@@ -101,7 +101,7 @@ export function HelpCenterSection() {
               navigate(ROUTES.THEME);
             }}
           />
-        )}
+        )}*/}
       </div>
     </div>
   );

@@ -254,16 +254,14 @@ const StreamErrorDialog = ({ error }: StreamErrorProps) => {
   return (
     <div className="flex flex-col gap-4 px-3 pb-3 pt-3">
       {/* Concise error title */}
-      <h3 className="text-error m-0 p-0 text-lg font-medium">
-        Error handling model response
-      </h3>
+      <h3 className="text-error m-0 p-0 text-lg font-medium">模型响应错误</h3>
 
       {errorContent}
 
       {/* Expandable technical details using ToggleDiv */}
       {message && (
         <div className="mb-2">
-          <ToggleDiv title="View error output" testId="error-output-toggle">
+          <ToggleDiv title="查看错误输出" testId="error-output-toggle">
             <div className="flex flex-col gap-0 rounded-sm">
               <code className="text-editor-foreground block max-h-48 overflow-y-auto p-3 font-mono text-xs">
                 {parsedError}
@@ -275,7 +273,7 @@ const StreamErrorDialog = ({ error }: StreamErrorProps) => {
                   className="flex items-center"
                 >
                   <ClipboardIcon className="mr-1.5 h-3.5 w-3.5" />
-                  <span>Copy output</span>
+                  <span>复制输出</span>
                 </GhostButton>
 
                 <GhostButton
@@ -285,7 +283,7 @@ const StreamErrorDialog = ({ error }: StreamErrorProps) => {
                   className="flex items-center"
                 >
                   <ArrowTopRightOnSquareIcon className="mr-1.5 h-4 w-4" />
-                  <span className="text-xs">View Logs</span>
+                  <span className="text-xs">查看日志</span>
                 </GhostButton>
               </div>
             </div>
@@ -293,7 +291,7 @@ const StreamErrorDialog = ({ error }: StreamErrorProps) => {
         </div>
       )}
 
-      <div>
+      {/*      <div>
         <span className="text-base font-medium">Report this error</span>
         <div className="mt-2 flex flex-row flex-wrap items-center gap-2">
           <GhostButton
@@ -315,7 +313,7 @@ const StreamErrorDialog = ({ error }: StreamErrorProps) => {
             <span className="xs:flex hidden">Discord</span>
           </GhostButton>
         </div>
-      </div>
+      </div>*/}
     </div>
   );
 };
