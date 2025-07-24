@@ -5,6 +5,8 @@ import { codeChunkAnalysisTool } from "./definitions/codeChunkAnalysis";
 import { createNewFileTool } from "./definitions/createNewFile";
 import { createRuleBlock } from "./definitions/createRuleBlock";
 import { editFileTool } from "./definitions/editFile";
+import { generateProjectMemoryTool } from "./definitions/generateProjectMemory";
+import { getProjectMemoryTool } from "./definitions/getProjectMemory";
 import { globSearchTool } from "./definitions/globSearch";
 import { grepSearchTool } from "./definitions/grepSearch";
 import { lsTool } from "./definitions/lsTool";
@@ -31,6 +33,8 @@ export const baseToolDefinitions = [
   codeChunkAnalysisTool,
   // codeVectorAnalysisTool,
   agentDevelopmentTool,
+  getProjectMemoryTool,
+  generateProjectMemoryTool,
   createRuleBlock,
   // replacing with ls tool for now
   // viewSubdirectoryTool,

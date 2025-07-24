@@ -6,9 +6,9 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
   const {
     moduleFileMap,
     userRequest,
-    topN = 5,
+    topN = 10,
     batchSize = 10,
-    maxChunkSize = 2000,
+    maxChunkSize = 800,
     analysisMethod = "auto",
     useKeywordMatching,
   } = args;
@@ -139,6 +139,9 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
         },
       ];
     }
+
+    console.log("工具过滤后的结果");
+    console.log(snippets);
 
     // 构建结果内容
     const moduleList = Object.keys(moduleFileMap);

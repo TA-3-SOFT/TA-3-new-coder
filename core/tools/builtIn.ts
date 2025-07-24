@@ -15,6 +15,8 @@ export enum BuiltInToolNames {
   CreateRuleBlock = "builtin_create_rule_block",
   RequestRule = "builtin_request_rule",
   AgentDevelopment = "agent_development",
+  GetProjectMemory = "get_project_memory",
+  GenerateProjectMemory = "generate_project_memory",
 
   // excluded from allTools for now
   ViewRepoMap = "builtin_view_repo_map",

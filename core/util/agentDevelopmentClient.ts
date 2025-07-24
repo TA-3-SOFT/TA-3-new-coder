@@ -528,26 +528,22 @@ export class AgentDevelopmentClient {
        对此service做任何处理
     5. 所有service均应该配置@TaTransactional或者@NoTransactional注
        解，否则项目启动将报错
-    6. @TaTransactional(ormType = OrmTypeEnum.IBATIS)表示使用ibatis
-       （不写默认表示使用mybatis）
   - 缓存使用
     * 在缓存层内置四套实现并与 Spring-Cache 无缝对接：
     * **可选方案**
       1. **Ehcache**（默认）本地缓存，XML 配置支持 *TTL / TTI / none* 过期策略；
       2. **Caffeine** 本地缓存，YAML 设置 \`initial-capacity / maximum-size / expire-after-write|access\`，可为单个 cache 覆盖；
       3. **Redis** 分布式缓存，支持 *single / cluster*；可统一或按 cache 名配置 \`expire\`，全面暴露 Lettuce 连接池参数；
-      4. **Coherence**（不推荐）分布式缓存，需要独立 XML 映射并自行运维。
     * **启用方式**：按需引入相应 *starter* 依赖并在 \`ta404.modules.cache.<type>.active=true\`；如同时引入多套实现，指定 \`ta404.modules.cache.primary=<type>\` 作为 Spring-Cache 主方案。
     * **开发使用**
       * 注解：\`@Cacheable / @CachePut / @CacheEvict\` 等标准 Spring-Cache 注解；
       * 编程：注入 \`ITaCacheManager taCacheManager\` 获取 \`ITaCache\` 进行 API 操作。
     * **集群策略**：Ehcache/Caffeine 无同步；Redis/Coherence 依托自身集群即可。
-    * **常见场景**：本地高并发读优先 Ehcache/Caffeine；需要跨节点一致性采用 Redis；Coherence 仅保留兼容。&#x20;
+    * **常见场景**：本地高并发读优先 Ehcache/Caffeine；需要跨节点一致性采用 Redis；Coherence 仅保留兼容。
   - 数据校验使用
     1. 主要引入了基于 \`@V\` 的参数/VO 校验体系：
     2. \`@V\` 支持内置规则、YAML 配置正则和行内正则混用，可通过 \`notnull | min=N | max=N | regex=\` 等语法快速声明限制。
     3. 若在类/方法或嵌套 VO 中使用，需配合 \`@Validated\`；同一字段可叠加多重 \`@V\`。
-    4. 默认规则为「可空、任意长度、任意字符」，未显式声明时自动采用。
     5. YAML 可在 \`ta404.validation.customRegex\` 下集中定义命名正则（如 \`customEmail\`、\`customCellphone\`），在注解里直接填配置名即可复用。
     6. 5.4.0 新增 \`path\` 属性，可指向 YAML 规则清单并覆盖注解本身，方便集中维护。
     7. 建议：统一正则命名、将通用规则放配置层、全局异常拦截统一返回提示，并在文档中添加目录锚点与请求/响应示例以便前端联调。

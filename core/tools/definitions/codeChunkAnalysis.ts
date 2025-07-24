@@ -36,7 +36,7 @@ export const codeChunkAnalysisTool: Tool = {
         topN: {
           type: "number",
           description: "返回的最相关代码片段数量（默认5）",
-          default: 5,
+          default: 10,
         },
         batchSize: {
           type: "number",
@@ -46,7 +46,7 @@ export const codeChunkAnalysisTool: Tool = {
         maxChunkSize: {
           type: "number",
           description: "代码块最大大小（默认2000字符）",
-          default: 2000,
+          default: 800,
         },
       },
       required: ["moduleFileMap"],

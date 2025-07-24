@@ -8,6 +8,8 @@ import { codeChunkAnalysisImpl } from "./implementations/codeChunkAnalysis";
 import { createNewFileImpl } from "./implementations/createNewFile";
 import { createRuleBlockImpl } from "./implementations/createRuleBlock";
 import { fileGlobSearchImpl } from "./implementations/globSearch";
+import { generateProjectMemoryImpl } from "./implementations/generateProjectMemory";
+import { getProjectMemoryImpl } from "./implementations/getProjectMemory";
 import { grepSearchImpl } from "./implementations/grepSearch";
 import { lsToolImpl } from "./implementations/lsTool";
 import { projectAnalysisImpl } from "./implementations/projectAnalysis";
@@ -169,6 +171,10 @@ async function callBuiltInTool(
       return await createRuleBlockImpl(args, extras);
     case BuiltInToolNames.RequestRule:
       return await requestRuleImpl(args, extras);
+    case BuiltInToolNames.GetProjectMemory:
+      return await getProjectMemoryImpl(args, extras);
+    case BuiltInToolNames.GenerateProjectMemory:
+      return await generateProjectMemoryImpl(args, extras);
     default:
       throw new Error(`Tool "${functionName}" not found`);
   }

@@ -405,7 +405,8 @@ export class ProjectAnalyzer {
    * 标准化模块名，用于比较
    */
   private normalizeModuleName(moduleName: string): string {
-    return moduleName.toLowerCase()
+    return moduleName
+      .toLowerCase()
       .replace(/[-_]/g, "") // 移除连字符和下划线
       .replace(/\s+/g, ""); // 移除空格
   }
@@ -423,7 +424,10 @@ export class ProjectAnalyzer {
     }
 
     // 检查是否一个包含另一个
-    if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
+    if (
+      normalized1.includes(normalized2) ||
+      normalized2.includes(normalized1)
+    ) {
       return true;
     }
 
@@ -433,19 +437,24 @@ export class ProjectAnalyzer {
   /**
    * 验证模块路径是否存在于项目结构中
    */
-  private async validateModulePath(modulePath: string, projectStructure: ProjectStructure): Promise<string | null> {
+  private async validateModulePath(
+    modulePath: string,
+    projectStructure: ProjectStructure,
+  ): Promise<string | null> {
     const modules = await this.loadModuleInfo(projectStructure);
     const normalizedPath = this.normalizeModulePath(modulePath);
 
     // 1. 精确匹配
-    const exactMatch = modules.find(m => this.normalizeModulePath(m.name) === normalizedPath);
+    const exactMatch = modules.find(
+      (m) => this.normalizeModulePath(m.name) === normalizedPath,
+    );
     if (exactMatch) {
       return exactMatch.name;
     }
 
     // 2. 模块名匹配：提取模块名进行匹配
     const inputModuleName = this.extractModuleName(normalizedPath);
-    const moduleNameMatches = modules.filter(m => {
+    const moduleNameMatches = modules.filter((m) => {
       const moduleNameFromPath = this.extractModuleName(m.name);
       return this.isModuleNameMatch(moduleNameFromPath, inputModuleName);
     });
@@ -457,17 +466,26 @@ export class ProjectAnalyzer {
     // 如果有多个模块名匹配，选择路径最相似的
     if (moduleNameMatches.length > 1) {
       const bestMatch = moduleNameMatches.reduce((best, current) => {
-        const bestSimilarity = this.calculatePathSimilarity(normalizedPath, this.normalizeModulePath(best.name));
-        const currentSimilarity = this.calculatePathSimilarity(normalizedPath, this.normalizeModulePath(current.name));
+        const bestSimilarity = this.calculatePathSimilarity(
+          normalizedPath,
+          this.normalizeModulePath(best.name),
+        );
+        const currentSimilarity = this.calculatePathSimilarity(
+          normalizedPath,
+          this.normalizeModulePath(current.name),
+        );
         return currentSimilarity > bestSimilarity ? current : best;
       });
       return bestMatch.name;
     }
 
     // 3. 部分路径匹配：查找包含该路径的模块
-    const partialMatches = modules.filter(m => {
+    const partialMatches = modules.filter((m) => {
       const normalizedModuleName = this.normalizeModulePath(m.name);
-      return normalizedModuleName.includes(normalizedPath) || normalizedPath.includes(normalizedModuleName);
+      return (
+        normalizedModuleName.includes(normalizedPath) ||
+        normalizedPath.includes(normalizedModuleName)
+      );
     });
 
     if (partialMatches.length === 1) {
@@ -477,8 +495,14 @@ export class ProjectAnalyzer {
     // 如果有多个部分匹配，选择最相似的
     if (partialMatches.length > 1) {
       const bestMatch = partialMatches.reduce((best, current) => {
-        const bestSimilarity = this.calculatePathSimilarity(normalizedPath, this.normalizeModulePath(best.name));
-        const currentSimilarity = this.calculatePathSimilarity(normalizedPath, this.normalizeModulePath(current.name));
+        const bestSimilarity = this.calculatePathSimilarity(
+          normalizedPath,
+          this.normalizeModulePath(best.name),
+        );
+        const currentSimilarity = this.calculatePathSimilarity(
+          normalizedPath,
+          this.normalizeModulePath(current.name),
+        );
         return currentSimilarity > bestSimilarity ? current : best;
       });
       return bestMatch.name;
@@ -500,7 +524,7 @@ export class ProjectAnalyzer {
     // 构建模块推荐提示
     const prompt = `
 You are an expert in software architecture and module analysis. Given a user requirement and a list of leaf modules (modules with no submodules) with their descriptions, determine which module(s) are most relevant for implementing or modifying code to meet the requirement. Return a JSON object with:
-- "recommended_modules": a list of up to three leaf module paths that are most relevant
+- "recommended_modules": a list of up to five leaf module paths that are most relevant
 - "reasoning": a brief explanation of why these modules were chosen
 
 **User Requirement:**
@@ -551,7 +575,10 @@ ${modules.map((module) => `- ${module.name}: ${module.description}`).join("\n")}
         const invalidModules: string[] = [];
 
         for (const modulePath of result.recommended_modules) {
-          const validPath = await this.validateModulePath(modulePath, projectStructure);
+          const validPath = await this.validateModulePath(
+            modulePath,
+            projectStructure,
+          );
           if (validPath) {
             validatedModules.push(validPath);
           } else {
@@ -693,7 +720,10 @@ ${fileList}
     const validatedMap: { [moduleName: string]: string[] } = {};
 
     for (const [originalPath, files] of Object.entries(moduleFileMap)) {
-      const validPath = await this.validateModulePath(originalPath, projectStructure);
+      const validPath = await this.validateModulePath(
+        originalPath,
+        projectStructure,
+      );
 
       if (validPath) {
         validatedMap[validPath] = files;
@@ -710,9 +740,11 @@ ${fileList}
    * @param projectStructure 项目结构
    * @returns 所有模块路径的数组
    */
-  async getAllModulePaths(projectStructure: ProjectStructure): Promise<string[]> {
+  async getAllModulePaths(
+    projectStructure: ProjectStructure,
+  ): Promise<string[]> {
     const modules = await this.loadModuleInfo(projectStructure);
-    return modules.map(module => module.name);
+    return modules.map((module) => module.name);
   }
 
   /**
@@ -721,8 +753,14 @@ ${fileList}
    * @param projectStructure 项目结构
    * @returns 是否有效
    */
-  async isValidModulePath(modulePath: string, projectStructure: ProjectStructure): Promise<boolean> {
-    const validPath = await this.validateModulePath(modulePath, projectStructure);
+  async isValidModulePath(
+    modulePath: string,
+    projectStructure: ProjectStructure,
+  ): Promise<boolean> {
+    const validPath = await this.validateModulePath(
+      modulePath,
+      projectStructure,
+    );
     return validPath !== null;
   }
 
@@ -732,7 +770,10 @@ ${fileList}
    * @param projectStructure 项目结构
    * @returns 建议的修正路径，如果无法修正则返回null
    */
-  async suggestModulePathCorrection(modulePath: string, projectStructure: ProjectStructure): Promise<string | null> {
+  async suggestModulePathCorrection(
+    modulePath: string,
+    projectStructure: ProjectStructure,
+  ): Promise<string | null> {
     return await this.validateModulePath(modulePath, projectStructure);
   }
 
@@ -741,7 +782,10 @@ ${fileList}
    * @param modulePath 要匹配的模块路径
    * @param projectStructure 项目结构
    */
-  async debugModulePathMatching(modulePath: string, projectStructure: ProjectStructure): Promise<void> {
+  async debugModulePathMatching(
+    modulePath: string,
+    projectStructure: ProjectStructure,
+  ): Promise<void> {
     const modules = await this.loadModuleInfo(projectStructure);
     const normalizedPath = this.normalizeModulePath(modulePath);
     const inputModuleName = this.extractModuleName(normalizedPath);
@@ -754,11 +798,16 @@ ${fileList}
 
     modules.forEach((module, index) => {
       const moduleNameFromPath = this.extractModuleName(module.name);
-      const isMatch = this.isModuleNameMatch(moduleNameFromPath, inputModuleName);
-      console.log(`${index + 1}. ${module.name} (模块名: ${moduleNameFromPath}) ${isMatch ? '✓ 匹配' : ''}`);
+      const isMatch = this.isModuleNameMatch(
+        moduleNameFromPath,
+        inputModuleName,
+      );
+      console.log(
+        `${index + 1}. ${module.name} (模块名: ${moduleNameFromPath}) ${isMatch ? "✓ 匹配" : ""}`,
+      );
     });
 
     const result = await this.validateModulePath(modulePath, projectStructure);
-    console.log(`\n匹配结果: ${result || '无匹配'}`);
+    console.log(`\n匹配结果: ${result || "无匹配"}`);
   }
 }

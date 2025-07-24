@@ -21,6 +21,7 @@ import { findToolCall } from "../util";
 import { history } from "@headlessui/react/dist/utils/active-element-history";
 
 let requirementFinal: string | null = null;
+let projectMemory: string | null = null;
 // 工作流程步骤配置
 let WORKFLOW_STEPS: Array<{
   step: StructuredAgentStepType;
@@ -43,6 +44,8 @@ let WORKFLOW_STEPS: Array<{
 - 如果用户没有按模版编写，并且是涉及多个模块的复杂需求，需分解复杂需求为子需求，子需求是可以抛开其它子需求独立运行的模块，不要将需求拆的太细。
 - 在此过程中不使用任何外部工具。
 
+## 当前项目已有记忆
+${projectMemory}
 
 ## 需求模板
 
@@ -227,7 +230,7 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
   "structuredAgent/processStep",
   async (
     { step, userInput, userFeedback, editorState },
-    { dispatch, getState },
+    { dispatch, getState, extra },
   ) => {
     const state = getState();
     const workflow = state.session.structuredAgentWorkflow;
@@ -247,6 +250,50 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     let promptPreamble = "";
     let userFeedbackContent;
     if (userInput && step === "requirement-breakdown") {
+      try {
+        const result = await extra.ideMessenger.request("tools/call", {
+          toolCall: {
+            id: `get_project_memory_${Date.now()}`,
+            type: "function",
+            function: {
+              name: BuiltInToolNames.GetProjectMemory,
+              arguments: JSON.stringify({
+                userInput: userInput,
+              }),
+            },
+          },
+        });
+        console.log("GetProjectMemory 工具调用结果:", result);
+
+        // 处理返回结果，将其转换为字符串格式
+        const formattedMemory = formatToolCallResult(result);
+        console.log("格式化后的项目记忆:", formattedMemory);
+        console.log("格式化后的项目记忆类型:", typeof formattedMemory);
+        console.log("格式化后的项目记忆长度:", formattedMemory?.length);
+
+        // 确保 formattedMemory 是字符串类型
+        const memoryString =
+          typeof formattedMemory === "string"
+            ? formattedMemory
+            : String(formattedMemory);
+        console.log("转换为字符串后的记忆:", memoryString);
+
+        // 如果有实际内容，使用它；否则使用默认提示
+        if (
+          memoryString &&
+          memoryString.trim() &&
+          memoryString !== "工具调用结果格式化失败"
+        ) {
+          projectMemory = memoryString;
+          console.log("使用实际记忆内容，长度:", projectMemory.length);
+        } else {
+          projectMemory = "暂无相关项目记忆，这是一个新的项目分析。";
+          console.log("使用默认记忆提示");
+        }
+      } catch (error) {
+        console.error("获取项目记忆时出错:", error);
+        projectMemory = "获取项目记忆时出现错误，将基于当前输入进行分析。";
+      }
       promptPreamble = `用户需求：`;
     }
     if (userFeedback) {
@@ -280,6 +327,20 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     }
 
     if (step === "plan-execution") {
+      // 直接调用 GenerateProjectMemory 工具
+      const result = extra.ideMessenger.request("tools/call", {
+        toolCall: {
+          id: `generate_project_memory_${Date.now()}`,
+          type: "function",
+          function: {
+            name: BuiltInToolNames.GenerateProjectMemory,
+            arguments: JSON.stringify({
+              chatHistory: state.session.history,
+            }),
+          },
+        },
+      });
+
       const planResult = getSessionHistoryLastContent(state.session.history);
       const codeChunkAnalysisResult = getProjectToolResult(
         state.session.history,
@@ -543,6 +604,65 @@ export const getProjectToolResult = (
     }
   }
   return result;
+};
+
+// 格式化工具调用结果为字符串
+export const formatToolCallResult = (result: any): string => {
+  try {
+    // 检查结果是否存在
+    if (!result) {
+      console.warn("formatToolCallResult: 结果为空");
+      return "工具调用结果格式化失败";
+    }
+
+    // 处理可能的嵌套结构：result.content.contextItems 或 result.contextItems
+    let contextItems;
+    if (result.content && result.content.contextItems) {
+      // 如果有 content 包装层
+      contextItems = result.content.contextItems;
+      console.log("formatToolCallResult: 使用 result.content.contextItems");
+    } else if (result.contextItems) {
+      // 直接的 contextItems
+      contextItems = result.contextItems;
+      console.log("formatToolCallResult: 使用 result.contextItems");
+    } else {
+      console.warn("formatToolCallResult: contextItems 字段不存在", result);
+      return "工具调用结果格式化失败";
+    }
+
+    // 检查 contextItems 是否为数组
+    if (!Array.isArray(contextItems)) {
+      console.warn("formatToolCallResult: contextItems 不是数组", contextItems);
+      return "工具调用结果格式化失败";
+    }
+
+    // 如果 contextItems 为空数组
+    if (contextItems.length === 0) {
+      console.log("formatToolCallResult: contextItems 为空数组");
+      return "暂无相关项目记忆，这是一个新的项目分析。";
+    }
+
+    // 提取第一个 contextItem 的 content
+    const firstContextItem = contextItems[0];
+    if (!firstContextItem || typeof firstContextItem.content !== 'string') {
+      console.warn("formatToolCallResult: 第一个 contextItem 无效或 content 不是字符串", firstContextItem);
+      return "工具调用结果格式化失败";
+    }
+
+    // 返回格式化的内容
+    const content = firstContextItem.content.trim();
+    if (!content) {
+      console.log("formatToolCallResult: content 为空字符串");
+      return "暂无相关项目记忆，这是一个新的项目分析。";
+    }
+
+    console.log("formatToolCallResult: 成功格式化结果，内容长度:", content.length);
+    return content;
+
+  } catch (error) {
+    console.error("formatToolCallResult: 格式化过程中发生错误:", error);
+    return "工具调用结果格式化失败";
+  }
 };
 
 // 获取会话历史最后一条信息
