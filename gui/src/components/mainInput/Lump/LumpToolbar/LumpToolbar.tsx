@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef, } from "react";
 import { useSelector } from "react-redux";
+import { useStat } from "../../../../context/Stat";
 import { useAppDispatch, useAppSelector } from "../../../../redux/hooks";
 import { selectCurrentToolCall } from "../../../../redux/selectors/selectCurrentToolCall";
 import {
@@ -29,12 +30,33 @@ export function LumpToolbar() {
   const applyStates = useAppSelector(
     (state) => state.session.codeBlockApplyStates.states,
   );
+  const { postFileModified, } = useStat()
 
   const pendingApplyStates = applyStates.filter(
     (state) => state.status === "done",
   );
 
   const isApplying = applyStates.some((state) => state.status === "streaming");
+
+  const previousLengthRef = useRef(0);
+  useEffect(() => {
+    if (previousLengthRef.current === 0 && pendingApplyStates.length > 0) {
+      postFileModified()
+    }
+    previousLengthRef.current = pendingApplyStates.length;
+  }, [pendingApplyStates.length]);
+
+  const previousIsInEditRef = useRef(false);
+  const previousStatusRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!isApplyStatusDone(previousIsInEditRef.current, previousStatusRef.current) 
+      && isApplyStatusDone(isInEdit, editApplyState.status)) {
+      postFileModified()
+    }
+
+    previousIsInEditRef.current = isInEdit
+    previousStatusRef.current = editApplyState.status
+  }, [isInEdit, editApplyState])
 
   useEffect(() => {
     if (toolCallState?.status !== "generated") {
@@ -94,3 +116,8 @@ export function LumpToolbar() {
 
   return <BlockSettingsTopToolbar />;
 }
+
+function isApplyStatusDone (isInEdit: boolean, status?: string): boolean {
+  return isInEdit && status === 'done'
+}
+

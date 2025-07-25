@@ -2,6 +2,7 @@ import { CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { ApplyState } from "core";
 import { useContext } from "react";
 import { IdeMessengerContext } from "../context/IdeMessenger";
+import { useStat } from "../context/Stat";
 import { getMetaKeyLabel } from "../util";
 import { ToolTip } from "./gui/Tooltip";
 
@@ -20,6 +21,7 @@ export default function AcceptRejectAllButtons({
     (state) => state.status === "done",
   );
   const ideMessenger = useContext(IdeMessengerContext);
+  const { postAllAccepted, } = useStat();
 
   async function handleAcceptOrReject(status: AcceptOrRejectOutcome) {
     for (const { filepath = "", streamId } of pendingApplyStates) {
@@ -32,6 +34,11 @@ export default function AcceptRejectAllButtons({
     if (onAcceptOrReject) {
       onAcceptOrReject(status);
     }
+  }
+
+  function onAcceptAll () {
+    handleAcceptOrReject("acceptDiff")
+    postAllAccepted()
   }
 
   const rejectShortcut = `${getMetaKeyLabel()}⇧⌫`;
@@ -59,7 +66,7 @@ export default function AcceptRejectAllButtons({
 
       <button
         className="text-foreground flex cursor-pointer flex-row flex-wrap justify-center gap-1 border-none bg-transparent p-0 text-xs opacity-80 hover:opacity-100 hover:brightness-125"
-        onClick={() => handleAcceptOrReject("acceptDiff")}
+        onClick={onAcceptAll}
         data-testid="edit-accept-button"
         data-tooltip-id="accept-shortcut"
         data-tooltip-content={`接受全部 (${acceptShortcut})`}
