@@ -1,3 +1,4 @@
+import { useWebviewListener } from "../hooks/useWebviewListener"
 import { useAppSelector } from "../redux/hooks"
 import { useAuth } from "./Auth"
 
@@ -6,6 +7,14 @@ export function useStat () {
     (state) => state.profiles.selectedOrganizationId,
   )
   const auth: any = useAuth()
+
+  useWebviewListener("incrementModifiedCount" as any, async (data) => {
+    postFileModified()
+  }, [])
+  useWebviewListener("incrementAcceptedCount" as any, async (data) => {
+    postAllAccepted()
+  }, [])
+
 
   const token = auth.session?.accessToken
   const headers: any = {}

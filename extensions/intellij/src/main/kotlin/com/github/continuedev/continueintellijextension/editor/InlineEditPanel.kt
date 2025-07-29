@@ -1,5 +1,6 @@
 package com.github.continuedev.continueintellijextension.editor
 
+import com.github.continuedev.continueintellijextension.auth.ContinueAuthService
 import com.github.continuedev.continueintellijextension.`continue`.GetTheme
 import com.github.continuedev.continueintellijextension.services.ContinueExtensionSettings
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService
@@ -351,9 +352,13 @@ class CustomPanel(
     private val greyTextColor: Color = Color(128, 128, 128, 200)
     var isFinished = false
 
+    private val pluginService: ContinuePluginService
+
     init {
         isOpaque = false
         add(closeButton, "pos 100%-33 0 -3 3, w 20!, h 20!")
+
+        pluginService = project.service<ContinuePluginService>()
     }
 
     private fun createCloseButton(): JComponent {
@@ -484,7 +489,10 @@ class CustomPanel(
                     }
 
             val rightButton =
-                CustomButton("接受全部 (${getMetaKeyLabel()}${getShiftKeyLabel()}⏎)") { onAccept() }
+                CustomButton("接受全部 (${getMetaKeyLabel()}${getShiftKeyLabel()}⏎)") {
+                    onAccept()
+                    incrementAcceptedCount()
+                }
                     .apply {
                         background = JBColor.namedColor("Button.startBackground")
                         foreground = JBColor.namedColor("Button.foreground")
@@ -530,6 +538,16 @@ class CustomPanel(
         repaint()
         isFinished = true
         textArea.foreground = greyTextColor
+
+        incrementModifiedCount()
+    }
+
+    private fun incrementModifiedCount () {
+        pluginService.sendToWebview("incrementModifiedCount", null)
+    }
+
+    private fun incrementAcceptedCount () {
+        pluginService.sendToWebview("incrementAcceptedCount", null)
     }
 
     override fun paintComponent(g: Graphics) {
