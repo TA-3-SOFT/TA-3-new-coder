@@ -6,6 +6,8 @@ data class CopyTextParams(
 
 data class ApplyToFileParams(
     val text: String,
+    val startLine: Int,
+    val endLine: Int,
     val streamId: String,
     val filepath: String?,
     val toolCallId: String?

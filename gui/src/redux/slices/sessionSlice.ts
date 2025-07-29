@@ -219,7 +219,7 @@ export const sessionSlice = createSlice({
     },
     editMessage: (
       state,
-      action: PayloadAction<{ index: number; content: string }>
+      action: PayloadAction<{ index: number; content: string }>,
     ) => {
       const { index, content } = action.payload;
       if (state.history[index]) {
@@ -522,6 +522,7 @@ export const sessionSlice = createSlice({
         applyState.status = payload.status ?? applyState.status;
         applyState.numDiffs = payload.numDiffs ?? applyState.numDiffs;
         applyState.filepath = payload.filepath ?? applyState.filepath;
+        applyState.fileContent = payload.fileContent ?? applyState.fileContent;
       }
 
       if (payload.status === "done") {
@@ -649,7 +650,9 @@ export const sessionSlice = createSlice({
     },
     updateStructuredAgentStep: (
       state,
-      { payload }: PayloadAction<{
+      {
+        payload,
+      }: PayloadAction<{
         step: StructuredAgentStepType;
         stepIndex: number;
         data?: Partial<StructuredAgentWorkflowState>;
@@ -657,7 +660,8 @@ export const sessionSlice = createSlice({
     ) => {
       // 如果是新的步骤，更新步骤历史记录开始索引
       if (state.structuredAgentWorkflow.currentStep !== payload.step) {
-        state.structuredAgentWorkflow.stepHistoryStartIndex = state.history.length;
+        state.structuredAgentWorkflow.stepHistoryStartIndex =
+          state.history.length;
       }
       state.structuredAgentWorkflow.currentStep = payload.step;
       state.structuredAgentWorkflow.stepIndex = payload.stepIndex;

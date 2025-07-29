@@ -23,6 +23,148 @@ import { FileInfo } from "./FileInfo";
 import { InsertButton } from "./InsertButton";
 import { RunInTerminalButton } from "./RunInTerminalButton";
 
+/**
+ * 使用大模型推理代码块应该应用到文件的哪些行
+ */
+async function inferCodeBlockPosition(
+  fileContent: string,
+  codeBlockContent: string,
+  language: string | null,
+  ideMessenger: any,
+): Promise<{ inferredStartLine: number; inferredEndLine: number }> {
+  const codeLines = codeBlockContent.split("\n").filter((line) => line.trim());
+
+  if (codeLines.length === 0) {
+    return { inferredStartLine: 0, inferredEndLine: 0 };
+  }
+
+  const llmResult = await inferPositionWithLLM(
+    fileContent,
+    codeBlockContent,
+    language,
+    ideMessenger,
+  );
+  if (llmResult) {
+    return llmResult;
+  }
+
+  // 如果大模型推理失败，返回默认值
+  const fileLines = fileContent.split("\n");
+  return {
+    inferredStartLine: 0,
+    inferredEndLine: fileLines.length - 1,
+  };
+}
+
+/**
+ * 使用大模型推理代码块的最佳应用位置
+ */
+async function inferPositionWithLLM(
+  fileContent: string,
+  codeBlockContent: string,
+  language: string | null,
+  ideMessenger: any,
+): Promise<{ inferredStartLine: number; inferredEndLine: number } | null> {
+  // 构建给大模型的提示
+  const prompt = buildLLMPrompt(fileContent, codeBlockContent, language);
+  try {
+    // 创建消息数组
+    const messages = [
+      {
+        role: "user" as const,
+        content: prompt,
+      },
+    ];
+
+    // 调用大模型
+    const abortController = new AbortController();
+    const gen = ideMessenger.llmStreamChat(
+      {
+        messages,
+        completionOptions: {
+          temperature: 0.1, // 使用较低的温度以获得更确定的结果
+          maxTokens: 200,
+        },
+        title: undefined, // 使用默认的聊天模型
+      },
+      abortController.signal,
+    );
+
+    // 收集完整的响应
+    let fullResponse = "";
+    let next = await gen.next();
+    while (!next.done) {
+      if (next.value && next.value.length > 0) {
+        for (const chunk of next.value) {
+          fullResponse += chunk.content || "";
+        }
+      }
+      next = await gen.next();
+    }
+
+    // 解析大模型的响应
+    return parseLLMResponse(fullResponse);
+  } catch (error) {
+    console.error("Error calling LLM for position inference:", error);
+    return null;
+  }
+}
+
+/**
+ * 构建给大模型的提示
+ */
+function buildLLMPrompt(
+  fileContent: string,
+  codeBlockContent: string,
+  language: string | null,
+): string {
+  const fileLines = fileContent.split("\n");
+  const totalLines = fileLines.length;
+
+  return `分析代码块应该应用到原文件的区域，给出区域的开始行和结束行。
+
+原文件内容（${totalLines}行）：
+\`\`\`${language || ""}
+${fileContent}
+\`\`\`
+
+代码块：
+\`\`\`${language || ""}
+${codeBlockContent}
+\`\`\`
+
+返回JSON纯文本，不要有额外的解释或文本格式，示例如下：{"startLine": 10, "endLine": 20}`;
+}
+
+/**
+ * 解析大模型的响应
+ */
+function parseLLMResponse(
+  response: string,
+): { inferredStartLine: number; inferredEndLine: number } | null {
+  try {
+    // 尝试从响应中提取JSON
+    const jsonMatch = response.match(/\{[^}]*"startLine"[^}]*\}/);
+    if (!jsonMatch) {
+      return null;
+    }
+    const parsed = JSON.parse(jsonMatch[0]);
+    const startLine = parseInt(parsed.startLine);
+    const endLine = parseInt(parsed.endLine);
+    // 验证行号的有效性
+    if (isNaN(startLine) || isNaN(endLine)) {
+      return null;
+    }
+    return {
+      inferredStartLine: startLine,
+      inferredEndLine: endLine,
+    };
+  } catch (error) {
+    console.error("Error parsing LLM response:", error);
+    return null;
+  }
+}
+
 const TopDiv = styled.div`
   display: flex;
   flex-direction: column;
@@ -76,6 +218,7 @@ export function StepContainerPreToolbar({
   const ideMessenger = useContext(IdeMessengerContext);
   const history = useAppSelector((state) => state.session.history);
   const [isExpanded, setIsExpanded] = useState(expanded ?? true);
+  const [isInferringPosition, setIsInferringPosition] = useState(false);
 
   const [relativeFilepathUri, setRelativeFilepathUri] = useState<string | null>(
     null,
@@ -180,11 +323,43 @@ export function StepContainerPreToolbar({
       return;
     }
 
+    // Get current file content to analyze where to apply changes
+    let startLine = 0;
+    let endLine = 0;
+
+    try {
+      const fileContent = await ideMessenger.ide.readFile(fileUri);
+      if (fileContent && fileContent.trim()) {
+        setIsInferringPosition(true);
+        try {
+          const { inferredStartLine, inferredEndLine } =
+            await inferCodeBlockPosition(
+              fileContent,
+              codeBlockContent,
+              language,
+              ideMessenger,
+            );
+          startLine = inferredStartLine;
+          endLine = inferredEndLine;
+        } finally {
+          setIsInferringPosition(false);
+        }
+      }
+    } catch (error) {
+      console.warn(
+        "Failed to read file content for position inference:",
+        error,
+      );
+      setIsInferringPosition(false);
+    }
+
     // applyToFile will create the file if it doesn't exist
     ideMessenger.post("applyToFile", {
       streamId: codeBlockStreamId,
       filepath: fileUri,
       text: codeBlockContent,
+      startLine,
+      endLine,
     });
 
     setAppliedFileUri(fileUri);
@@ -275,6 +450,7 @@ export function StepContainerPreToolbar({
           onClickApply={onClickApply}
           onClickAccept={() => handleDiffAction("accept")}
           onClickReject={() => handleDiffAction("reject")}
+          isInferringPosition={isInferringPosition}
         />
       );
     }

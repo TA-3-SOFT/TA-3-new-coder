@@ -12,11 +12,24 @@ interface ApplyActionsProps {
   onClickAccept: () => void;
   onClickReject: () => void;
   onClickApply: () => void;
+  isInferringPosition?: boolean;
 }
 
 export function ApplyActions(props: ApplyActionsProps) {
   function onClickReject() {
     props.onClickReject();
+  }
+
+  // Show inferring position state first
+  if (props.isInferringPosition) {
+    return (
+      <div className="flex select-none items-center rounded bg-zinc-700 pl-2 pr-1">
+        <span className="text-lightgray inline-flex w-min items-center gap-2 text-center text-xs">
+          Applying
+          <Spinner />
+        </span>
+      </div>
+    );
   }
 
   switch (props.applyState ? props.applyState.status : null) {

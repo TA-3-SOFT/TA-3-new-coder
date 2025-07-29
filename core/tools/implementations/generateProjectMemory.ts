@@ -111,6 +111,7 @@ interface MemoryRow {
   vector: number[];
   created_at: string;
   updated_at: string;
+  [key: string]: any;
 }
 
 // 合并两个相似记忆的函数
@@ -397,10 +398,7 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
       }
 
       // 验证示例嵌入结果格式
-      if (
-        !Array.isArray(sampleEmbedResult) ||
-        sampleEmbedResult.length === 0
-      ) {
+      if (!Array.isArray(sampleEmbedResult) || sampleEmbedResult.length === 0) {
         console.log("❌ [记忆生成] 示例嵌入结果格式错误:", {
           type: typeof sampleEmbedResult,
           isArray: Array.isArray(sampleEmbedResult),
@@ -438,7 +436,10 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
           await table.search(sampleVector).limit(1).execute();
           console.log("✅ [记忆生成] 向量维度匹配，可以使用现有表");
         } catch (dimensionError) {
-          const errorMessage = dimensionError instanceof Error ? dimensionError.message : String(dimensionError);
+          const errorMessage =
+            dimensionError instanceof Error
+              ? dimensionError.message
+              : String(dimensionError);
           console.log("⚠️ [记忆生成] 检测到向量维度不匹配:", errorMessage);
           console.log("🔄 [记忆生成] 将重新创建表以匹配当前嵌入模型维度");
           needRecreateTable = true;
@@ -458,7 +459,10 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
           // 表不存在，忽略错误
         }
 
-        console.log("🏗️ [记忆生成] 创建新的记忆表，向量维度:", currentVectorDim);
+        console.log(
+          "🏗️ [记忆生成] 创建新的记忆表，向量维度:",
+          currentVectorDim,
+        );
         table = await db.createTable(tableName, [
           {
             id: "sample_id",

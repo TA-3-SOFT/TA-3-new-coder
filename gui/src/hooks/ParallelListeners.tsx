@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef } from "react";
 import { IdeMessengerContext } from "../context/IdeMessenger";
 
+import { ContextItem } from "core";
 import { EDIT_MODE_STREAM_ID } from "core/edit/constants";
 import { FromCoreProtocol } from "core/protocol";
 import { useMainEditor } from "../components/mainInput/TipTapEditor";
@@ -22,6 +23,7 @@ import {
   acceptToolCall,
   addContextItemsAtIndex,
   updateApplyState,
+  updateToolCallOutput,
 } from "../redux/slices/sessionSlice";
 import { setTTSActive } from "../redux/slices/uiSlice";
 import { exitEdit, streamResponseAfterToolCall } from "../redux/thunks";
@@ -254,17 +256,30 @@ function ParallelListeners() {
           currentToolCallApplyState &&
           currentToolCallApplyState.streamId === state.streamId
         ) {
-          // const output: ContextItem = {
-          //   name: "Edit tool output",
-          //   content: "Completed edit",
-          //   description: "",
-          // };
+          // Create output with the file content
+          const fileContent = state.fileContent || "File content not available";
+          const filepath = state.filepath || "unknown file";
+          const output: ContextItem = {
+            name: "Edit tool output",
+            content: `文件 ${filepath} 修改完成. 当前文件的最新内容（带行号）如下:\n\n${fileContent}`,
+            // content: fileContent,
+            description: `Edit completed for ${filepath}`,
+          };
+
+          // Update tool call output with the file content
+          dispatch(
+            updateToolCallOutput({
+              toolCallId: currentToolCallApplyState.toolCallId!,
+              contextItems: [output],
+            }),
+          );
+
           dispatch(
             acceptToolCall({
               toolCallId: currentToolCallApplyState.toolCallId!,
             }),
           );
-          // dispatch(setToolCallOutput([]));
+
           void dispatch(
             streamResponseAfterToolCall({
               toolCallId: currentToolCallApplyState.toolCallId!,

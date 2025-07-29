@@ -12,6 +12,7 @@ import com.github.continuedev.continueintellijextension.services.ContinuePluginS
 import com.github.continuedev.continueintellijextension.utils.castNestedOrNull
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -120,13 +121,7 @@ class ApplyToFileHandler(
         val llmTitle = (llm as? Map<*, *>)?.get("title") as? String ?: ""
         val prompt = buildApplyPrompt()
 
-        // Extract the code ranges (highlighted or full document)
-        val (prefix, highlighted, suffix) = editorUtils.getHighlightedRangeTriplet()
-
-        // Get the line range for the diff stream
-        val rif = editorUtils.getHighlightedRIF()
-        val startLine = rif?.range?.start?.line ?: 0
-        val endLine = rif?.range?.end?.line ?: (editorUtils.getLineCount() - 1)
+        val (prefix, highlighted, suffix, startLine, endLine) = getHighlightedRangeTriplet()
 
         // Create and register the diff stream handler
         val diffStreamHandler = createDiffStreamHandler(editorUtils.editor, startLine, endLine)
@@ -138,8 +133,38 @@ class ApplyToFileHandler(
         )
     }
 
+    data class Quintuple<A, B, C, D, E>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D,
+        val fifth: E
+    )
+
     private fun buildApplyPrompt(): String {
         return "The following code was suggested as an edit:\n```\n${params.text}\n```\nPlease apply it to the previous code."
+    }
+
+    private fun getHighlightedRangeTriplet(): Quintuple<String, String, String, Int, Int> {
+        val document = editorUtils?.editor?.document
+        if (document != null) {
+            val totalLines = document.lineCount
+            val requestedStartLine = params.startLine
+            val requestedEndLine = params.endLine
+
+            // Ensure start line is not less than 0
+            val startLine = maxOf(0, requestedStartLine - 10)
+            // Ensure end line does not exceed document line count
+            val endLine = minOf(totalLines - 1, requestedEndLine + 10)
+
+            val prefix = document.getText(TextRange(0, document.getLineStartOffset(startLine)))
+            val highlighted =
+                document.getText(TextRange(document.getLineStartOffset(startLine), document.getLineEndOffset(endLine)))
+            val suffix = document.getText(TextRange(document.getLineEndOffset(endLine), document.textLength))
+
+            return Quintuple(prefix, highlighted, suffix, startLine, endLine)
+        }
+        return Quintuple("", "", "", 0, 0)
     }
 
     private fun createDiffStreamHandler(
@@ -169,7 +194,10 @@ class ApplyToFileHandler(
             ide: IDE,
             params: ApplyToFileParams
         ) {
-            val editorUtils = EditorUtils.getOrOpenEditor(project, params.filepath)
+//            val editorUtils = EditorUtils.getOrOpenEditor(project, params.filepath)
+            val editorUtils =
+                if (EditorUtils.editorFileExist(params.filepath)) EditorUtils.getOrOpenEditor(project, params.filepath)
+                else EditorUtils.getEditorByCreateFile(project, params.filepath)
             val diffStreamService = project.getService(DiffStreamService::class.java)
 
             val handler = ApplyToFileHandler(

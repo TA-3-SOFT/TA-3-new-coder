@@ -55,13 +55,16 @@ class DiffStreamHandler(
             return
         }
 
+        val editorUtils = EditorUtils(editor)
+        val currentFileContent = editorUtils.readFileWithLineNumbers()
+
         // Define a single payload and use it for sending
         val payload = ApplyState(
             streamId = streamId,
             status = status.status,
             numDiffs = diffBlocks.size,
             filepath = virtualFile?.url,
-            fileContent = "not implemented",
+            fileContent = currentFileContent,
             toolCallId = toolCallId?.toString()
         )
 

@@ -17,10 +17,10 @@ export const editFileTool: Tool = {
   function: {
     name: BuiltInToolNames.EditExistingFile,
     description:
-      "Use this tool to edit an existing file. If you don't know the contents of the file, read it first.",
+      "Use this tool to edit an existing file. If you don't know the contents of the file, read it first.When the tool is successfully called, it will return the latest complete content of the modified file.",
     parameters: {
       type: "object",
-      required: ["filepath", "changes"],
+      required: ["filepath", "changes", "startLine", "endLine"],
       properties: {
         filepath: {
           type: "string",
@@ -31,6 +31,14 @@ export const editFileTool: Tool = {
           type: "string",
           description:
             "Any modifications to the file, showing only needed changes. Do NOT wrap this in a codeblock or write anything besides the code changes. In larger files, use brief language-appropriate placeholders for large unmodified sections, e.g. '// ... existing code ...'",
+        },
+        startLine: {
+          type: "number",
+          description: "当前修改内容相关的代码块，在最新文件版本中的开始行号",
+        },
+        endLine: {
+          type: "number",
+          description: "当前修改内容相关的代码块，在最新文件版本中的结束行号",
         },
       },
     },
