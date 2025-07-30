@@ -137,6 +137,8 @@ interface IDE {
 
     suspend fun readFile(filepath: String): String
 
+    suspend fun readFileWithLineNumbers(filepath: String): String
+
     suspend fun readRangeInFile(filepath: String, range: Range): String
 
     suspend fun showLines(
@@ -154,6 +156,8 @@ interface IDE {
     suspend fun getOpenFiles(): List<String>
 
     suspend fun getCurrentFile(): Map<String, Any>?
+
+    suspend fun getCurrentFileWithLineNumbers(): Map<String, Any>?
 
     suspend fun getPinnedFiles(): List<String>
 

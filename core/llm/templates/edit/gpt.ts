@@ -65,7 +65,7 @@ export const gptEditPrompt: PromptTemplateFunction = (history, otherData) => {
 
         The user's request is: "${otherData.userInput}"
         
-        DO NOT output any natural language, only output the code changes.
+        DO NOT output any natural language, Note that when rewriting, keep the parts that don't need modification exactly the same as the original. Write the parts that need modification according to the suggestions, without compromising the original integrity of the code being rewritten.
 
         Here is the rewritten code:`);
 

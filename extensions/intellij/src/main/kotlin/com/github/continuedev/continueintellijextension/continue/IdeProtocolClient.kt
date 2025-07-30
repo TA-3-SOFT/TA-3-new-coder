@@ -160,7 +160,11 @@ class IdeProtocolClient(
                             dataElement.toString(),
                             ReadFileParams::class.java
                         )
-                        val contents = ide.readFile(params.filepath)
+                        val contents = if (params.withoutLines) {
+                            ide.readFile(params.filepath)
+                        } else {
+                            ide.readFileWithLineNumbers(params.filepath)
+                        }
                         respond(contents)
                     }
 
@@ -379,7 +383,8 @@ class IdeProtocolClient(
                     }
 
                     "getCurrentFile" -> {
-                        val currentFile = ide.getCurrentFile()
+//                        val currentFile = ide.getCurrentFile()
+                        val currentFile = ide.getCurrentFileWithLineNumbers()
                         respond(currentFile)
                     }
 

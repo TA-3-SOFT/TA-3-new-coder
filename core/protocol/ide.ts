@@ -34,7 +34,7 @@ export type ToIdeFromWebviewOrCoreProtocol = {
   subprocess: [{ command: string; cwd?: string }, [string, string]];
   saveFile: [{ filepath: string }, void];
   fileExists: [{ filepath: string }, boolean];
-  readFile: [{ filepath: string }, string];
+  readFile: [{ filepath: string; withoutLines?: boolean }, string];
   diffLine: [
     {
       diffLine: DiffLine;

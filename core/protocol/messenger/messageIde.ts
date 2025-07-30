@@ -164,8 +164,11 @@ export class MessageIde implements IDE {
   async saveFile(fileUri: string): Promise<void> {
     await this.request("saveFile", { filepath: fileUri });
   }
-  async readFile(fileUri: string): Promise<string> {
-    return await this.request("readFile", { filepath: fileUri });
+  async readFile(fileUri: string, withoutLines?: boolean): Promise<string> {
+    return await this.request("readFile", {
+      filepath: fileUri,
+      withoutLines: withoutLines,
+    });
   }
 
   getOpenFiles(): Promise<string[]> {

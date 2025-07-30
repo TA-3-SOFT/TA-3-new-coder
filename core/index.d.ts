@@ -758,7 +758,7 @@ export interface IDE {
 
   saveFile(fileUri: string): Promise<void>;
 
-  readFile(fileUri: string): Promise<string>;
+  readFile(fileUri: string, withoutLines?: boolean): Promise<string>;
 
   readRangeInFile(fileUri: string, range: Range): Promise<string>;
 

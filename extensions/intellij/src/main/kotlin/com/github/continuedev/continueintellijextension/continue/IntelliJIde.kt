@@ -265,6 +265,12 @@ class IntelliJIDE(
         }
     }
 
+    override suspend fun readFileWithLineNumbers(filepath: String): String {
+        val content = readFile(filepath)
+        return content.lines().mapIndexed { index, line -> "${index + 1}: $line" }.joinToString("\n")
+    }
+
+
     override suspend fun readRangeInFile(filepath: String, range: Range): String {
         val fullContents = readFile(filepath)
         val lines = fullContents.lines()
@@ -305,6 +311,19 @@ class IntelliJIDE(
             mapOf(
                 "path" to it,
                 "contents" to editor.document.text,
+                "isUntitled" to false
+            )
+        }
+    }
+
+    override suspend fun getCurrentFileWithLineNumbers(): Map<String, Any>?  {
+        val fileEditorManager = FileEditorManager.getInstance(project)
+        val editor = fileEditorManager.selectedTextEditor
+        val virtualFile = editor?.document?.let { FileDocumentManager.getInstance().getFile(it) }
+        return virtualFile?.toUriOrNull()?.let {
+            mapOf(
+                "path" to it,
+                "contents" to editor.document.text.lines().mapIndexed { index, line -> "${index + 1}: $line" }.joinToString("\n"),
                 "isUntitled" to false
             )
         }

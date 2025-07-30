@@ -29,7 +29,7 @@ data class SaveFileParams(val filepath: String)
 
 data class FileExistsParams(val filepath: String)
 
-data class ReadFileParams(val filepath: String)
+data class ReadFileParams(val filepath: String,var withoutLines: Boolean)
 
 data class ShowDiffParams(
     val filepath: String,

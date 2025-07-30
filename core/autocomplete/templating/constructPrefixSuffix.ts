@@ -17,7 +17,8 @@ export async function constructInitialPrefixSuffix(
   const lang = languageForFilepath(input.filepath);
 
   const fileContents =
-    input.manuallyPassFileContents ?? (await ide.readFile(input.filepath));
+    input.manuallyPassFileContents ??
+    (await ide.readFile(input.filepath, true));
   const fileLines = fileContents.split("\n");
   let prefix =
     getRangeInString(fileContents, {
