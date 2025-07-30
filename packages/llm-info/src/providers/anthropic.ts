@@ -11,8 +11,8 @@ export const Anthropic: ModelProvider = {
       maxCompletionTokens: 8192,
       description:
         "Most intelligent model with the highest level of intelligence and capability.",
-      // Sometimes written as claude-4-sonnet, other times as claude-sonnet-4
-      regex: /claude-(?:4-sonnet|sonnet-4).*/i,
+      // Sometimes written as claude-4-sonnet, claude-sonnet-4, or claude-4.0-sonnet
+      regex: /claude-(?:4(?:\.0)?-sonnet|sonnet-4(?:\.0)?).*/i,
       recommendedFor: ["chat"],
     },
     {

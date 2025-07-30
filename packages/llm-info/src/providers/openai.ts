@@ -110,6 +110,15 @@ export const OpenAi: ModelProvider = {
       maxCompletionTokens: 65536,
       recommendedFor: ["chat"],
     },
+    // gpt-4.1
+    {
+      model: "gpt-4.1",
+      displayName: "GPT-4.1",
+      contextLength: 128000,
+      maxCompletionTokens: 8192,
+      recommendedFor: ["chat"],
+      regex: /gpt-4\.1.*/i,
+    },
     // embed
     {
       model: "text-embedding-3-large",
