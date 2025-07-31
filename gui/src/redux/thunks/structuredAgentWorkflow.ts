@@ -301,12 +301,16 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
       userFeedbackContent = promptPreamble + userFeedback;
     }
 
-    if (step === "project-understanding") {
+    // 第一次进入项目理解步骤，获取需求
+    if (
+      step === "project-understanding" &&
+      workflow.currentStep !== "project-understanding"
+    ) {
       requirementFinal = getSessionHistoryLastContent(state.session.history);
     }
 
-    // 如果是代码分析步骤，添加 project_analysis 的结果
-    if (step === "code-analysis") {
+    // 第一次进入代码分析步骤，添加 project_analysis 的结果
+    if (step === "code-analysis" && workflow.currentStep !== "code-analysis") {
       const projectAnalysisResult = getProjectToolResult(
         state.session.history,
         "project_analysis",
@@ -316,19 +320,24 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
       }
     }
 
-    if (step === "plan-creation") {
+    // 第一次进入制定计划，添加 code_chunk_analysis 的结果
+    if (step === "plan-creation" && workflow.currentStep !== "plan-creation") {
       const codeChunkAnalysisResult = getProjectToolResult(
         state.session.history,
         "code_chunk_analysis",
       );
       if (codeChunkAnalysisResult) {
-        promptPreamble += `## 代码分析 的结果：\n${codeChunkAnalysisResult}\n\n`;
+        promptPreamble += `## 代码分析的结果：\n${codeChunkAnalysisResult}\n\n`;
       }
     }
 
-    if (step === "plan-execution") {
+    // 第一次进入执行计划，调用记忆，添加计划结果和代码分析结果
+    if (
+      step === "plan-execution" &&
+      workflow.currentStep !== "plan-execution"
+    ) {
       // 直接调用 GenerateProjectMemory 工具
-      const result = extra.ideMessenger.request("tools/call", {
+      extra.ideMessenger.request("tools/call", {
         toolCall: {
           id: `generate_project_memory_${Date.now()}`,
           type: "function",
@@ -340,7 +349,7 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
           },
         },
       });
-
+      // 获取实施计划和代码分析结果
       const planResult = getSessionHistoryLastContent(state.session.history);
       const codeChunkAnalysisResult = getProjectToolResult(
         state.session.history,
@@ -644,8 +653,11 @@ export const formatToolCallResult = (result: any): string => {
 
     // 提取第一个 contextItem 的 content
     const firstContextItem = contextItems[0];
-    if (!firstContextItem || typeof firstContextItem.content !== 'string') {
-      console.warn("formatToolCallResult: 第一个 contextItem 无效或 content 不是字符串", firstContextItem);
+    if (!firstContextItem || typeof firstContextItem.content !== "string") {
+      console.warn(
+        "formatToolCallResult: 第一个 contextItem 无效或 content 不是字符串",
+        firstContextItem,
+      );
       return "工具调用结果格式化失败";
     }
 
@@ -656,9 +668,11 @@ export const formatToolCallResult = (result: any): string => {
       return "暂无相关项目记忆，这是一个新的项目分析。";
     }
 
-    console.log("formatToolCallResult: 成功格式化结果，内容长度:", content.length);
+    console.log(
+      "formatToolCallResult: 成功格式化结果，内容长度:",
+      content.length,
+    );
     return content;
-
   } catch (error) {
     console.error("formatToolCallResult: 格式化过程中发生错误:", error);
     return "工具调用结果格式化失败";
@@ -670,6 +684,19 @@ export const getSessionHistoryLastContent = (
   history: ChatHistoryItemWithMessageId[],
 ): string => {
   let result = history[history.length - 1].message.content.toString();
+  if (result && result.includes("***【用户操作】***")) {
+    const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
+    result = result.substring(0, lastSeparatorIndex).trim();
+  }
+  return result;
+};
+
+// 获取传入标号的历史信息
+export const getSessionHistoryContentByIndex = (
+  history: ChatHistoryItemWithMessageId[],
+  index: number,
+): string => {
+  let result = history[index].message.content.toString();
   if (result && result.includes("***【用户操作】***")) {
     const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
     result = result.substring(0, lastSeparatorIndex).trim();
