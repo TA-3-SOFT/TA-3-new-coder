@@ -14,7 +14,9 @@ export function useStat () {
   useWebviewListener("incrementAcceptedCount" as any, async (data) => {
     postAllAccepted()
   }, [])
-
+  useWebviewListener("incrementFeatureCount" as any, async (data) => {
+    incrementFeatureCount(data)
+  })
 
   const token = auth.session?.accessToken
   const headers: any = {}
@@ -32,6 +34,18 @@ export function useStat () {
 
   function postAllAccepted (): void {
     fetch('http://localhost:8081/lowcodeback/aiStat/incrementAcceptedCount?productId=' + selectedOrgId, {
+      method: 'POST',
+      headers,
+      mode: 'cors',
+    })
+  }
+
+  function incrementFeatureCount (featureName: string): void {
+    const params = new URLSearchParams({
+      productId: selectedOrgId ?? '',
+      featureName,
+    })
+    fetch('http://localhost:8081/lowcodeback/aiStat/incrementFeatureCount?' + params.toString(), {
       method: 'POST',
       headers,
       mode: 'cors',

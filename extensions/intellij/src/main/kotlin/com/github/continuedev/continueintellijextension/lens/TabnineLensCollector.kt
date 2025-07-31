@@ -3,6 +3,7 @@ package com.tabnineCommon.chat.lens
 import com.github.continuedev.continueintellijextension.actions.getContinuePluginService
 import com.github.continuedev.continueintellijextension.editor.EditorUtils
 import com.github.continuedev.continueintellijextension.services.ContinueExtensionSettings
+import com.github.continuedev.continueintellijextension.utils.incrementFeatureCount
 import com.intellij.codeInsight.hints.FactoryInlayHintsCollector
 import com.intellij.codeInsight.hints.InlayHintsSink
 import com.intellij.codeInsight.hints.InlayPresentationFactory
@@ -70,8 +71,10 @@ class TabnineLensCollector(
                                             selectedValue: String,
                                             finalChoice: Boolean
                                         ): PopupStep<*>? {
-
-                                            sendClickEvent(selectedValue)
+                                            val project = editor.project
+                                            if (project != null) {
+                                                incrementFeatureCount(project, selectedValue)
+                                            }
 
                                             selectElementRange(editor, element)
                                             sendCodeToChat(editor, selectedValue)
@@ -128,7 +131,10 @@ class TabnineLensCollector(
                 factory.smallText(label),
                 object : InlayPresentationFactory.ClickListener {
                     override fun onClick(event: MouseEvent, translated: Point) {
-                        sendClickEvent(intent)
+                        val project = editor.project
+                        if (project != null) {
+                            incrementFeatureCount(project, intent)
+                        }
 
                         selectElementRange(editor, element)
                         sendCodeToChat(editor, intent)
@@ -142,15 +148,6 @@ class TabnineLensCollector(
         val selectionModel = editor.selectionModel
         val range = element.textRange
         selectionModel.setSelection(range.startOffset, range.endOffset)
-    }
-
-    private fun sendClickEvent(intent: String) {
-//        binaryRequestFacade.executeRequest(
-//            EventRequest(
-//                "chat-code-lens-click",
-//                mapOf("intent" to intent)
-//            )
-//        )
     }
 
     private fun countLeadingWhitespace(editor: Editor, element: PsiElement): Int {

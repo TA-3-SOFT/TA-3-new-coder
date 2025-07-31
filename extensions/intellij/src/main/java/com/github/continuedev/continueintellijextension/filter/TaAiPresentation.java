@@ -10,6 +10,7 @@ import com.github.continuedev.continueintellijextension.RangeInFileWithContents;
 import com.github.continuedev.continueintellijextension.actions.UtilsKt;
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService;
 import com.github.continuedev.continueintellijextension.utils.PsiUtils;
+import static com.github.continuedev.continueintellijextension.utils.StatKt.incrementFeatureCount;
 import com.intellij.codeInsight.hints.presentation.InputHandler;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -62,6 +63,7 @@ public class TaAiPresentation implements EditorCustomElementRenderer, InputHandl
     }
 
     public void mouseClicked(@NotNull MouseEvent mouseEvent, @NotNull Point point) {
+        incrementFeatureCount(this.myProject, "exceptionAnalysis");
 
         int line = this.editor.getDocument().getLineNumber(this.startOffset);
 

@@ -8,6 +8,7 @@ package com.github.continuedev.continueintellijextension.actions;
 import com.github.continuedev.continueintellijextension.model.GenerateCommitMsgParam;
 import com.github.continuedev.continueintellijextension.utils.ThreadUtil;
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService;
+import static com.github.continuedev.continueintellijextension.utils.StatKt.incrementFeatureCount;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
@@ -87,10 +88,13 @@ public class CommitMessageGenerationAction extends AnAction {
         if (STOP_ICON.equals(anActionEvent.getPresentation().getIcon())) {
             this.stopAnswer(anActionEvent.getProject(), anActionEvent);
         } else {
+            Project project = anActionEvent.getProject();
+            incrementFeatureCount(project, "commitMessageGeneration");
+
             anActionEvent.getPresentation().setText("停止");
             anActionEvent.getPresentation().setIcon(STOP_ICON);
             CommitMessage commitMessage = (CommitMessage) VcsDataKeys.COMMIT_MESSAGE_CONTROL.getData(anActionEvent.getDataContext());
-            this.chatAsk(anActionEvent.getProject(), commitMessage, anActionEvent);
+            this.chatAsk(project, commitMessage, anActionEvent);
         }
     }
 
