@@ -239,6 +239,26 @@ export function UserSettingsForm() {
               }
               text="将当前文件默认作为上下文"
             />
+            <ToggleSwitch
+              isToggled={autoAcceptEditToolDiffs}
+              onToggle={() =>
+                handleUpdate({
+                  autoAcceptEditToolDiffs: !autoAcceptEditToolDiffs,
+                })
+              }
+              text="自动接受智能体的修改"
+              showIfToggled={
+                <>
+                  <ExclamationTriangleIcon
+                    data-tooltip-id={`auto-accept-diffs-warning-tooltip`}
+                    className="h-3 w-3 text-yellow-500"
+                  />
+                  <ToolTip id={`auto-accept-diffs-warning-tooltip`}>
+                    {`注意：当启用时，智能体模式的编辑工具可以对文件进行更改，而无需手动审核或保证停止点。`}
+                  </ToolTip>
+                </>
+              }
+            />
 
             {/* <ToggleSwitch
                     isToggled={useAutocompleteCache}
@@ -354,7 +374,6 @@ export function UserSettingsForm() {
               </span>
             </form>
           </div>
-
           {/*<div className="flex flex-col gap-x-2 gap-y-4">
             <div
               className="flex cursor-pointer items-center gap-2 text-left text-sm font-semibold"

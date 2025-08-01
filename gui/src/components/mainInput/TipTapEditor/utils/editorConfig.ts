@@ -90,6 +90,7 @@ export function createEditorConfig(options: {
   const inDropdownRef = useRef(false);
   const defaultModelRef = useUpdatingRef(defaultModel);
   const isStreamingRef = useUpdatingRef(isStreaming);
+  const useCurrentFileAsContextRef = useUpdatingRef(useCurrentFileAsContext);
   const getSubmenuContextItemsRef = useUpdatingRef(getSubmenuContextItems);
   const availableContextProvidersRef = useUpdatingRef(
     props.availableContextProviders,
@@ -205,7 +206,7 @@ export function createEditorConfig(options: {
 
               onEnterRef.current({
                 useCodebase: false,
-                noContext: !useCurrentFileAsContext,
+                noContext: !useCurrentFileAsContextRef.current,
               });
               return true;
             },
@@ -213,7 +214,7 @@ export function createEditorConfig(options: {
             "Mod-Enter": () => {
               onEnterRef.current({
                 useCodebase: true,
-                noContext: !useCurrentFileAsContext,
+                noContext: !useCurrentFileAsContextRef.current,
               });
               return true;
             },
@@ -222,7 +223,7 @@ export function createEditorConfig(options: {
 
               onEnterRef.current({
                 useCodebase: false,
-                noContext: !!useCurrentFileAsContext,
+                noContext: useCurrentFileAsContextRef.current,
               });
 
               return true;

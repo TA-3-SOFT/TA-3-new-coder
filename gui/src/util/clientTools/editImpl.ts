@@ -30,6 +30,9 @@ export const editToolImpl: ClientToolImpl = async (
   const state = extras.getState();
   const autoAccept = !!state.config.config.ui?.autoAcceptEditToolDiffs;
   if (autoAccept) {
+    // 等待apply状态变为"done"后再执行acceptDiff
+    await waitForApplyStateToComplete(extras, extras.streamId);
+
     const out = await extras.ideMessenger.request("acceptDiff", {
       streamId: extras.streamId,
       filepath: firstUriMatch,
@@ -47,3 +50,44 @@ export const editToolImpl: ClientToolImpl = async (
     output: undefined, // No immediate output.
   };
 };
+
+// 等待apply状态完成的辅助函数
+async function waitForApplyStateToComplete(
+  extras: any,
+  streamId: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const maxWaitTime = 30000; // 最大等待30秒
+    const checkInterval = 100; // 每100ms检查一次
+    let elapsedTime = 0;
+
+    const checkStatus = () => {
+      const state = extras.getState();
+      const applyState = state.session.codeBlockApplyStates.states.find(
+        (s: any) => s.streamId === streamId,
+      );
+
+      if (applyState?.status === "done") {
+        resolve();
+        return;
+      }
+
+      if (applyState?.status === "closed") {
+        // 如果状态已经是closed，说明apply已经完成
+        resolve();
+        return;
+      }
+
+      elapsedTime += checkInterval;
+      if (elapsedTime >= maxWaitTime) {
+        reject(new Error("Timeout waiting for apply state to complete"));
+        return;
+      }
+
+      setTimeout(checkStatus, checkInterval);
+    };
+
+    // 开始检查
+    setTimeout(checkStatus, checkInterval);
+  });
+}
