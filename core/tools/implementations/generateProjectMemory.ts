@@ -200,81 +200,14 @@ Return only the merged memory in JSON format (same structure as input):`;
   }
 }
 
-export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
-  const { chatHistory } = args;
-
-  console.log("🚀 [记忆生成] 工具开始执行");
-  console.log("📥 [记忆生成] 接收到的参数:", {
-    chatHistoryLength: chatHistory?.length,
-  });
-
+// 异步记忆生成函数，不阻塞主流程
+async function generateMemoryAsync(
+  chatHistory: any[],
+  llm: import("../../index.js").ILLM,
+  embedProvider: import("../../index.js").ILLM,
+): Promise<void> {
   try {
-    // 验证参数
-    if (!chatHistory || !Array.isArray(chatHistory)) {
-      console.log("❌ [记忆生成] 参数验证失败: chatHistory 不是有效数组");
-      return [
-        {
-          name: "生成项目记忆错误",
-          description: "参数验证失败",
-          content: "chatHistory 参数必须是非空数组",
-        },
-      ];
-    }
-
-    console.log("✅ [记忆生成] 参数验证通过");
-
-    // 获取 LLM 和 embedding 提供者
-    console.log("🔍 [记忆生成] 检查 LLM 配置");
-    const llm = extras.llm;
-
-    if (!llm) {
-      console.log("❌ [记忆生成] LLM 未配置");
-      return [
-        {
-          name: "生成项目记忆错误",
-          description: "LLM 未配置",
-          content: "需要配置 LLM 模型来分析对话内容",
-        },
-      ];
-    }
-
-    console.log("✅ [记忆生成] LLM 配置检查通过");
-
-    // 获取嵌入提供者（从配置中）
-    const embeddingsProvider = extras.config?.selectedModelByRole?.embed;
-
-    console.log("🔍 [记忆生成] 检查嵌入提供者配置");
-    let embedProvider: import("../../index.js").ILLM;
-
-    if (embeddingsProvider) {
-      console.log(
-        "✅ [记忆生成] 找到配置的嵌入提供者:",
-        embeddingsProvider.title || embeddingsProvider.model,
-      );
-      embedProvider = embeddingsProvider;
-    } else {
-      console.log(
-        "⚠️ [记忆生成] 未配置专用嵌入提供者，尝试使用 LLM 的嵌入功能",
-      );
-
-      // 检查 LLM 是否支持嵌入功能作为回退
-      if (!llm.embed) {
-        console.log("❌ [记忆生成] LLM 不支持嵌入功能");
-        return [
-          {
-            name: "生成项目记忆错误",
-            description: "嵌入功能未支持",
-            content:
-              "需要配置嵌入模型或使用支持嵌入功能的 LLM 模型来生成向量存储",
-          },
-        ];
-      }
-
-      embedProvider = llm;
-      console.log("✅ [记忆生成] 将使用 LLM 的嵌入功能作为回退");
-    }
-
-    console.log("✅ [记忆生成] 嵌入提供者配置检查通过");
+    console.log("🔄 [记忆生成] 开始异步记忆生成流程");
 
     // 准备对话消息用于 LLM 分析
     console.log("📝 [记忆生成] 处理对话消息");
@@ -291,14 +224,8 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
     console.log(`📊 [记忆生成] 处理后的消息数量: ${messages.length}`);
 
     if (messages.length === 0) {
-      console.log("⚠️ [记忆生成] 没有有效的消息内容");
-      return [
-        {
-          name: "生成项目记忆结果",
-          description: "无有效消息",
-          content: "聊天历史中没有找到有效的消息内容",
-        },
-      ];
+      console.log("⚠️ [记忆生成] 没有有效的消息内容，跳过记忆生成");
+      return;
     }
 
     // 使用 LLM 提取记忆
@@ -316,14 +243,12 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
       );
 
       console.log("📥 [记忆生成] 收到 LLM 响应");
-      console.log(response);
       const responseContent =
         typeof response.content === "string"
           ? response.content
           : JSON.stringify(response.content);
 
       console.log("🔍 [记忆生成] 解析 LLM 响应内容");
-      console.log(responseContent);
       try {
         const cleanedContent = cleanJsonResponse(responseContent);
         console.log("🧹 [记忆生成] 清理后的内容:", cleanedContent);
@@ -335,34 +260,16 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
       } catch (parseError) {
         console.log("❌ [记忆生成] LLM 响应解析失败:", parseError);
         console.log("📄 [记忆生成] 原始响应内容:", responseContent);
-        return [
-          {
-            name: "生成项目记忆错误",
-            description: "LLM 响应解析失败",
-            content: `无法解析 LLM 返回的记忆数据: ${parseError}\n\n原始响应: ${responseContent}`,
-          },
-        ];
+        return;
       }
     } catch (llmError) {
       console.log("❌ [记忆生成] LLM 调用失败:", llmError);
-      return [
-        {
-          name: "生成项目记忆错误",
-          description: "LLM 调用失败",
-          content: `LLM 调用失败: ${llmError instanceof Error ? llmError.message : String(llmError)}`,
-        },
-      ];
+      return;
     }
 
     if (!Array.isArray(extractedMemories) || extractedMemories.length === 0) {
-      console.log("⚠️ [记忆生成] 未提取到有效记忆");
-      return [
-        {
-          name: "生成项目记忆结果",
-          description: "未提取到记忆",
-          content: `# 项目记忆生成报告\n\n**生成时间:** ${new Date().toISOString()}\n\n**分析消息数:** ${messages.length}\n\n**提取结果:** 未从对话中提取到有价值的记忆内容\n\n这可能是因为：\n- 对话内容主要是技术讨论\n- 没有包含用户的长期目标或偏好\n- 对话过于简短或缺乏上下文`,
-        },
-      ];
+      console.log("⚠️ [记忆生成] 未提取到有效记忆，跳过存储");
+      return;
     }
 
     // 为每个记忆生成向量嵌入并处理去重/更新
@@ -386,15 +293,13 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
       let needRecreateTable = false;
 
       // 首先生成示例向量以确定当前嵌入模型的维度
-      console.log("🔢 [记忆生成] 生成示例向量以确定当前嵌入模型维度");
       let sampleEmbedResult;
       try {
         sampleEmbedResult = await embedProvider.embed(["sample"]);
       } catch (embedError) {
         console.log("❌ [记忆生成] 示例嵌入调用失败:", embedError);
-        throw new Error(
-          `示例嵌入调用失败: ${embedError instanceof Error ? embedError.message : String(embedError)}`,
-        );
+        console.log("⚠️ [记忆生成] 跳过记忆生成，嵌入功能不可用");
+        return;
       }
 
       // 验证示例嵌入结果格式
@@ -405,9 +310,7 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
           length: sampleEmbedResult?.length,
           result: sampleEmbedResult,
         });
-        throw new Error(
-          `示例嵌入结果格式错误: 期望数组，实际 ${typeof sampleEmbedResult}`,
-        );
+        return;
       }
 
       const sampleVector = sampleEmbedResult[0];
@@ -417,15 +320,10 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
           isArray: Array.isArray(sampleVector),
           vector: sampleVector,
         });
-        throw new Error(
-          `示例向量格式错误: 期望数组，实际 ${typeof sampleVector}`,
-        );
+        return;
       }
 
       const currentVectorDim = sampleVector.length;
-      console.log("📏 [记忆生成] 当前嵌入模型向量维度:", currentVectorDim);
-
-      console.log("🗂️ [记忆生成] 尝试打开记忆表:", tableName);
       try {
         table = await db.openTable(tableName);
         console.log("✅ [记忆生成] 成功打开现有记忆表");
@@ -483,7 +381,8 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
       // 确保表已正确初始化
       if (!table) {
         console.log("❌ [记忆生成] 表初始化失败");
-        throw new Error("记忆表初始化失败，无法继续处理");
+        console.log("⚠️ [记忆生成] 跳过记忆生成，无法初始化数据库表");
+        return;
       }
 
       // 处理每个记忆
@@ -532,19 +431,10 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
             });
             throw new Error(`向量格式错误: 期望数组，实际 ${typeof vector}`);
           }
-
-          console.log(`✅ [记忆生成] 向量嵌入生成完成，维度: ${vector.length}`);
-
-          // 检查是否存在相似的记忆
-          console.log("🔍 [记忆生成] 搜索相似记忆");
           let existingSimilarMemory = null;
           try {
             // 搜索相似记忆（限制搜索结果数量以提高性能）
             const searchResults = await table.search(vector).limit(5).execute();
-
-            console.log(
-              `📊 [记忆生成] 找到 ${searchResults.length} 个候选相似记忆`,
-            );
 
             // 检查相似度
             for (const result of searchResults) {
@@ -554,9 +444,6 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
                 1 - result._distance >= SIMILARITY_THRESHOLD
               ) {
                 const similarity = Math.round((1 - result._distance) * 100);
-                console.log(
-                  `🎯 [记忆生成] 发现相似记忆，相似度: ${similarity}%`,
-                );
                 existingSimilarMemory = result;
                 break;
               }
@@ -567,7 +454,7 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
             }
           } catch (searchError) {
             // 如果搜索失败（比如表为空），继续添加新记忆
-            console.log(`⚠️ [记忆生成] 搜索相似记忆失败: ${searchError}`);
+            console.error(`⚠️ [记忆生成] 搜索相似记忆失败: ${searchError}`);
           }
 
           if (existingSimilarMemory) {
@@ -586,7 +473,6 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
                   ? existingSimilarMemory.memory
                   : String(existingSimilarMemory.memory);
 
-              console.log("🤝 [记忆生成] 合并记忆内容");
               const updatedMemory = await mergeMemories(
                 {
                   memory: existingMemoryContent,
@@ -602,7 +488,6 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
                   ? existingSimilarMemory.id
                   : String(existingSimilarMemory.id);
 
-              console.log("💾 [记忆生成] 更新数据库记录");
               await table.update({
                 where: `id = '${existingId}'`,
                 values: {
@@ -622,8 +507,6 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
               );
             }
           } else {
-            // 创建新记忆
-            console.log("🆕 [记忆生成] 创建新记忆");
             const memoryRow: MemoryRow = {
               id: `memory_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               memory: memory.memory,
@@ -633,14 +516,11 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
               updated_at: new Date().toISOString(),
             };
 
-            // 插入到向量数据库
-            console.log("💾 [记忆生成] 插入新记忆到数据库");
             await table.add([memoryRow]);
             savedMemories++;
-            console.log("✅ [记忆生成] 新记忆保存成功");
           }
         } catch (memoryError) {
-          console.log("❌ [记忆生成] 处理记忆失败:", memoryError);
+          console.error("❌ [记忆生成] 处理记忆失败:", memoryError);
           errors.push(
             `处理记忆 "${memory.memory.substring(0, 50)}..." 失败: ${memoryError}`,
           );
@@ -651,76 +531,112 @@ export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
         `🎉 [记忆生成] 记忆处理完成 - 新增: ${savedMemories}, 更新: ${updatedMemories}, 错误: ${errors.length}`,
       );
     } catch (dbError) {
+      return;
+    }
+  } catch (error) {
+    console.error("💥 [记忆生成] 异步记忆生成发生未预期错误:", error);
+  } finally {
+    console.log("🏁 [记忆生成] 异步记忆生成流程结束");
+  }
+}
+
+export const generateProjectMemoryImpl: ToolImpl = async (args, extras) => {
+  const { chatHistory } = args;
+
+  try {
+    // 验证参数
+    if (!chatHistory || !Array.isArray(chatHistory)) {
       return [
         {
           name: "生成项目记忆错误",
-          description: "向量数据库操作失败",
-          content: `向量数据库操作失败: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+          description: "参数验证失败",
+          content: "chatHistory 参数必须是非空数组",
         },
       ];
     }
 
-    // 生成报告
-    const totalProcessed = savedMemories + updatedMemories;
-    const report = `# 项目记忆生成报告
+    const llm = extras.llm;
 
-**生成时间:** ${new Date().toISOString()}
+    if (!llm) {
+      return [
+        {
+          name: "生成项目记忆错误",
+          description: "LLM 未配置",
+          content: "需要配置 LLM 模型来分析对话内容",
+        },
+      ];
+    }
 
-**分析消息数:** ${messages.length}
+    console.log("✅ [记忆生成] LLM 配置检查通过");
 
-**提取的记忆数:** ${extractedMemories.length}
+    // 获取嵌入提供者（从配置中）
+    const embeddingsProvider = extras.config?.selectedModelByRole?.embed;
 
-**新增记忆数:** ${savedMemories}
+    console.log("🔍 [记忆生成] 检查嵌入提供者配置");
+    let embedProvider: import("../../index.js").ILLM;
 
-**更新记忆数:** ${updatedMemories}
+    if (embeddingsProvider) {
+      embedProvider = embeddingsProvider;
+    } else {
+      // 检查 LLM 是否支持嵌入功能作为回退
+      if (!llm.embed) {
+        return [
+          {
+            name: "生成项目记忆错误",
+            description: "嵌入功能未支持",
+            content:
+              "需要配置嵌入模型或使用支持嵌入功能的 LLM 模型来生成向量存储",
+          },
+        ];
+      }
 
-**总处理记忆数:** ${totalProcessed}
+      embedProvider = llm;
+    }
 
-## 提取的记忆内容
-
-${extractedMemories
-  .map(
-    (memory, index) => `
-### 记忆 ${index + 1}
-- **内容:** ${memory.memory}
-- **类型:** ${memory.metadata.type}
-- **时间:** ${memory.metadata.memory_time}
-- **置信度:** ${memory.metadata.confidence}%
-- **实体:** ${memory.metadata.entities.join(", ")}
-- **标签:** ${memory.metadata.tags.join(", ")}
-- **可见性:** ${memory.metadata.visibility}
-`,
-  )
-  .join("\n")}
-
-${errors.length > 0 ? `## 错误信息\n\n${errors.map((error) => `- ${error}`).join("\n")}` : ""}
-
-## 处理统计
-
-- **相似度阈值:** ${SIMILARITY_THRESHOLD}
-- **去重策略:** 向量相似度匹配 + LLM 智能合并
-- **处理结果:** ${totalProcessed === extractedMemories.length ? "✅ 所有记忆已成功处理" : `⚠️ ${totalProcessed}/${extractedMemories.length} 记忆已处理`}
-
-${updatedMemories > 0 ? `\n**记忆更新:** 检测到 ${updatedMemories} 个相似记忆并进行了智能合并更新` : ""}`;
+    // 使用 Promise.resolve().then() 确保异步执行，不阻塞主流程
+    Promise.resolve()
+      .then(() => {
+        generateMemoryAsync(chatHistory, llm, embedProvider);
+      })
+      .catch((error) => {
+        console.error("💥 [记忆生成] 异步流程启动失败:", error);
+      });
 
     return [
       {
-        name: "项目记忆生成结果",
-        description: "项目长期记忆生成和存储完成",
-        content: report,
+        name: "项目记忆生成已启动",
+        description: "记忆生成流程已在后台启动",
+        content: `# 项目记忆生成已启动
+
+**启动时间:** ${new Date().toISOString()}
+
+**分析消息数:** ${chatHistory.length}
+
+**状态:** 记忆生成流程已在后台启动，不会影响当前对话流程
+
+**说明:**
+- 记忆生成将在后台异步进行
+- 即使生成过程中出现错误也不会影响主流程
+- 生成的记忆将自动保存到项目记忆库中
+- 可以通过"获取项目记忆"工具查看已生成的记忆
+
+**处理方式:**
+- 自动提取对话中的重要信息
+- 智能去重和合并相似记忆
+- 向量化存储便于后续检索`,
       },
     ];
   } catch (error) {
-    console.log("💥 [记忆生成] 发生未预期错误:", error);
+    console.log("💥 [记忆生成] 主流程发生错误:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     return [
       {
         name: "生成项目记忆错误",
-        description: "生成项目记忆过程中发生错误",
-        content: `生成项目记忆时发生错误: ${errorMessage}\n\n请检查：\n1. LLM 模型配置是否正确\n2. 嵌入模型配置是否正确\n3. 网络连接是否正常\n4. API 密钥是否有效`,
+        description: "记忆生成启动失败",
+        content: `记忆生成启动失败: ${errorMessage}\n\n请检查：\n1. LLM 模型配置是否正确\n2. 嵌入模型配置是否正确\n3. 参数格式是否正确`,
       },
     ];
   } finally {
-    console.log("🏁 [记忆生成] 工具执行结束");
+    console.log("🏁 [记忆生成] 主流程执行结束");
   }
 };

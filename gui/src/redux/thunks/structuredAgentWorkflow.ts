@@ -4,6 +4,7 @@ import {
   ContextItem,
   StructuredAgentStepType,
   StructuredAgentWorkflowState,
+  ChatMessage,
 } from "core";
 import { BuiltInToolNames } from "core/tools/builtIn";
 import { ThunkApiType } from "../store";
@@ -15,10 +16,13 @@ import {
   startStructuredAgentWorkflow,
   stopStructuredAgentWorkflow,
   updateStructuredAgentStep,
+  updateHistoryItemAtIndex,
+  streamUpdate,
 } from "../slices/sessionSlice";
 import { streamResponseThunk } from "./streamResponse";
 import { findToolCall } from "../util";
 import { history } from "@headlessui/react/dist/utils/active-element-history";
+import { v4 as uuidv4 } from "uuid";
 
 let requirementFinal: string | null = null;
 let projectMemory: string | null = null;
@@ -97,7 +101,7 @@ ${requirementFinal}
 
 你是一名资深软件设计工程师，基于上面的详细需求，了解项目结构相关知识。要求：
 1. 使用project_analysis工具来分析当前Maven项目的结构，禁止传递任何参数给该工具（都使用默认的）。
-2. 调用project_analysis工具后，根据结果做出简单总结回答。
+2. 调用project_analysis工具后，直接把project_analysis工具的返回结果作为您的回答，不要添加任何其它内容。
 
 回答完成后请输出以下固定的完整内容：
 ---
@@ -311,9 +315,8 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
 
     // 第一次进入代码分析步骤，添加 project_analysis 的结果
     if (step === "code-analysis" && workflow.currentStep !== "code-analysis") {
-      const projectAnalysisResult = getProjectToolResult(
+      const projectAnalysisResult = getLastAssistantContent(
         state.session.history,
-        "project_analysis",
       );
       if (projectAnalysisResult) {
         promptPreamble += `## project_analysis 工具的分析结果：\n${projectAnalysisResult}\n\n`;
@@ -414,7 +417,6 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     // 构建动态系统消息
     let dynamicSystemMessage = stepConfig.systemPrompt();
 
-    // 开始流式响应
     await dispatch(
       streamResponseThunk({
         editorState: finalEditorState,
@@ -702,4 +704,27 @@ export const getSessionHistoryContentByIndex = (
     result = result.substring(0, lastSeparatorIndex).trim();
   }
   return result;
+};
+
+// 获取最近的AI助手消息内容
+export const getLastAssistantContent = (
+  history: ChatHistoryItemWithMessageId[],
+): string => {
+  // 从后往前查找最近的assistant消息
+  for (let i = history.length - 1; i >= 0; i--) {
+    const historyItem = history[i];
+    if (
+      historyItem.message?.role === "assistant" &&
+      historyItem.message?.content
+    ) {
+      let result = historyItem.message.content.toString();
+      // 移除用户操作提示部分
+      if (result && result.includes("***【用户操作】***")) {
+        const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
+        result = result.substring(0, lastSeparatorIndex).trim();
+      }
+      return result;
+    }
+  }
+  return "";
 };

@@ -10,9 +10,11 @@ import {
   addPromptCompletionPair,
   setToolGenerated,
   streamUpdate,
+  updateHistoryItemAtIndex,
 } from "../slices/sessionSlice";
 import { ThunkApiType } from "../store";
 import { callCurrentTool } from "./callCurrentTool";
+import { getProjectToolResult } from "./structuredAgentWorkflow";
 
 export const streamNormalInput = createAsyncThunk<
   void,
@@ -118,6 +120,59 @@ export const streamNormalInput = createAsyncThunk<
       ) {
         const response = await dispatch(callCurrentTool());
         unwrapResult(response);
+
+        // 特殊处理：如果是 project_analysis 工具，等待工具完成后替换AI输出
+        if (toolCallState.toolCall.function.name === "project_analysis") {
+          console.log("🔍 检测到 project_analysis 工具调用，准备替换AI输出");
+
+          // 等待工具调用完成
+          await new Promise((resolve) => setTimeout(resolve, 0));
+
+          // 获取工具结果
+          const updatedState = getState();
+          const projectAnalysisResult = getProjectToolResult(
+            updatedState.session.history,
+            "project_analysis",
+          );
+
+          if (projectAnalysisResult && projectAnalysisResult.trim()) {
+            console.log("✅ 获取到 project_analysis 工具结果，替换AI输出");
+
+            // 找到最后一条assistant消息
+            const history = updatedState.session.history;
+            let lastAssistantIndex = -1;
+            for (let i = history.length - 1; i >= 0; i--) {
+              if (history[i].message.role === "assistant") {
+                lastAssistantIndex = i;
+                break;
+              }
+            }
+
+            if (lastAssistantIndex !== -1) {
+              // 添加用户操作提示
+              const enhancedContent = `${projectAnalysisResult}
+
+---
+***【用户操作】***：✅ **步骤完成，等待您的确认**
+
+* 执行下一步：点击下方"确认"按钮进入下一步，或在输入框中输入："确认"。
+* 调整回答内容：点击下方"编辑"按钮进入修改，或在输入框中输入具体的调整建议。`;
+
+              // 直接更新消息内容
+              dispatch(
+                updateHistoryItemAtIndex({
+                  index: lastAssistantIndex,
+                  updates: {
+                    message: {
+                      ...history[lastAssistantIndex].message,
+                      content: enhancedContent,
+                    },
+                  },
+                }),
+              );
+            }
+          }
+        }
       }
     }
   },

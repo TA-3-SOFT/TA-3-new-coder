@@ -37,29 +37,19 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
       ];
     }
 
-    // let content = `# Maven项目分析报告\n\n`;
-    // content += `**项目根路径**: ${rootDir}\n\n`;
-    //
-    // // 展平模块信息
-    // const flatModules = analyzer.flattenModules(projectStructure.modules);
-    // content += `## 叶子模块列表 (共${flatModules.length}个)\n\n`;
-    //
-    // for (const module of flatModules) {
-    //   content += `### ${module.name}\n`;
-    //   if (module.description && module.description !== '未找到README文件') {
-    //     const shortDesc = module.description.substring(0, 200);
-    //     content += `**描述**: ${shortDesc}${module.description.length > 200 ? '...' : ''}\n\n`;
-    //   } else {
-    //     content += `**描述**: 无描述\n\n`;
-    //   }
-    // }
+    // 获取所有叶子模块信息
+    const allModules = await analyzer.loadModuleInfo(projectStructure);
 
-    let content = ``;
+    // 构建基本项目信息
+    let content = `# Maven项目分析报告\n\n`;
+    content += `## 📋 项目基本信息\n`;
+    content += `- **项目根目录**: ${rootDir}\n`;
+    content += `- **项目类型**: Maven项目\n`;
+    content += `- **总模块数**: ${allModules.length}\n\n`;
 
     // 如果提供了需求，进行模块和文件推荐
     if (finalRequirement) {
-      content += `## 基于需求的推荐分析\n\n`;
-      // content += `**用户需求**: ${finalRequirement}\n\n`;
+      content += `\n## 🎯 基于需求的推荐分析\n\n`;
 
       try {
         const recommendation = await analyzer.recommendModulesAndFiles(
@@ -68,25 +58,39 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
           rootDir,
         );
 
-        // content += `### 推荐的模块\n`;
-        // content += `**推荐模块**: ${recommendation.recommended_modules.join(", ")}\n`;
-        // content += `**推荐理由**: ${recommendation.module_reasoning}\n\n`;
+        content += `### 📋 推荐结果总览\n`;
+        content += `- **推荐模块数量**: ${recommendation.recommended_modules.length}\n`;
+        content += `- **推荐模块**: ${recommendation.recommended_modules.join(", ")}\n`;
 
-        // content += `### 推荐的文件\n`;
+        // 完整版文件推荐
+        content += `### 📁 详细文件推荐\n`;
         for (const fileRec of recommendation.recommended_files) {
-          content += `#### 模块: ${fileRec.module}\n`;
-          content += `**推荐文件**:\n`;
+          content += `#### 🔹 模块: \`${fileRec.module}\`\n`;
+          content += `**推荐文件列表**:\n`;
           for (const file of fileRec.files) {
-            content += `- ${file}\n`;
+            content += `- \`${file}\`\n`;
           }
-          content += `**推荐理由**: ${fileRec.file_reasoning}\n\n`;
         }
       } catch (error) {
-        content += `推荐分析失败: ${error}\n\n`;
+        content += `❌ 推荐分析失败: ${error}\n\n`;
       }
-    }
+    } else {
+      // 如果没有需求，也要提供模块列表供用户选择
+      content += `\n## 🔧 模块选择配置\n\n`;
+      content += `请从以下模块中选择您需要分析的模块：\n\n`;
+      content += `### 可选择的模块\n`;
+      allModules.forEach((module, index) => {
+        content += `${index + 1}. \`${module.name}\`\n`;
+      });
 
-    console.log(content);
+      content += `\n### 配置格式示例\n`;
+      content += `\`\`\`json\n`;
+      content += `{\n`;
+      content += `  "${allModules[0]?.name || "module-name"}": ["src/main/java/Example.java"],\n`;
+      content += `  "${allModules[1]?.name || "another-module"}": ["src/main/java/Another.java"]\n`;
+      content += `}\n`;
+      content += `\`\`\`\n\n`;
+    }
 
     return [
       {
@@ -97,6 +101,17 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
     ];
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // 添加日志输出：错误信息
+    console.error(`❌ [ProjectAnalysis] 工具调用失败:`);
+    console.error(
+      `  - 错误类型: ${error instanceof Error ? error.constructor.name : "Unknown"}`,
+    );
+    console.error(`  - 错误消息: ${errorMessage}`);
+    console.error(
+      `  - 错误堆栈: ${error instanceof Error ? error.stack : "N/A"}`,
+    );
+
     return [
       {
         name: "项目分析错误",
