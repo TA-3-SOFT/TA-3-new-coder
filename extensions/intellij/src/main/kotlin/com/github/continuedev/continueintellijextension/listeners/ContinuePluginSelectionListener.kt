@@ -221,7 +221,8 @@ class ContinuePluginSelectionListener(
     }
 
     private fun addToolTipComponent(editor: Editor, tooltipX: Int, selectionTopY: Int) {
-        val toolTipComponent = ToolTipComponent(editor, tooltipX, selectionTopY)
+        // 使用基于光标位置的新构造函数
+        val toolTipComponent = ToolTipComponent(editor, true)
         toolTipComponents.add(toolTipComponent)
         editor.contentComponent.add(toolTipComponent)
         editor.contentComponent.revalidate()

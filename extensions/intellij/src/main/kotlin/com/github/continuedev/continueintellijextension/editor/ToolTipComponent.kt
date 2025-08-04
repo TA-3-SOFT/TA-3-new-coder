@@ -9,9 +9,9 @@ import java.awt.*
 import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.geom.RoundRectangle2D
 import java.util.*
 import javax.swing.JButton
-import java.awt.geom.RoundRectangle2D
 
 class StyledButton(text: String) : JButton(text) {
     private var isHovered = false
@@ -68,12 +68,59 @@ class StyledButton(text: String) : JButton(text) {
 }
 
 
-class ToolTipComponent(editor: Editor, x: Int, y: Int) :
-    JBPanel<ToolTipComponent>() {
-    private var addToChatButton: StyledButton
-    private var editButton: StyledButton
+class ToolTipComponent : JBPanel<ToolTipComponent> {
+    private lateinit var addToChatButton: StyledButton
+    private lateinit var editButton: StyledButton
 
-    init {
+    // 原有构造函数，基于文本选择位置
+    constructor(editor: Editor, x: Int, y: Int) : super() {
+        initializeComponent(editor, x, y)
+    }
+
+    // 新构造函数，基于光标位置
+    constructor(editor: Editor, useCaretPosition: Boolean = true) : super() {
+        val caretPosition = getCaretPositionInEditor(editor)
+        initializeComponent(editor, caretPosition.x, caretPosition.y)
+    }
+
+    private fun getCaretPositionInEditor(editor: Editor): Point {
+        return try {
+            // 获取当前光标位置
+            val caretModel = editor.caretModel
+            val logicalPosition = caretModel.logicalPosition
+
+            // 获取光标所在行的Y坐标
+            val caretPoint = editor.visualPositionToXY(editor.logicalToVisualPosition(logicalPosition))
+            val caretY = caretPoint.y
+
+            // 获取编辑器可视区域
+            val scrollingModel = editor.scrollingModel
+            val visibleArea = scrollingModel.visibleArea
+
+            // 计算X坐标：可视区域的最右侧，留出一些边距
+            val margin = 20 // 右侧边距
+            val rightmostX = visibleArea.x + visibleArea.width - margin
+
+            // 确保Y坐标在可视范围内
+            val adjustedY = caretY.coerceIn(
+                visibleArea.y + margin,
+                visibleArea.y + visibleArea.height - margin
+            )
+
+            Point(rightmostX, adjustedY)
+        } catch (e: Exception) {
+            // 如果出现异常，返回可视区域右侧中心位置
+            val scrollingModel = editor.scrollingModel
+            val visibleArea = scrollingModel.visibleArea
+            val margin = 20
+            Point(
+                visibleArea.x + visibleArea.width - margin,
+                visibleArea.y + visibleArea.height / 2
+            )
+        }
+    }
+
+    private fun initializeComponent(editor: Editor, x: Int, y: Int) {
         layout = null // Remove the FlowLayout
 
         // Make the background transparent
@@ -103,7 +150,6 @@ class ToolTipComponent(editor: Editor, x: Int, y: Int) :
             editor.contentComponent.remove(this)
         }
 
-
         // Calculate button widths
         val addToChatWidth = addToChatButton.preferredSize.width + (2 * buttonHorizontalPadding)
         val editWidth = editButton.preferredSize.width + (2 * buttonHorizontalPadding)
@@ -123,8 +169,39 @@ class ToolTipComponent(editor: Editor, x: Int, y: Int) :
         val totalWidth = addToChatWidth + editWidth + buttonMargin + (2 * componentHorizontalPadding)
         val totalHeight = buttonHeight + (2 * buttonVerticalPadding)
 
-        // Center the component on the provided y coordinate
-        val yPosition = y - (totalHeight / 2)
-        setBounds(x, yPosition, totalWidth, totalHeight)
+        // 调整位置，确保工具提示不会超出编辑器边界
+        val adjustedPosition = adjustPositionToFitInEditor(editor, x, y, totalWidth, totalHeight)
+        setBounds(adjustedPosition.x, adjustedPosition.y, totalWidth, totalHeight)
+    }
+
+    private fun adjustPositionToFitInEditor(editor: Editor, x: Int, y: Int, width: Int, height: Int): Point {
+        // 获取编辑器可视区域
+        val visibleArea = editor.scrollingModel.visibleArea
+        val margin = 10 // 边距
+
+        var adjustedX = x
+        var adjustedY = y
+
+        // 确保不超出可视区域右边界
+        if (adjustedX + width > visibleArea.x + visibleArea.width - margin) {
+            adjustedX = visibleArea.x + visibleArea.width - width - margin
+        }
+
+        // 确保不超出可视区域左边界
+        if (adjustedX < visibleArea.x + margin) {
+            adjustedX = visibleArea.x + margin
+        }
+
+        // 确保不超出可视区域下边界
+        if (adjustedY + height > visibleArea.y + visibleArea.height - margin) {
+            adjustedY = visibleArea.y + visibleArea.height - height - margin
+        }
+
+        // 确保不超出可视区域上边界
+        if (adjustedY < visibleArea.y + margin) {
+            adjustedY = visibleArea.y + margin
+        }
+
+        return Point(adjustedX, adjustedY)
     }
 }
