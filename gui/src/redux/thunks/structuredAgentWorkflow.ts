@@ -147,6 +147,34 @@ ${requirementFinal}
 3. 只管设计工作，不要完成代码编写这类开发工作
 4. 设计计划之前先调用'agent_development'工具查看项目开发可能用到的工具类和开发规范
 
+设计内容模板如下：
+详细实施计划
+一、开发任务列表
+1.任务A
+完成xxxxxx
+2.任务B
+在xxx中实现xxxx
+二、各任务实施步骤与文件修改计划
+1.任务A
+  步骤：
+    1.xxxxxxx
+    2.xxxxxx
+  涉及文件
+    /pathto/a
+    /pathto/b
+2.任务B
+  步骤：
+    1.xxxxxx
+    2.xxxxxxxx
+  涉及文件
+    /pathto/c
+    xxxxxx文档
+    xxxxx相关文件
+三、注意事项与开发规范建议
+1.xxxxxxx
+2.xxxxxxxx
+
+
 回答完成后请输出以下固定的完整内容：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
