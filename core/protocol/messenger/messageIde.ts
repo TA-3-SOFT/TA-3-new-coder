@@ -43,6 +43,14 @@ export class MessageIde implements IDE {
   async gotoDefinition(location: Location): Promise<RangeInFile[]> {
     return this.request("gotoDefinition", { location });
   }
+
+  // async createCheckpoint(label: string): Promise<string> {
+  //   return this.request("createCheckpoint", { label });
+  // }
+  async rollbackToCheckpoint(checkpointId: string): Promise<void> {
+    return this.request("rollbackToCheckpoint", { checkpointId });
+  }
+
   onDidChangeActiveTextEditor(callback: (fileUri: string) => void): void {
     this.on("didChangeActiveTextEditor", (data) => callback(data.filepath));
   }

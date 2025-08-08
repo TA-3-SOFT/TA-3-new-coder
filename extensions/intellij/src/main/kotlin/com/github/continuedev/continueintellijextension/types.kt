@@ -196,6 +196,10 @@ interface IDE {
 
     // Callbacks
     fun onDidChangeActiveTextEditor(callback: (filepath: String) -> Unit)
+
+//    suspend fun createCheckpoint(label: String): String
+
+    suspend fun rollbackToCheckpoint(checkpointId: String)
 }
 
 data class Message(

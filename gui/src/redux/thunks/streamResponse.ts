@@ -138,6 +138,7 @@ export const streamResponseThunk = createAsyncThunk<
                 role: "user",
                 content,
                 id: uuidv4(),
+                timestamp: Date.now(),
               },
               contextItems: selectedContextItems,
             },

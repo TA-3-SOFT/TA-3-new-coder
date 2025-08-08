@@ -98,6 +98,10 @@ export type ToIdeFromWebviewOrCoreProtocol = {
   ];
   logoutOfControlPlane: [undefined, void];
   reportError: [any, void];
+
+  // Checkpoint相关方法
+  // createCheckpoint: [{ label: string }, string]; // 返回checkpoint ID
+  rollbackToCheckpoint: [{ checkpointId: string }, void];
   closeSidebar: [undefined, void];
 };
 

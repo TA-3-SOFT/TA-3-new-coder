@@ -74,7 +74,7 @@ class ContinueAuthService {
             val client = OkHttpClient()
             val request = Request.Builder()
 //                .url("http://192.168.20.195:8081/lowcodeback/aiContinueLogin")
-                .url("https://lc.yinhaiyun.com/lowcodeback-test/aiContinueLogin")
+                .url("https://lc.yinhaiyun.com/lowcodeback-dev/aiContinueLogin")
                 .header("Authorization", uid)
                 .post("".toRequestBody())
                 .build()

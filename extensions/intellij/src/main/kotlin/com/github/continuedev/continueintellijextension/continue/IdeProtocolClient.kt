@@ -468,6 +468,24 @@ class IdeProtocolClient(
                         respond(null)
                     }
 
+//                    "createCheckpoint" -> {
+//                        val params = Gson().fromJson(
+//                            dataElement.toString(),
+//                            CreateCheckpointParams::class.java
+//                        )
+//                        val checkpointId = ide.createCheckpoint(params.label)
+//                        respond(checkpointId)
+//                    }
+
+                    "rollbackToCheckpoint" -> {
+                        val params = Gson().fromJson(
+                            dataElement.toString(),
+                            RollbackToCheckpointParams::class.java
+                        )
+                        ide.rollbackToCheckpoint(params.checkpointId)
+                        respond(null)
+                    }
+
                     else -> {
                         println("Unknown message type: $messageType")
                     }

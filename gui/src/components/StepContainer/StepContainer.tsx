@@ -1,6 +1,6 @@
 import { ChatHistoryItem } from "core";
 import { renderChatMessage, stripImages } from "core/util/messageContent";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import styled from "styled-components";
 import { vscBackground } from "..";
@@ -9,6 +9,7 @@ import { selectUIConfig } from "../../redux/slices/configSlice";
 import { deleteMessage, editMessage } from "../../redux/slices/sessionSlice";
 import { getFontSize } from "../../util";
 import { varWithFallback } from "../../styles/theme";
+import { IdeMessengerContext } from "../../context/IdeMessenger";
 import StyledMarkdownPreview from "../StyledMarkdownPreview";
 import Reasoning from "./Reasoning";
 import ResponseActions from "./ResponseActions";
@@ -123,10 +124,12 @@ const EditButton = styled.button<{ variant: "primary" | "secondary" }>`
 
 export default function StepContainer(props: StepContainerProps) {
   const dispatch = useDispatch();
+  const ideMessenger = useContext(IdeMessengerContext);
   const [isTruncated, setIsTruncated] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState("");
   const isStreaming = useAppSelector((state) => state.session.isStreaming);
+  const history = useAppSelector((state) => state.session.history);
   const historyItemAfterThis = useAppSelector(
     (state) => state.session.history[props.index + 1],
   );
@@ -172,6 +175,35 @@ export default function StepContainer(props: StepContainerProps) {
       },
       "*",
     );
+  }
+  function findLastUserTimestamp(): number | undefined {
+    // 从当前索引位置向前查找最近的一个role为user的timestamp
+    for (let i = props.index - 1; i >= 0; i--) {
+      const historyItem = history[i];
+      if (
+        historyItem?.message?.role === "user" &&
+        historyItem.message.timestamp
+      ) {
+        return historyItem.message.timestamp;
+      }
+    }
+    return undefined;
+  }
+
+  async function onRollBack() {
+    const lastUserTimestamp = findLastUserTimestamp();
+    if (lastUserTimestamp) {
+      try {
+        // 使用 ideMessenger.request 发送回滚请求
+        await ideMessenger.request("rollbackToCheckpoint", {
+          checkpointId: lastUserTimestamp.toString(),
+        });
+      } catch (error) {
+        console.error("Rollback failed:", error);
+      }
+    } else {
+      console.warn("No user timestamp found for rollback");
+    }
   }
 
   function onEdit() {
@@ -243,6 +275,7 @@ export default function StepContainer(props: StepContainerProps) {
                   ? onEdit
                   : undefined
               }
+              onRollback={onRollBack}
               index={props.index}
               item={props.item}
             />

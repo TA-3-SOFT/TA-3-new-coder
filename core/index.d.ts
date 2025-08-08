@@ -342,11 +342,13 @@ export interface ToolResultChatMessage {
   role: "tool";
   content: string;
   toolCallId: string;
+  timestamp?: number;
 }
 
 export interface UserChatMessage {
   role: "user";
   content: MessageContent;
+  timestamp?: number;
 }
 
 export interface ThinkingChatMessage {
@@ -355,17 +357,20 @@ export interface ThinkingChatMessage {
   signature?: string;
   redactedThinking?: string;
   toolCalls?: ToolCallDelta[];
+  timestamp?: number;
 }
 
 export interface AssistantChatMessage {
   role: "assistant";
   content: MessageContent;
   toolCalls?: ToolCallDelta[];
+  timestamp?: number;
 }
 
 export interface SystemChatMessage {
   role: "system";
   content: string;
+  timestamp?: number;
 }
 
 export type ChatMessage =
@@ -810,6 +815,10 @@ export interface IDE {
 
   // LSP
   gotoDefinition(location: Location): Promise<RangeInFile[]>;
+
+  // Checkpoint
+  // createCheckpoint(label: string): Promise<string>;
+  rollbackToCheckpoint(checkpointId: string): Promise<void>;
 
   // Callbacks
   onDidChangeActiveTextEditor(callback: (fileUri: string) => void): void;

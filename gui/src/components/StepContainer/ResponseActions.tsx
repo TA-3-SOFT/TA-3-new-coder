@@ -2,6 +2,7 @@ import {
   BarsArrowDownIcon,
   PencilIcon,
   TrashIcon,
+  ArrowUturnLeftIcon,
 } from "@heroicons/react/24/outline";
 import { ChatHistoryItem } from "core";
 import { renderChatMessage } from "core/util/messageContent";
@@ -17,6 +18,7 @@ export interface ResponseActionsProps {
   index: number;
   onDelete: () => void;
   onEdit?: () => void;
+  onRollback: () => void;
   item: ChatHistoryItem;
 }
 
@@ -27,6 +29,7 @@ export default function ResponseActions({
   isTruncated,
   onDelete,
   onEdit,
+  onRollback,
 }: ResponseActionsProps) {
   return (
     <div className="mx-2 flex cursor-default items-center justify-end space-x-1 bg-transparent pb-0 text-xs text-gray-400">
@@ -80,6 +83,15 @@ export default function ResponseActions({
           <BarsArrowDownIcon className="h-3.5 w-3.5 text-gray-500" />
         </HeaderButtonWithToolTip>
       )}*/}
+
+      <HeaderButtonWithToolTip
+        testId={`rollback-button-${index}`}
+        text="回滚"
+        tabIndex={-1}
+        onClick={onRollback}
+      >
+        <ArrowUturnLeftIcon className="h-3.5 w-3.5 text-gray-500" />
+      </HeaderButtonWithToolTip>
 
       <HeaderButtonWithToolTip
         testId={`delete-button-${index}`}

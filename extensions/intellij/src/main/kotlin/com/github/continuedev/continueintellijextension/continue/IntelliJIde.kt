@@ -1,16 +1,17 @@
 package com.github.continuedev.continueintellijextension.`continue`
 
 import com.github.continuedev.continueintellijextension.*
-import com.github.continuedev.continueintellijextension.constants.getContinueGlobalPath
 import com.github.continuedev.continueintellijextension.constants.ContinueConstants
-import com.github.continuedev.continueintellijextension.`continue`.GitService
+import com.github.continuedev.continueintellijextension.constants.getContinueGlobalPath
 import com.github.continuedev.continueintellijextension.services.ContinueExtensionSettings
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService
 import com.github.continuedev.continueintellijextension.utils.*
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
-import com.intellij.ide.plugins.PluginManager
+import com.intellij.history.LocalHistoryException
+import com.intellij.history.integration.LocalHistoryImpl
+import com.intellij.history.integration.ui.models.DirectoryHistoryDialogModel
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.notification.NotificationAction
@@ -27,6 +28,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.util.IconLoader
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.testFramework.LightVirtualFile
@@ -39,7 +41,6 @@ import java.io.FileInputStream
 import java.io.InputStreamReader
 import java.net.URI
 import java.nio.charset.Charset
-import java.nio.file.Paths
 
 class IntelliJIDE(
     private val project: Project,
@@ -54,7 +55,7 @@ class IntelliJIDE(
     init {
         try {
             val os = getOS()
-            
+
             if (os == OS.LINUX || os == OS.MAC) {
                 val file = File(ripgrep)
                 if (!file.canExecute()) {
@@ -348,13 +349,13 @@ class IntelliJIDE(
                     "--ignore-file",
                     ".gitignore",
                 )
-    
+
                 command.setWorkDirectory(project.basePath)
                 val results = ExecUtil.execAndGetOutput(command).stdout
                 return results.split("\n")
             } catch (e: Exception) {
                 showToast(
-                    ToastType.ERROR, 
+                    ToastType.ERROR,
                     "Error executing ripgrep: ${e.message}"
                 )
                 return emptyList()
@@ -381,12 +382,12 @@ class IntelliJIDE(
                     query,
                     "."
                 )
-    
+
                 command.setWorkDirectory(project.basePath)
                 return ExecUtil.execAndGetOutput(command).stdout
             } catch (e: Exception) {
                 showToast(
-                    ToastType.ERROR, 
+                    ToastType.ERROR,
                     "Error executing ripgrep: ${e.message}"
                 )
                 return "Error: Unable to execute ripgrep command."
@@ -620,6 +621,64 @@ class IntelliJIDE(
         }
 
         return listOfNotNull(project.guessProjectDir()?.toUriOrNull()).toTypedArray()
+    }
+
+    override suspend fun rollbackToCheckpoint(checkpointId: String) {
+        return withContext(Dispatchers.IO) {
+            try {
+                ApplicationManager.getApplication().invokeAndWait {
+                    try {
+                        val targetTimestamp = checkpointId.toLongOrNull()
+                        if (targetTimestamp == null) {
+                            throw IllegalArgumentException("Invalid timestamp format: $checkpointId")
+                        }
+
+                        val localHistoryImpl = LocalHistoryImpl.getInstanceImpl()
+                        val projectDir: VirtualFile = project.guessProjectDir()!!
+                        val dirHistoryModel = DirectoryHistoryDialogModel(
+                            project,
+                            localHistoryImpl.gateway,
+                            localHistoryImpl.facade,
+                            projectDir
+                        )
+
+                        // 使用 LocalHistoryUtil 查找离目标时间戳最近且在其之前的版本
+                        val targetRevisionIndex = LocalHistoryUtil.findClosestRevisionBeforeTimestamp(
+                            dirHistoryModel,
+                            targetTimestamp
+                        )
+
+                        if (targetRevisionIndex < 0) {
+                            throw LocalHistoryException("No suitable revision found before timestamp: $targetTimestamp")
+                        }
+
+                        val leftRev = targetRevisionIndex
+
+                        if (leftRev < 0) {
+                            throw LocalHistoryException("Couldn't find label revision")
+                        } else if (leftRev != 0) {
+                            try {
+                                dirHistoryModel.selectRevisions(-1, leftRev - 1)
+                                dirHistoryModel.createReverter().revert()
+                            } catch (e: java.lang.Exception) {
+                                throw LocalHistoryException(
+                                    String.format(
+                                        "Couldn't revert %s to local history label.",
+                                        projectDir.getName()
+                                    ), e
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        throw e
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw RuntimeException("Failed to rollback to checkpoint: ${e.message}")
+            }
+        }
     }
 
 }
