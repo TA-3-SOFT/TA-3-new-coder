@@ -278,6 +278,7 @@ export default function StepContainer(props: StepContainerProps) {
               onRollback={onRollBack}
               index={props.index}
               item={props.item}
+              isLast={props.isLast}
             />
           )}
         </div>

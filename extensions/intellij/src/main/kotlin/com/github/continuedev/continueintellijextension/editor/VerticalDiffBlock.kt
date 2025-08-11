@@ -3,12 +3,14 @@ package com.github.continuedev.continueintellijextension.editor
 import com.github.continuedev.continueintellijextension.utils.getAltKeyLabel
 import com.github.continuedev.continueintellijextension.utils.getShiftKeyLabel
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.markup.HighlighterLayer
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.ui.JBColor
@@ -111,12 +113,17 @@ class VerticalDiffBlock(
         //  prior to undoing the diff changes, changing this order will break things
         clearEditorUI()
         revertDiff()
-
+        ApplicationManager.getApplication().invokeLater {
+            FileDocumentManager.getInstance().saveAllDocuments()
+        }
         onAcceptReject(this@VerticalDiffBlock, false)
     }
 
     fun handleAccept() {
         clearEditorUI()
+        ApplicationManager.getApplication().invokeLater {
+            FileDocumentManager.getInstance().saveAllDocuments()
+        }
         onAcceptReject(this@VerticalDiffBlock, true)
     }
 

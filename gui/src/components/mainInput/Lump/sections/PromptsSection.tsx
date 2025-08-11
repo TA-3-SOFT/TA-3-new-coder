@@ -71,10 +71,10 @@ function PromptRow({
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <PencilIcon
+        {/*        <PencilIcon
           className="h-3 w-3 cursor-pointer text-gray-400 hover:brightness-125"
           onClick={handleEditClick}
-        />
+        />*/}
         <div
           onClick={handleBookmarkClick}
           className="cursor-pointer pt-0.5 text-gray-400 hover:brightness-125"

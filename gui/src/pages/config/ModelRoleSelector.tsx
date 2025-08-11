@@ -144,12 +144,12 @@ const ModelRoleSelector = ({
                             </span>
                           </div>
                           <div className="flex flex-shrink-0 flex-row items-center gap-1">
-                            {hoveredIdx === idx && (
+                            {/*                           {hoveredIdx === idx && (
                               <Cog6ToothIcon
                                 className="h-3 w-3 flex-shrink-0"
                                 onClick={onClickGear}
                               />
-                            )}
+                            )}*/}
                             {option.title === selectedModel?.title && (
                               <CheckIcon className="h-3 w-3 flex-shrink-0" />
                             )}
