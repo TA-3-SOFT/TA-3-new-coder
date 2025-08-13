@@ -13,6 +13,7 @@ import { lsTool } from "./definitions/lsTool";
 import { projectAnalysisTool } from "./definitions/projectAnalysis";
 import { readCurrentlyOpenFileTool } from "./definitions/readCurrentlyOpenFile";
 import { readFileTool } from "./definitions/readFile";
+import { readFileRangeTool } from "./definitions/readFileRange";
 import { requestRuleTool } from "./definitions/requestRule";
 import { runTerminalCommandTool } from "./definitions/runTerminalCommand";
 import { searchWebTool } from "./definitions/searchWeb";
@@ -20,6 +21,7 @@ import { viewDiffTool } from "./definitions/viewDiff";
 
 export const baseToolDefinitions = [
   readFileTool,
+  readFileRangeTool,
   editFileTool,
   createNewFileTool,
   runTerminalCommandTool,

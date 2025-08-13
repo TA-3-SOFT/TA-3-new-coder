@@ -1,5 +1,6 @@
 export enum BuiltInToolNames {
   ReadFile = "builtin_read_file",
+  ReadFileRange = "builtin_read_file_range",
   EditExistingFile = "builtin_edit_existing_file",
   ReadCurrentlyOpenFile = "builtin_read_currently_open_file",
   CreateNewFile = "builtin_create_new_file",
