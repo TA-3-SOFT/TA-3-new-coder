@@ -1,5 +1,6 @@
 import { CheckIcon, PlayIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { ApplyState } from "core";
+import { useStat } from "../../../context/Stat";
 import { getMetaKeyLabel } from "../../../util";
 import Spinner from "../../gui/Spinner";
 import { ToolTip } from "../../gui/Tooltip";
@@ -16,8 +17,15 @@ interface ApplyActionsProps {
 }
 
 export function ApplyActions(props: ApplyActionsProps) {
+  const { postAllAccepted, } = useStat()
+
   function onClickReject() {
     props.onClickReject();
+  }
+
+  function onAccept () {
+    props.onClickAccept()
+    postAllAccepted()
   }
 
   // Show inferring position state first
@@ -60,7 +68,7 @@ export function ApplyActions(props: ApplyActionsProps) {
 
             <ToolbarButtonWithTooltip
               data-testid="codeblock-toolbar-accept"
-              onClick={props.onClickAccept}
+              onClick={onAccept}
               tooltipContent={`接受全部 (${getMetaKeyLabel()}⇧⏎)`}
             >
               <CheckIcon className="h-3.5 w-3.5 text-green-600 hover:brightness-125" />
@@ -86,11 +94,11 @@ export function ApplyActions(props: ApplyActionsProps) {
           >
             <div className="text-lightgray flex items-center gap-1">
               <PlayIcon className="h-3.5 w-3.5" />
-              <span className="xs:inline hidden">Apply</span>
+              <span className="xs:inline hidden">应用</span>
             </div>
           </button>
           <ToolTip id="codeblock-apply-code-button-tooltip" place="top">
-            Apply Code
+            应用代码
           </ToolTip>
         </HoverItem>
       );
