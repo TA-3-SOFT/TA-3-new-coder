@@ -1,11 +1,13 @@
-import { useWebviewListener } from "../hooks/useWebviewListener"
-import { useAppSelector } from "../redux/hooks"
-import { useAuth } from "./Auth"
+import { useWebviewListener } from "../hooks/useWebviewListener";
+import { useAppSelector } from "../redux/hooks";
+import { useAuth } from "./Auth";
 
 export function useStat () {
   const selectedOrgId = useAppSelector(
     (state) => state.profiles.selectedOrganizationId,
   )
+  const mode = useAppSelector((store) => store.session.mode);
+
   const auth: any = useAuth()
 
   useWebviewListener("incrementModifiedCount" as any, async (data) => {
@@ -25,7 +27,11 @@ export function useStat () {
   }
 
   function postFileModified (): void {
-    fetch('http://localhost:8081/lowcodeback/aiStat/incrementModifiedCount?productId=' + selectedOrgId, {
+    const params = new URLSearchParams({
+      productId: selectedOrgId ?? '',
+      mode,
+    })
+    fetch('http://localhost:8081/lowcodeback/aiStat/incrementModifiedCount?' + params.toString(), {
       method: 'POST',
       headers,
       mode: 'cors',
@@ -33,7 +39,11 @@ export function useStat () {
   }
 
   function postAllAccepted (): void {
-    fetch('http://localhost:8081/lowcodeback/aiStat/incrementAcceptedCount?productId=' + selectedOrgId, {
+    const params = new URLSearchParams({
+      productId: selectedOrgId ?? '',
+      mode,
+    })
+    fetch('http://localhost:8081/lowcodeback/aiStat/incrementAcceptedCount?' + params.toString(), {
       method: 'POST',
       headers,
       mode: 'cors',

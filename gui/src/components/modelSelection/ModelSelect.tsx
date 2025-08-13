@@ -88,12 +88,12 @@ function ModelOption({
           </div>
           <div className="flex flex-shrink-0 flex-row items-center gap-1">
             {isSelected && <CheckIcon className="h-3 w-3 flex-shrink-0" />}
-            {hovered && (
+            {/*{hovered && (
               <Cog6ToothIcon
                 className="h-3 w-3 flex-shrink-0"
                 onClick={onClickGear}
               />
-            )}
+            )}*/}
           </div>
         </div>
       </div>

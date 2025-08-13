@@ -46,7 +46,8 @@ const ErrorPage: React.FC = () => {
           localStorage.removeItem("inputHistory_chat");
           // localStorage.removeItem("showTutorialCard");
           // localStorage.removeItem("onboardingStatus");
-          navigate("/");
+          // navigate("/config");
+          window.location.reload();
         }}
       >
         {initialLoad ? (
