@@ -261,8 +261,8 @@ function ParallelListeners() {
           const filepath = state.filepath || "unknown file";
           const output: ContextItem = {
             name: "Edit tool output",
-            content: `文件 ${filepath} 修改完成. 当前文件的最新内容（带行号）如下:\n\n${fileContent}`,
-            // content: fileContent,
+            // content: `文件 ${filepath} 修改完成. 当前文件的最新内容（带行号）如下:\n\n${fileContent}`,
+            content: fileContent,
             description: `Edit completed for ${filepath}`,
           };
 

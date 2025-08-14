@@ -189,6 +189,15 @@ export const streamResponseThunk = createAsyncThunk<
           ) {
             historyForMessages = updatedHistory.slice(stepHistoryStartIndex);
           }
+
+          // 获取当前步骤的动态系统消息
+          if (workflow.isActive && !dynamicSystemMessage) {
+            const { getCurrentStepInfo } = await import("./structuredAgentWorkflow");
+            const stepConfig = getCurrentStepInfo(workflow.currentStep);
+            if (stepConfig) {
+              dynamicSystemMessage = stepConfig.systemPrompt();
+            }
+          }
         }
 
         const messages = constructMessages(

@@ -50,13 +50,17 @@ class DiffStreamHandler(
         initUnfinishedRangeHighlights()
     }
 
-    private fun sendUpdate(status: ApplyStateStatus) {
+    private fun sendUpdate(status: ApplyStateStatus, isRejected: Boolean? = null) {
         if (streamId == null) {
             return
         }
 
         val editorUtils = EditorUtils(editor)
-        val currentFileContent = editorUtils.readFileWithLineNumbers()
+        var currentFileContent = editorUtils.readFileWithLineNumbers()
+
+        if (isRejected == true){
+            currentFileContent = "用户放弃了该文件的修改，请不要对该文件再进行修改。"
+        }
 
         // Define a single payload and use it for sending
         val payload = ApplyState(
@@ -90,7 +94,7 @@ class DiffStreamHandler(
             undoChanges()
             // We have to manually call `handleClosedState`, but above,
             // this is done by invoking the button handlers
-            setClosed()
+            setClosed(true)
         }
     }
 
@@ -337,8 +341,8 @@ class DiffStreamHandler(
         }
     }
 
-    private fun setClosed() {
-        sendUpdate(ApplyStateStatus.CLOSED)
+    private fun setClosed(isRejected: Boolean? = null) {
+        sendUpdate(ApplyStateStatus.CLOSED, isRejected)
         resetState()
     }
 }
