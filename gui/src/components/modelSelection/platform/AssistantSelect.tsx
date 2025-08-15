@@ -123,7 +123,7 @@ const AssistantSelectOption = ({
                 }}
               />
             )}
-            {isLocalProfile(profile) ? (
+            {/*{isLocalProfile(profile) ? (
               <Cog6ToothIcon
                 className="text-description h-3 w-3 flex-shrink-0 cursor-pointer"
                 onClick={(e) => {
@@ -141,7 +141,7 @@ const AssistantSelectOption = ({
                   handleConfigure();
                 }}
               />
-            )}
+            )}*/}
           </div>
         </div>
       </div>
@@ -290,7 +290,7 @@ export default function AssistantSelect() {
         <Transition>
           <ListboxOptions className="pb-0">
             <div className="flex gap-1.5 px-2.5 py-1">
-              <span>Assistants</span>
+              <span>刷新智能体配置</span>
               <div
                 className="flex cursor-pointer flex-row items-center gap-1 hover:brightness-125"
                 onClick={async (e) => {
@@ -333,7 +333,7 @@ export default function AssistantSelect() {
                 }}
               />
 
-              <div className="flex flex-row items-center">
+              {/*<div className="flex flex-row items-center">
                 <ListboxOption
                   className="w-full"
                   value={"new-assistant"}
@@ -350,7 +350,7 @@ export default function AssistantSelect() {
                     New Assistant
                   </div>
                 </ListboxOption>
-              </div>
+              </div>*/}
 
               <div
                 className="my-0 h-[0.5px]"
@@ -371,11 +371,9 @@ export default function AssistantSelect() {
                     fontSize: tinyFont - 1,
                   }}
                 >
-                  <code>{getMetaKeyLabel()} ⇧ '</code> to toggle
+                  <code>{getMetaKeyLabel()} ⇧ '</code> 切换
                 </span>
-                <div
-                  className="ml-auto flex items-center gap-1"
-                >
+                <div className="ml-auto flex items-center gap-1">
                   {currentOrg?.iconUrl ? (
                     <img
                       src={currentOrg.iconUrl}
@@ -389,7 +387,7 @@ export default function AssistantSelect() {
                       fontSize: tinyFont - 1,
                     }}
                   >
-                    {currentOrg?.name ?? '(未知)'}
+                    {currentOrg?.name ?? "(未知)"}
                   </span>
                 </div>
               </div>
