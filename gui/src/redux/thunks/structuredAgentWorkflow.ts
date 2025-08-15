@@ -4,7 +4,6 @@ import {
   ContextItem,
   StructuredAgentStepType,
   StructuredAgentWorkflowState,
-  ChatMessage,
 } from "core";
 import { BuiltInToolNames } from "core/tools/builtIn";
 import { ThunkApiType } from "../store";
@@ -16,13 +15,9 @@ import {
   startStructuredAgentWorkflow,
   stopStructuredAgentWorkflow,
   updateStructuredAgentStep,
-  updateHistoryItemAtIndex,
-  streamUpdate,
 } from "../slices/sessionSlice";
 import { streamResponseThunk } from "./streamResponse";
 import { findToolCall } from "../util";
-import { history } from "@headlessui/react/dist/utils/active-element-history";
-import { v4 as uuidv4 } from "uuid";
 
 let requirementFinal: string | null = null;
 let projectMemory: string | null = null;
@@ -83,7 +78,7 @@ ${projectMemory}
 </requirement_sub>
 </requirement_analysis>
 
-
+注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。
 在您的回复结尾使用以下固定格式：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
@@ -104,6 +99,7 @@ ${requirementFinal}
 1. 使用project_analysis工具来分析当前Maven项目的结构，禁止传递任何参数给该工具（都使用默认的）。
 2. 调用project_analysis工具后，直接把project_analysis工具的返回结果作为您的回答，不要添加任何其它内容。
 
+注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。
 回答完成后请输出以下固定的完整内容：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
@@ -126,6 +122,7 @@ ${requirementFinal}
 3. 依次调用完code_chunk_analysis工具后，如果code_chunk_analysis调用成功，根据调用结果做出简单总结回答
 4. 只管设计工作，不要完成代码编写这类开发工作
 
+注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。
 回答完成后请输出以下固定的完整内容：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
@@ -175,7 +172,7 @@ ${requirementFinal}
 1.xxxxxxx
 2.xxxxxxxx
 
-
+注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。
 回答完成后请输出以下固定的完整内容：
 ---
 ***【用户操作】***：✅ **步骤完成，等待您的确认**\n
@@ -354,13 +351,15 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
 
     // 第一次进入制定计划，添加 code_chunk_analysis 的结果
     if (step === "plan-creation" && workflow.currentStep !== "plan-creation") {
+      // 获取实施计划和代码分析结果
+      const codeAnalysisResp = getSessionHistoryLastContent(
+        state.session.history,
+      );
       const codeChunkAnalysisResult = getProjectToolResult(
         state.session.history,
         "code_chunk_analysis",
       );
-      if (codeChunkAnalysisResult) {
-        promptPreamble += `## 代码分析的结果：\n${codeChunkAnalysisResult}\n\n`;
-      }
+      promptPreamble += `## 代码分析的结果：\n${codeAnalysisResp}\n\n ## 相关的代码片段如下：\n${codeChunkAnalysisResult}\n\n`;
     }
 
     // 第一次进入执行计划，调用记忆，添加计划结果和代码分析结果
@@ -715,6 +714,20 @@ export const getSessionHistoryLastContent = (
   history: ChatHistoryItemWithMessageId[],
 ): string => {
   let result = history[history.length - 1].message.content.toString();
+  if (
+    result &&
+    result.includes("<requirement_analysis>") &&
+    result.includes("</requirement_analysis>")
+  ) {
+    const startIndex = result.indexOf("<requirement_analysis>");
+    const endIndex = result.indexOf("</requirement_analysis>");
+    if (endIndex > startIndex) {
+      result = result.substring(
+        startIndex,
+        endIndex + "</requirement_analysis>".length,
+      );
+    }
+  }
   if (result && result.includes("***【用户操作】***")) {
     const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
     result = result.substring(0, lastSeparatorIndex).trim();

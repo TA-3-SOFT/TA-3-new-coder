@@ -9,6 +9,21 @@ export const editToolImpl: ClientToolImpl = async (
   if (!extras.streamId) {
     throw new Error("Invalid apply state");
   }
+
+  // 参数判空逻辑
+  if (!args.filepath) {
+    throw new Error("filepath is required");
+  }
+  if (!args.changes) {
+    throw new Error("changes is required");
+  }
+  if (args.startLine === undefined || args.startLine === null) {
+    throw new Error("startLine is required");
+  }
+  if (args.endLine === undefined || args.endLine === null) {
+    throw new Error("endLine is required");
+  }
+
   const firstUriMatch = await resolveRelativePathInDir(
     args.filepath,
     extras.ideMessenger.ide,

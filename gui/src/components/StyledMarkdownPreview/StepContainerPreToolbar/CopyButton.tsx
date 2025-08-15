@@ -25,7 +25,7 @@ export function CopyButton({ text }: CopyButtonProps) {
         </div>
       </div>
       <ToolTip id="codeblock-copy-button-tooltip" place="top">
-        Copy Code
+        复制代码
       </ToolTip>
     </HoverItem>
   );

@@ -24,7 +24,7 @@ export function InsertButton({ onInsert }: InsertButtonProps) {
         </div>
       </div>
       <ToolTip id="codeblock-insert-button-tooltip" place="top">
-        Insert Code
+        插入代码
       </ToolTip>
     </HoverItem>
   );
