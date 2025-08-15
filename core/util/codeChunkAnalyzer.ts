@@ -26,6 +26,14 @@ export interface RelevanceScore {
   score: number;
 }
 
+// 新增：合并的评分和总结结果
+export interface ScoreAndSummary {
+  file: string;
+  start_line: number;
+  score: number;
+  summary: string;
+}
+
 export interface ModuleFileMap {
   [moduleName: string]: string[];
 }
@@ -37,10 +45,25 @@ export interface SnippetFilterEvaluation {
   reason?: string;
 }
 
+export interface CodeSummary {
+  file: string;
+  start_line: number;
+  summary: string;
+}
+
+export interface ModuleSummary {
+  module: string;
+  summary: string;
+  chunk_count: number;
+}
+
 // Tool 调用结果存储
 interface ToolCallResults {
-  relevanceScores?: RelevanceScore[] | undefined;
-  filterResults?: SnippetFilterEvaluation[] | undefined;
+  relevanceScores?: RelevanceScore[];
+  filterResults?: SnippetFilterEvaluation[];
+  codeSummaries?: CodeSummary[];
+  moduleSummaries?: ModuleSummary[];
+  scoreAndSummaries?: ScoreAndSummary[]; // 新增：合并的评分和总结结果
 }
 
 /**
@@ -50,10 +73,6 @@ class ConcurrencyManager {
   private maxConcurrency: number;
   private currentConcurrency = 0;
   private queue: Array<() => Promise<any>> = [];
-  private avgResponseTime = 0;
-  private errorCount = 0;
-  private totalRequests = 0;
-  private responseTimeSum = 0;
 
   constructor(maxConcurrency: number = 4) {
     this.maxConcurrency = maxConcurrency;
@@ -63,12 +82,9 @@ class ConcurrencyManager {
     return new Promise((resolve, reject) => {
       this.queue.push(async () => {
         try {
-          const startTime = Date.now();
           const result = await task();
-          this.updateMetrics(Date.now() - startTime, false);
           resolve(result);
         } catch (error) {
-          this.updateMetrics(0, true);
           reject(error);
         }
       });
@@ -91,47 +107,10 @@ class ConcurrencyManager {
       await task();
     } finally {
       this.currentConcurrency--;
-      // 根据性能动态调整延迟
-      const delay = this.calculateDelay();
-      if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
+      // 基础延迟
+      await new Promise((resolve) => setTimeout(resolve, 200));
       this.processQueue();
     }
-  }
-
-  private updateMetrics(responseTime: number, isError: boolean) {
-    this.totalRequests++;
-    if (isError) {
-      this.errorCount++;
-    } else {
-      this.responseTimeSum += responseTime;
-      this.avgResponseTime =
-        this.responseTimeSum / (this.totalRequests - this.errorCount);
-    }
-  }
-
-  private calculateDelay(): number {
-    const errorRate = this.errorCount / this.totalRequests;
-
-    // 根据错误率和响应时间计算延迟
-    if (errorRate > 0.3) return 3000; // 错误率高时增加延迟
-    if (errorRate > 0.1) return 1500; // 错误率中等时适度延迟
-    if (this.avgResponseTime > 15000) return 1000; // 响应很慢时增加延迟
-    if (this.avgResponseTime > 8000) return 500; // 响应慢时适度延迟
-    return 200; // 基础延迟
-  }
-
-  getStats() {
-    return {
-      totalRequests: this.totalRequests,
-      errorCount: this.errorCount,
-      errorRate:
-        this.totalRequests > 0 ? this.errorCount / this.totalRequests : 0,
-      avgResponseTime: this.avgResponseTime,
-      currentConcurrency: this.currentConcurrency,
-      queueLength: this.queue.length,
-    };
   }
 }
 
@@ -139,32 +118,74 @@ export class CodeSnippetAnalyzer {
   protected maxChunkSize: number;
   private systemPrompt: string;
   private filterSystemPrompt: string;
+  private summarySystemPrompt: string;
+  private moduleSummarySystemPrompt: string;
+  private scoreAndSummarySystemPrompt: string; // 新增：合并评分和总结的系统提示词
   private concurrencyManager: ConcurrencyManager;
+  private enableSummaries: boolean; // 控制是否启用总结功能
   private toolCallResults: ToolCallResults = {
     relevanceScores: undefined,
     filterResults: undefined,
+    codeSummaries: undefined,
+    moduleSummaries: undefined,
+    scoreAndSummaries: undefined,
   };
 
   // 添加高级检索索引
   private ftsIndex: FullTextSearchCodebaseIndex;
   private lanceDbIndex: LanceDbIndex | null = null;
 
+  // 关键词提取缓存
+  private keywordCache = new Map<
+    string,
+    { keywords: string[]; timestamp: number }
+  >();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
+
   constructor(
     protected ide: IDE,
     protected llm?: ILLM,
     maxChunkSize: number = 800,
     maxConcurrency: number = 4,
+    enableSummaries: boolean = false, // 默认关闭总结功能以节省token
   ) {
     this.maxChunkSize = maxChunkSize;
+    this.enableSummaries = enableSummaries;
     this.concurrencyManager = new ConcurrencyManager(maxConcurrency);
 
     // 设置 XML 格式的提示词
     this.systemPrompt = this.getSystemPrompt();
     this.filterSystemPrompt = this.getFilterSystemPrompt();
+    this.summarySystemPrompt = this.getSummarySystemPrompt();
+    this.moduleSummarySystemPrompt = this.getModuleSummarySystemPrompt();
+    this.scoreAndSummarySystemPrompt = this.getScoreAndSummarySystemPrompt(); // 新增
 
     // 初始化检索索引
     this.ftsIndex = new FullTextSearchCodebaseIndex();
     this.initLanceDb();
+
+    // 定期清理过期缓存
+    setInterval(() => this.cleanExpiredCache(), 60000); // 每分钟清理一次
+  }
+
+  /**
+   * 清理过期的缓存条目
+   */
+  private cleanExpiredCache(): void {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    const entries = Array.from(this.keywordCache.entries());
+    for (const [key, value] of entries) {
+      if (now - value.timestamp > this.CACHE_TTL) {
+        this.keywordCache.delete(key);
+        cleanedCount++;
+      }
+    }
+
+    if (cleanedCount > 0) {
+      console.log(`🧹 清理了 ${cleanedCount} 个过期的关键词缓存条目`);
+    }
   }
 
   /**
@@ -197,6 +218,8 @@ SCORING CRITERIA:
 - Relevant keywords/variables: Medium score
 - Related comments/documentation: Medium score
 - Generic code/imports only: Low score
+- Files with only import statements: Very low score (0-1)
+- Empty classes or methods without implementation: Very low score (0-1)
 
 OUTPUT FORMAT:
 You MUST respond with ONLY this exact XML format:
@@ -234,6 +257,8 @@ RELEVANCE CRITERIA:
 - Contains related configuration/constants: RELEVANT
 - Contains related comments/documentation: RELEVANT
 - Only imports/boilerplate/generic utilities: NOT RELEVANT
+- Files with only import statements: NOT RELEVANT
+- Empty classes or methods without implementation: NOT RELEVANT
 - Completely unrelated functionality: NOT RELEVANT
 
 OUTPUT FORMAT:
@@ -258,6 +283,523 @@ Example:
   }
 
   /**
+   * 获取代码总结系统提示词
+   */
+  private getSummarySystemPrompt(): string {
+    return `
+You are a senior code analysis expert. Provide concise summaries for code snippets.
+
+TASK: Generate brief, accurate summaries describing what each code snippet does.
+
+SUMMARY REQUIREMENTS:
+- Maximum 20 words per summary
+- Focus on the main functionality or purpose
+- Use technical terms appropriately
+- Be precise and specific
+- Avoid generic descriptions
+
+OUTPUT FORMAT:
+You MUST respond with ONLY this exact XML format:
+<summaries>
+<summary file="file_path" line="start_line" text="brief_description" />
+<summary file="file_path" line="start_line" text="brief_description" />
+</summaries>
+
+IMPORTANT RULES:
+1. Use forward slashes (/) in ALL file paths
+2. Include ALL code snippets in your response
+3. No additional text or explanations
+4. Ensure valid XML format
+5. Keep summaries under 20 words
+
+Example:
+<summaries>
+<summary file="src/main/java/Example.java" line="10" text="Implements user authentication with JWT tokens" />
+<summary file="src/main/java/Other.java" line="25" text="Validates input parameters and throws exceptions" />
+</summaries>
+        `;
+  }
+
+  /**
+   * 获取模块总结系统提示词
+   */
+  private getModuleSummarySystemPrompt(): string {
+    return `
+You are a senior software architect. Provide concise module-level summaries.
+
+TASK: Analyze all code summaries from a module and create a comprehensive module summary.
+
+MODULE SUMMARY REQUIREMENTS:
+- Maximum 50 words per module summary
+- Describe the overall purpose and functionality of the module
+- Highlight key components and their relationships
+- Use architectural terminology
+- Be precise and comprehensive
+
+OUTPUT FORMAT:
+You MUST respond with ONLY this exact XML format:
+<module_summaries>
+<module_summary name="module_name" text="comprehensive_module_description" chunks="chunk_count" />
+</module_summaries>
+
+IMPORTANT RULES:
+1. Include the exact module name provided
+2. No additional text or explanations
+3. Ensure valid XML format
+4. Keep summaries under 50 words
+5. Include the chunk count
+
+Example:
+<module_summaries>
+<module_summary name="user-service" text="Handles user authentication, authorization, and profile management with JWT tokens, role-based access control, and database persistence" chunks="15" />
+</module_summaries>
+        `;
+  }
+
+  /**
+   * 获取合并评分和总结的系统提示词
+   */
+  private getScoreAndSummarySystemPrompt(): string {
+    return `
+You are a senior code analysis expert. Analyze code snippets for relevance to user requirements AND provide concise summaries.
+
+TASK: For each code snippet, provide BOTH a relevance score (0-10) AND a brief summary.
+
+SCORING CRITERIA:
+- Relevant functionality/methods: High score (8-10)
+- Relevant configuration/constants: High score (7-9)
+- Relevant keywords/variables: Medium score (5-7)
+- Related comments/documentation: Medium score (4-6)
+- Generic code/imports only: Low score (1-3)
+- Files with only import statements: Very low score (0-1)
+- Empty classes or methods without implementation: Very low score (0-1)
+- Completely unrelated: Very low score (0-1)
+
+SUMMARY REQUIREMENTS:
+- Maximum 20 words per summary
+- Focus on the main functionality or purpose
+- Use technical terms appropriately
+- Be precise and specific
+- Avoid generic descriptions
+
+OUTPUT FORMAT:
+You MUST respond with ONLY this exact XML format:
+<score_summaries>
+<item file="file_path" line="start_line" score="score_value" summary="brief_description" />
+<item file="file_path" line="start_line" score="score_value" summary="brief_description" />
+</score_summaries>
+
+IMPORTANT RULES:
+1. Use forward slashes (/) in ALL file paths
+2. Include ALL code snippets in your response
+3. No additional text or explanations
+4. Ensure valid XML format
+5. Keep summaries under 20 words
+6. Score must be 0-10
+
+Example:
+<score_summaries>
+<item file="src/main/java/Example.java" line="10" score="8" summary="Implements user authentication with JWT tokens" />
+<item file="src/main/java/Other.java" line="25" score="3" summary="Generic utility class with helper methods" />
+</score_summaries>
+        `;
+  }
+
+  /**
+   * 启用或禁用代码总结功能
+   * @param enabled 是否启用总结功能
+   */
+  public setSummariesEnabled(enabled: boolean): void {
+    this.enableSummaries = enabled;
+    if (enabled) {
+      console.log("✅ 代码总结功能已启用（会消耗额外的token）");
+    } else {
+      console.log("⚠️ 代码总结功能已禁用（节省token消耗）");
+    }
+  }
+
+  /**
+   * 从 MessageContent 中提取文本内容
+   * @param content LLM 响应内容
+   * @returns 提取的文本字符串
+   */
+  private extractTextFromMessageContent(content: any): string {
+    if (typeof content === "string") {
+      return content.trim();
+    }
+
+    if (Array.isArray(content)) {
+      return content
+        .map((part) => (part.type === "text" ? part.text || "" : ""))
+        .join("")
+        .trim();
+    }
+
+    return "";
+  }
+
+  /**
+   * LLM 辅助关键词提取和转换（带缓存）
+   * @param userRequest 用户请求
+   * @returns 转换后的英文技术关键词
+   */
+  private async extractLLMKeywords(userRequest: string): Promise<string[]> {
+    // 生成缓存键（标准化用户请求）
+    const cacheKey = userRequest.trim().toLowerCase();
+
+    // 检查缓存
+    const cached = this.keywordCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      console.log(
+        `💾 缓存命中关键词: ${cached.keywords.join(", ")} (从"${userRequest}")`,
+      );
+      return cached.keywords;
+    }
+
+    if (!this.llm) {
+      console.log("⚠️ LLM 不可用，使用基础关键词提取");
+      const keywords = this.extractSmartKeywords(userRequest);
+
+      // 缓存结果
+      this.keywordCache.set(cacheKey, { keywords, timestamp: Date.now() });
+
+      return keywords;
+    }
+
+    try {
+      const prompt = `请分析以下用户请求，提取出相关的英文技术关键词，用于搜索Java代码。
+
+用户请求：${userRequest}
+
+请提取：
+1. 业务概念对应的英文类名/方法名（如：用户→User, 订单→Order）
+2. 技术概念的英文词汇（如：登录→login/authenticate, 验证→validate/verify）
+3. Java技术栈相关词汇（如：Service, Controller, Repository, Manager等）
+
+要求：
+- 只返回英文单词，用逗号分隔
+- 优先返回在Java代码中常见的词汇
+- 包含可能的类名、方法名、包名等
+- 最多返回10个关键词
+
+示例：
+用户请求：查找用户登录验证功能
+返回：User,Login,Authentication,Validate,Service,Controller,Auth,Security
+
+请直接返回关键词列表：`;
+
+      // 创建带超时的 AbortController
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, 8000); // 减少超时时间到8秒
+
+      const response = await this.llm.chat(
+        [{ role: "user", content: prompt }],
+        abortController.signal,
+        {
+          temperature: 0.1,
+          maxTokens: 150, // 减少token数量
+        },
+      );
+
+      clearTimeout(timeoutId);
+
+      // 提取文本内容
+      const content = this.extractTextFromMessageContent(response.content);
+
+      const keywords = content
+        .split(/[,，\s]+/)
+        .map((kw: string) => kw.trim().toLowerCase())
+        .filter((kw: string) => kw.length > 1 && /^[a-z]+$/i.test(kw))
+        .slice(0, 10);
+
+      // 缓存结果
+      this.keywordCache.set(cacheKey, { keywords, timestamp: Date.now() });
+
+      return keywords;
+    } catch (error) {
+      console.warn("⚠️ LLM关键词提取失败，使用备选方案:", error);
+      const keywords = this.extractSmartKeywords(userRequest);
+
+      // 缓存备选结果
+      this.keywordCache.set(cacheKey, { keywords, timestamp: Date.now() });
+
+      return keywords;
+    }
+  }
+
+  /**
+   * 智能关键词提取（备选方案，优化版）
+   * @param userRequest 用户请求
+   * @returns 提取的关键词数组，按重要性排序
+   */
+  private extractSmartKeywords(userRequest: string): string[] {
+    // 优化：使用静态停用词集合，避免重复创建
+    const stopWords = this.getStopWords();
+    const techKeywords = this.getTechKeywords();
+
+    // 优化：使用更高效的正则表达式
+    const allWords: string[] = [];
+
+    // 英文单词提取（优化：一次性提取）
+    const englishWords = userRequest.toLowerCase().match(/[a-z]{2,}/g) || []; // 直接过滤长度<2的词
+    allWords.push(...englishWords);
+
+    // 中文词汇提取（优化：减少循环次数）
+    const chineseMatches = userRequest.match(/[\u4e00-\u9fa5]{2,}/g) || []; // 直接匹配长度>=2的中文
+    chineseMatches.forEach((phrase: string) => {
+      allWords.push(phrase); // 只保留整个短语，不再分割单字
+
+      // 可选：对于特别长的中文短语，提取关键子串
+      if (phrase.length > 4) {
+        for (let i = 0; i <= phrase.length - 2; i++) {
+          const substr = phrase.substring(i, i + 2);
+          if (!stopWords.has(substr)) {
+            allWords.push(substr);
+          }
+        }
+      }
+    });
+
+    // 优化：使用Map进行权重计算，减少查找次数
+    const keywordWeights = new Map<string, number>();
+
+    allWords.forEach((word) => {
+      if (stopWords.has(word)) {
+        return; // 跳过停用词
+      }
+
+      // 计算权重
+      let weight = techKeywords.get(word) || 1;
+
+      // 长词给更高权重
+      if (word.length > 4) {
+        weight += 1;
+      }
+
+      keywordWeights.set(word, (keywordWeights.get(word) || 0) + weight);
+    });
+
+    // 按权重排序，返回前10个关键词
+    const sortedKeywords = Array.from(keywordWeights.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([word]) => word);
+
+    console.log(
+      `🔍 备选关键词提取: ${sortedKeywords.join(", ")} (从"${userRequest}")`,
+    );
+    return sortedKeywords;
+  }
+
+  /**
+   * 获取停用词集合（静态缓存）
+   */
+  private static stopWordsCache: Set<string> | null = null;
+
+  private getStopWords(): Set<string> {
+    if (!CodeSnippetAnalyzer.stopWordsCache) {
+      CodeSnippetAnalyzer.stopWordsCache = new Set([
+        // 中文停用词（精简版）
+        "的",
+        "是",
+        "在",
+        "有",
+        "和",
+        "与",
+        "或",
+        "但",
+        "如果",
+        "那么",
+        "这个",
+        "那个",
+        "查找",
+        "寻找",
+        "搜索",
+        "找到",
+        "获取",
+        "显示",
+        "相关",
+        "关于",
+        "代码",
+        "文件",
+        // 英文停用词（精简版）
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "but",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "of",
+        "with",
+        "by",
+        "find",
+        "search",
+        "get",
+        "show",
+        "display",
+        "related",
+        "about",
+        "code",
+        "file",
+        "function",
+      ]);
+    }
+    return CodeSnippetAnalyzer.stopWordsCache;
+  }
+
+  /**
+   * 获取技术关键词权重映射（静态缓存）
+   */
+  private static techKeywordsCache: Map<string, number> | null = null;
+
+  private getTechKeywords(): Map<string, number> {
+    if (!CodeSnippetAnalyzer.techKeywordsCache) {
+      CodeSnippetAnalyzer.techKeywordsCache = new Map([
+        // Java相关（高权重）
+        ["class", 3],
+        ["interface", 3],
+        ["method", 3],
+        ["function", 3],
+        // 架构组件（中权重）
+        ["service", 2],
+        ["controller", 2],
+        ["repository", 2],
+        ["entity", 2],
+        ["util", 2],
+        ["helper", 2],
+        ["manager", 2],
+        ["handler", 2],
+        // 业务关键词（中权重）
+        ["user", 2],
+        ["login", 2],
+        ["auth", 2],
+        ["permission", 2],
+        ["role", 2],
+        ["order", 2],
+        ["product", 2],
+        ["payment", 2],
+        ["account", 2],
+        // 操作关键词（中权重）
+        ["create", 2],
+        ["update", 2],
+        ["delete", 2],
+        ["query", 2],
+        ["save", 2],
+        ["validate", 2],
+        ["check", 2],
+        ["process", 2],
+        ["handle", 2],
+      ]);
+    }
+    return CodeSnippetAnalyzer.techKeywordsCache;
+  }
+
+  /**
+   * 智能预过滤：多层次匹配策略
+   * @param codeChunks 代码块数组
+   * @param userRequest 用户请求
+   * @returns 过滤后的代码块
+   */
+  private async smartPreFilter(
+    codeChunks: CodeChunk[],
+    userRequest: string,
+  ): Promise<CodeChunk[]> {
+    // 优先使用 LLM 辅助关键词提取
+    const keywords = await this.extractLLMKeywords(userRequest);
+    if (keywords.length === 0) {
+      const result = codeChunks.slice(0, Math.min(30, codeChunks.length));
+      return result;
+    }
+
+    // 优化：预编译正则表达式，避免重复编译
+    const keywordPatterns = keywords.map((keyword) => ({
+      keyword,
+      contentRegex: new RegExp(keyword, "i"),
+      pathRegex: new RegExp(keyword, "i"),
+      javaPatterns: [
+        new RegExp(`class.*${keyword}`, "i"),
+        new RegExp(`${keyword}.*class`, "i"),
+        new RegExp(`public.*${keyword}`, "i"),
+        new RegExp(`private.*${keyword}`, "i"),
+        new RegExp(`${keyword}\\s*\\(`, "i"),
+        new RegExp(`\\.${keyword}\\s*\\(`, "i"),
+      ],
+    }));
+
+    // 使用Map存储匹配结果，避免重复计算
+    const chunkScores = new Map<string, { chunk: CodeChunk; score: number }>();
+
+    codeChunks.forEach((chunk) => {
+      const key = `${chunk.file_path}:${chunk.start_line}`;
+      const chunkLower = chunk.chunk.toLowerCase();
+      const pathLower = chunk.file_path.toLowerCase();
+      let score = 0;
+
+      keywordPatterns.forEach(
+        ({ keyword, contentRegex, pathRegex, javaPatterns }) => {
+          // 严格内容匹配 (权重: 4)
+          if (contentRegex.test(chunkLower)) {
+            score += 4;
+          }
+
+          // 路径匹配 (权重: 3)
+          if (pathRegex.test(pathLower)) {
+            score += 3;
+          }
+
+          // Java模式匹配 (权重: 2)
+          if (javaPatterns.some((pattern) => pattern.test(chunkLower))) {
+            score += 2;
+          }
+        },
+      );
+
+      // 模糊匹配：计算匹配的关键词比例
+      const matchedKeywords = keywords.filter(
+        (keyword) =>
+          chunkLower.includes(keyword) || pathLower.includes(keyword),
+      ).length;
+
+      const matchRatio = matchedKeywords / keywords.length;
+      if (matchRatio >= 0.25) {
+        // 至少匹配25%的关键词
+        score += Math.floor(matchRatio * 4); // 根据匹配比例给分
+      }
+
+      if (score > 0) {
+        chunkScores.set(key, { chunk, score });
+      }
+    });
+
+    // 按分数排序，取前面的结果
+    const sortedMatches = Array.from(chunkScores.values())
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.chunk);
+
+    // 如果没有匹配结果，返回前30个
+    const result =
+      sortedMatches.length > 0
+        ? sortedMatches
+        : codeChunks.slice(0, Math.min(30, codeChunks.length));
+
+    return result;
+  }
+
+  /**
+   * 获取当前总结功能状态
+   */
+  public isSummariesEnabled(): boolean {
+    return this.enableSummaries;
+  }
+
+  /**
    * 安全地将路径转换为 URI，确保不会重复转换
    */
   private safePathToUri(pathOrUri: string): string {
@@ -267,6 +809,28 @@ Example:
     }
     // 否则转换为 URI
     return localPathToUri(pathOrUri);
+  }
+
+  /**
+   * 兼容性函数：替代 String.prototype.matchAll
+   */
+  private matchAllCompat(content: string, pattern: RegExp): RegExpExecArray[] {
+    const matches: RegExpExecArray[] = [];
+    let match: RegExpExecArray | null;
+
+    // 确保正则表达式有全局标志
+    const globalPattern = new RegExp(
+      pattern.source,
+      pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g",
+    );
+
+    while ((match = globalPattern.exec(content)) !== null) {
+      matches.push(match);
+      // 防止无限循环
+      if (!globalPattern.global) break;
+    }
+
+    return matches;
   }
 
   /**
@@ -330,6 +894,90 @@ Example:
   };
 
   /**
+   * Tool: 提交代码总结结果
+   */
+  private submitCodeSummaries = (summaries: CodeSummary[]): string => {
+    // 验证输入
+    if (!Array.isArray(summaries)) {
+      throw new Error("summaries 必须是数组");
+    }
+
+    for (const summary of summaries) {
+      if (
+        !summary.file ||
+        typeof summary.start_line !== "number" ||
+        !summary.summary
+      ) {
+        throw new Error(
+          "每个总结对象必须包含 file (string), start_line (number), summary (string)",
+        );
+      }
+    }
+
+    // 存储结果
+    this.toolCallResults.codeSummaries = summaries as CodeSummary[];
+
+    return "代码总结结果已成功提交";
+  };
+
+  /**
+   * Tool: 提交模块总结结果
+   */
+  private submitModuleSummaries = (summaries: ModuleSummary[]): string => {
+    // 验证输入
+    if (!Array.isArray(summaries)) {
+      throw new Error("summaries 必须是数组");
+    }
+
+    for (const summary of summaries) {
+      if (
+        !summary.module ||
+        !summary.summary ||
+        typeof summary.chunk_count !== "number"
+      ) {
+        throw new Error(
+          "每个模块总结对象必须包含 module (string), summary (string), chunk_count (number)",
+        );
+      }
+    }
+
+    // 存储结果
+    this.toolCallResults.moduleSummaries = summaries as ModuleSummary[];
+
+    return "模块总结结果已成功提交";
+  };
+
+  /**
+   * Tool: 提交合并的评分和总结结果
+   */
+  private submitScoreAndSummaries = (items: ScoreAndSummary[]): string => {
+    // 验证输入
+    if (!Array.isArray(items)) {
+      throw new Error("items 必须是数组");
+    }
+
+    for (const item of items) {
+      if (
+        !item.file ||
+        typeof item.start_line !== "number" ||
+        typeof item.score !== "number" ||
+        !item.summary
+      ) {
+        throw new Error(
+          "每个项目必须包含 file (string), start_line (number), score (number), summary (string)",
+        );
+      }
+      if (item.score < 0 || item.score > 10) {
+        throw new Error("评分必须在 0-10 之间");
+      }
+    }
+
+    // 存储结果
+    this.toolCallResults.scoreAndSummaries = items as ScoreAndSummary[];
+
+    return "合并评分和总结结果已成功提交";
+  };
+  /**
    * 解析 XML 格式的评分结果
    */
   private parseXmlScores(content: string): RelevanceScore[] {
@@ -351,7 +999,7 @@ Example:
 
     // 尝试每种模式
     for (const pattern of patterns) {
-      const matches = [...content.matchAll(pattern)];
+      const matches = this.matchAllCompat(content, pattern);
 
       for (const match of matches) {
         let file: string, startLine: number, score: number;
@@ -401,7 +1049,7 @@ Example:
     // 如果没有找到标准格式，尝试更宽松的解析
     if (scores.length === 0) {
       const loosePattern = /<score[^>]*>/gi;
-      const scoreElements = [...content.matchAll(loosePattern)];
+      const scoreElements = this.matchAllCompat(content, loosePattern);
 
       for (const element of scoreElements) {
         const scoreTag = element[0];
@@ -441,14 +1089,6 @@ Example:
   private parseXmlFilter(content: string): SnippetFilterEvaluation[] {
     const evaluations: SnippetFilterEvaluation[] = [];
 
-    // 检查是否包含期望的XML结构
-    const hasFiltersTag = content.includes("<filters>");
-    const hasFilterTag = content.includes("<filter");
-    const hasFileAttr = content.includes("file=");
-    const hasLineAttr = content.includes("line=");
-    const hasRelevantAttr = content.includes("relevant=");
-    const hasReasonAttr = content.includes("reason=");
-
     // 多种 XML 过滤格式模式 - 支持任意属性顺序
     const patterns = [
       // file, line, reason, relevant 顺序（LLM 实际输出的顺序）
@@ -467,7 +1107,7 @@ Example:
     // 尝试每种模式
     for (let i = 0; i < patterns.length; i++) {
       const pattern = patterns[i];
-      const matches = [...content.matchAll(pattern)];
+      const matches = this.matchAllCompat(content, pattern);
 
       for (const match of matches) {
         let file: string,
@@ -511,7 +1151,7 @@ Example:
     // 如果没有找到标准格式，尝试更宽松的解析
     if (evaluations.length === 0) {
       const loosePattern = /<filter[^>]*>/gi;
-      const filterElements = [...content.matchAll(loosePattern)];
+      const filterElements = this.matchAllCompat(content, loosePattern);
 
       for (const element of filterElements) {
         const filterTag = element[0];
@@ -551,6 +1191,228 @@ Example:
   }
 
   /**
+   * 解析 XML 格式的代码总结结果
+   */
+  private parseXmlSummaries(content: string): CodeSummary[] {
+    const summaries: CodeSummary[] = [];
+
+    // 多种 XML 总结格式模式
+    const patterns = [
+      // 自闭合标签，任意属性顺序
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+      /<summary[^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+      /<summary[^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+
+      // 开闭标签格式
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?>\s*<\/summary>/gi,
+    ];
+
+    // 尝试每种模式
+    for (const pattern of patterns) {
+      const matches = this.matchAllCompat(content, pattern);
+
+      for (const match of matches) {
+        let file: string, startLine: number, summary: string;
+
+        // 根据匹配组的顺序提取数据
+        if (pattern.source.includes("file.*?line.*?text")) {
+          // file, line, text 顺序
+          file = match[1];
+          startLine = parseInt(match[2]);
+          summary = match[3];
+        } else if (pattern.source.includes("line.*?file.*?text")) {
+          // line, file, text 顺序
+          startLine = parseInt(match[1]);
+          file = match[2];
+          summary = match[3];
+        } else if (pattern.source.includes("text.*?file.*?line")) {
+          // text, file, line 顺序
+          summary = match[1];
+          file = match[2];
+          startLine = parseInt(match[3]);
+        } else {
+          // 默认 file, line, text 顺序
+          file = match[1];
+          startLine = parseInt(match[2]);
+          summary = match[3];
+        }
+
+        // 标准化文件路径
+        file = file.replace(/\\/g, "/");
+
+        // 验证数据
+        if (file && file.includes(".") && !isNaN(startLine) && summary) {
+          summaries.push({
+            file: file,
+            start_line: startLine,
+            summary: summary.trim(),
+          });
+        }
+      }
+
+      // 如果找到了结果，就不再尝试其他模式
+      if (summaries.length > 0) {
+        break;
+      }
+    }
+
+    return summaries;
+  }
+
+  /**
+   * 解析 XML 格式的模块总结结果
+   */
+  private parseXmlModuleSummaries(content: string): ModuleSummary[] {
+    const summaries: ModuleSummary[] = [];
+
+    // 多种 XML 模块总结格式模式
+    const patterns = [
+      // 自闭合标签，任意属性顺序
+      /<module_summary[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+      /<module_summary[^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+      /<module_summary[^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+
+      // 开闭标签格式
+      /<module_summary[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?>\s*<\/module_summary>/gi,
+    ];
+
+    // 尝试每种模式
+    for (const pattern of patterns) {
+      const matches = this.matchAllCompat(content, pattern);
+
+      for (const match of matches) {
+        let module: string, summary: string, chunkCount: number;
+
+        // 根据匹配组的顺序提取数据
+        if (pattern.source.includes("name.*?text.*?chunks")) {
+          // name, text, chunks 顺序
+          module = match[1];
+          summary = match[2];
+          chunkCount = parseInt(match[3]);
+        } else if (pattern.source.includes("text.*?name.*?chunks")) {
+          // text, name, chunks 顺序
+          summary = match[1];
+          module = match[2];
+          chunkCount = parseInt(match[3]);
+        } else if (pattern.source.includes("chunks.*?name.*?text")) {
+          // chunks, name, text 顺序
+          chunkCount = parseInt(match[1]);
+          module = match[2];
+          summary = match[3];
+        } else {
+          // 默认 name, text, chunks 顺序
+          module = match[1];
+          summary = match[2];
+          chunkCount = parseInt(match[3]);
+        }
+
+        // 验证数据
+        if (module && summary && !isNaN(chunkCount)) {
+          summaries.push({
+            module: module.trim(),
+            summary: summary.trim(),
+            chunk_count: chunkCount,
+          });
+        }
+      }
+
+      // 如果找到了结果，就不再尝试其他模式
+      if (summaries.length > 0) {
+        break;
+      }
+    }
+
+    return summaries;
+  }
+
+  /**
+   * 解析 XML 格式的合并评分和总结结果
+   */
+  private parseXmlScoreAndSummaries(content: string): ScoreAndSummary[] {
+    const results: ScoreAndSummary[] = [];
+
+    // 多种 XML 格式模式
+    const patterns = [
+      // 自闭合标签，任意属性顺序
+      /<item[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+      /<item[^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+      /<item[^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+      /<item[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?\/>/gi,
+
+      // 开闭标签格式
+      /<item[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?>\s*<\/item>/gi,
+    ];
+
+    // 尝试每种模式
+    for (const pattern of patterns) {
+      const matches = this.matchAllCompat(content, pattern);
+
+      for (const match of matches) {
+        let file: string, startLine: number, score: number, summary: string;
+
+        // 根据匹配组的顺序提取数据
+        if (pattern.source.includes("file.*?line.*?score.*?summary")) {
+          // file, line, score, summary 顺序
+          file = match[1];
+          startLine = parseInt(match[2]);
+          score = parseFloat(match[3]);
+          summary = match[4];
+        } else if (pattern.source.includes("line.*?file.*?score.*?summary")) {
+          // line, file, score, summary 顺序
+          startLine = parseInt(match[1]);
+          file = match[2];
+          score = parseFloat(match[3]);
+          summary = match[4];
+        } else if (pattern.source.includes("score.*?file.*?line.*?summary")) {
+          // score, file, line, summary 顺序
+          score = parseFloat(match[1]);
+          file = match[2];
+          startLine = parseInt(match[3]);
+          summary = match[4];
+        } else if (pattern.source.includes("summary.*?file.*?line.*?score")) {
+          // summary, file, line, score 顺序
+          summary = match[1];
+          file = match[2];
+          startLine = parseInt(match[3]);
+          score = parseFloat(match[4]);
+        } else {
+          // 默认 file, line, score, summary 顺序
+          file = match[1];
+          startLine = parseInt(match[2]);
+          score = parseFloat(match[3]);
+          summary = match[4];
+        }
+
+        // 标准化文件路径
+        file = file.replace(/\\/g, "/");
+
+        // 验证数据
+        if (
+          file &&
+          file.includes(".") &&
+          !isNaN(startLine) &&
+          !isNaN(score) &&
+          summary
+        ) {
+          results.push({
+            file: file,
+            start_line: startLine,
+            score: Math.max(0, Math.min(10, score)),
+            summary: summary.trim(),
+          });
+        }
+      }
+
+      // 如果找到了结果，就不再尝试其他模式
+      if (results.length > 0) {
+        break;
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * 从 LLM 响应中提取 XML 格式的参数
    */
   private extractToolCallArgs(content: string, functionName: string): any {
@@ -569,6 +1431,27 @@ Example:
           return { evaluations };
         } else {
           console.warn(`⚠️ 过滤XML解析返回空结果`);
+        }
+      } else if (functionName === "submitCodeSummaries") {
+        const summaries = this.parseXmlSummaries(content);
+        if (summaries.length > 0) {
+          return { summaries };
+        } else {
+          console.warn(`⚠️ 代码总结XML解析返回空结果`);
+        }
+      } else if (functionName === "submitModuleSummaries") {
+        const summaries = this.parseXmlModuleSummaries(content);
+        if (summaries.length > 0) {
+          return { summaries };
+        } else {
+          console.warn(`⚠️ 模块总结XML解析返回空结果`);
+        }
+      } else if (functionName === "submitScoreAndSummaries") {
+        const items = this.parseXmlScoreAndSummaries(content);
+        if (items.length > 0) {
+          return { items };
+        } else {
+          console.warn(`⚠️ 合并评分和总结XML解析返回空结果`);
         }
       }
     } catch (error) {
@@ -657,19 +1540,12 @@ Example:
       return [];
     }
 
-    // 预过滤：使用关键词匹配
-    const keywords = userRequest.toLowerCase().match(/\w+/g) || [];
-    const filteredChunks = codeChunks.filter((chunk) =>
-      keywords.some((keyword) => chunk.chunk.toLowerCase().includes(keyword)),
-    );
-
-    // 如果没有匹配的块，回退到所有块
-    const chunksToAnalyze =
-      filteredChunks.length > 0 ? filteredChunks : codeChunks;
+    // 使用智能预过滤策略
+    const chunksToAnalyze = await this.smartPreFilter(codeChunks, userRequest);
 
     const chunkDescriptions = chunksToAnalyze.map(
       (chunk, index) =>
-        `【Code Chunk ${index + 1}】File: ${chunk.file_path}\nStart Line: ${chunk.start_line}\nContent:\n\`\`\`java\n${chunk.chunk.substring(0, 1500)}...\n\`\`\``,
+        `【Code Chunk ${index + 1}】File: ${chunk.file_path}\nStart Line: ${chunk.start_line}\nContent:\n\`\`\`java\n${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}\n\`\`\``,
     );
 
     const userContent = `Requirement Analysis:\n${userRequest}\n\nCode Snippets:\n${chunkDescriptions.join("\n\n")}`;
@@ -839,9 +1715,9 @@ Example:
     console.log("🔍 启动高级备选检索策略...");
 
     const workspaceDirs = await this.ide.getWorkspaceDirs();
-    const tags: BranchAndDir[] = workspaceDirs.map(dir => ({
+    const tags: BranchAndDir[] = workspaceDirs.map((dir) => ({
       directory: dir,
-      branch: "main" // 默认分支
+      branch: "main", // 默认分支
     }));
 
     // 分配权重：25% FTS, 25% 向量搜索, 25% 最近文件, 25% 关键词匹配
@@ -855,7 +1731,11 @@ Example:
     // 策略1: 全文搜索 (FTS)
     try {
       const ftsChunks = await this.retrieveFts(userRequest, ftsN, tags);
-      const ftsResults = this.convertChunksToScoredChunks(ftsChunks, "FTS", 0.8);
+      const ftsResults = this.convertChunksToScoredChunks(
+        ftsChunks,
+        "FTS",
+        0.8,
+      );
       allResults.push(...ftsResults);
       console.log(`📄 FTS 检索获得 ${ftsResults.length} 个片段`);
     } catch (error) {
@@ -869,9 +1749,13 @@ Example:
           userRequest,
           embeddingsN,
           tags,
-          undefined
+          undefined,
         );
-        const embeddingResults = this.convertChunksToScoredChunks(embeddingChunks, "Embeddings", 0.9);
+        const embeddingResults = this.convertChunksToScoredChunks(
+          embeddingChunks,
+          "Embeddings",
+          0.9,
+        );
         allResults.push(...embeddingResults);
         console.log(`🧠 向量检索获得 ${embeddingResults.length} 个片段`);
       } catch (error) {
@@ -882,7 +1766,11 @@ Example:
     // 策略3: 最近编辑的文件
     try {
       const recentChunks = await this.retrieveRecentlyEditedFiles(recentN);
-      const recentResults = this.convertChunksToScoredChunks(recentChunks, "Recent", 0.6);
+      const recentResults = this.convertChunksToScoredChunks(
+        recentChunks,
+        "Recent",
+        0.6,
+      );
       allResults.push(...recentResults);
       console.log(`⏰ 最近文件检索获得 ${recentResults.length} 个片段`);
     } catch (error) {
@@ -896,7 +1784,7 @@ Example:
           moduleFileMap,
           userRequest,
           basePath,
-          Math.max(keywordN, topN - allResults.length)
+          Math.max(keywordN, topN - allResults.length),
         );
         allResults.push(...keywordResults);
         console.log(`🔤 关键词检索获得 ${keywordResults.length} 个片段`);
@@ -907,7 +1795,10 @@ Example:
 
     // 去重并智能选择
     const deduplicatedResults = this.deduplicateScoredChunks(allResults);
-    const selectedResults = this.selectTopScoredChunksWithHighScorePreservation(deduplicatedResults, topN);
+    const selectedResults = this.selectTopScoredChunksWithHighScorePreservation(
+      deduplicatedResults,
+      topN,
+    );
 
     console.log(`✅ 备选检索完成，返回 ${selectedResults.length} 个高质量片段`);
     return selectedResults;
@@ -919,14 +1810,14 @@ Example:
   private async retrieveFts(
     query: string,
     n: number,
-    tags: BranchAndDir[]
+    tags: BranchAndDir[],
   ): Promise<Chunk[]> {
     if (query.trim() === "") {
       return [];
     }
 
     // 清理查询文本，提取关键词
-    const keywords = query.toLowerCase().match(/\w+/g) || [];
+    const keywords = await this.extractLLMKeywords(query);
     const searchText = keywords.join(" OR ");
 
     return await this.ftsIndex.retrieve({
@@ -981,11 +1872,11 @@ Example:
     moduleFileMap: ModuleFileMap,
     userRequest: string,
     basePath: string,
-    n: number
+    n: number,
   ): Promise<ScoredChunk[]> {
     const results: ScoredChunk[] = [];
-    const keywords = userRequest.toLowerCase().match(/\w+/g) || [];
-    const keywordPattern = new RegExp(keywords.join('|'), 'i');
+    const keywords = await this.extractLLMKeywords(userRequest);
+    const keywordPattern = new RegExp(keywords.join("|"), "i");
 
     for (const [moduleName, files] of Object.entries(moduleFileMap)) {
       if (results.length >= n) break;
@@ -1007,9 +1898,9 @@ Example:
             const score = Math.min(keywordMatches * 0.3, 3); // 最高3分
 
             if (score > 0) {
-              const lines = content.split('\n');
+              const lines = content.split("\n");
               const chunkSize = Math.min(40, lines.length);
-              const chunk = lines.slice(0, chunkSize).join('\n');
+              const chunk = lines.slice(0, chunkSize).join("\n");
 
               results.push({
                 file: filePath,
@@ -1035,12 +1926,12 @@ Example:
   private convertChunksToScoredChunks(
     chunks: Chunk[],
     source: string,
-    baseScore: number
+    baseScore: number,
   ): ScoredChunk[] {
     return chunks.map((chunk, index) => ({
       file: chunk.filepath,
       start_line: chunk.startLine || 1,
-      score: baseScore - (index * 0.1), // 排序越靠前分数越高
+      score: baseScore - index * 0.1, // 排序越靠前分数越高
       code: chunk.content,
       module: this.extractModuleFromPath(chunk.filepath),
     }));
@@ -1089,36 +1980,155 @@ Example:
    * @param originalLine 原始起始行号
    * @param chunkLine LLM返回的起始行号
    */
-  private isPathMatch(originalPath: string, chunkPath: string, originalLine: number, chunkLine: number): boolean {
-    // 首先检查行号是否匹配
-    if (originalLine !== chunkLine) {
-      return false;
-    }
-
+  private isPathMatch(
+    originalPath: string,
+    chunkPath: string,
+    originalLine: number,
+    chunkLine: number,
+  ): boolean {
     // 标准化路径 - 统一使用正斜杠
     const normalizedOrigPath = originalPath.replace(/\\/g, "/");
     const normalizedChunkPath = chunkPath.replace(/\\/g, "/");
 
-    // 1. 完全匹配
-    if (normalizedOrigPath === normalizedChunkPath) {
+    // 1. 完全匹配（路径和行号都相等）
+    if (
+      normalizedOrigPath === normalizedChunkPath &&
+      originalLine === chunkLine
+    ) {
       return true;
     }
 
-    // 2. 提取文件名进行匹配
+    // 2. 路径匹配检查（先检查路径，再考虑行号容错）
+    let pathMatches = false;
+
+    // 2.1 完全路径匹配
+    if (normalizedOrigPath === normalizedChunkPath) {
+      pathMatches = true;
+    } else {
+      // 2.2 进行智能路径匹配
+      pathMatches = this.isPathSimilar(normalizedOrigPath, normalizedChunkPath);
+    }
+
+    // 如果路径不匹配，直接返回false
+    if (!pathMatches) {
+      return false;
+    }
+
+    // 3. 行号容错匹配（只有在路径匹配的情况下才进行）
+    return this.isLineNumberMatch(originalLine, chunkLine);
+  }
+
+  /**
+   * 检查两个路径是否相似
+   */
+  private isPathSimilar(
+    normalizedOrigPath: string,
+    normalizedChunkPath: string,
+  ): boolean {
+    // 2. 智能文件名匹配 - 处理文件名可能在不同目录的情况
     const origFileName = this.extractFileName(normalizedOrigPath);
     const chunkFileName = this.extractFileName(normalizedChunkPath);
 
+    // 如果文件名完全不同，进行更宽松的匹配
     if (origFileName !== chunkFileName) {
-      return false; // 文件名不同，肯定不匹配
+      // 检查是否是同一个类但在不同的子目录中
+      // 例如: TaRole.java vs entity/TaRole.java
+      const origBaseName = origFileName.replace(/\.(java|kt|scala|xml)$/, "");
+      const chunkBaseName = chunkFileName.replace(/\.(java|kt|scala|xml)$/, "");
+
+      // 特殊处理XML文件的命名变体
+      if (origFileName.endsWith(".xml") && chunkFileName.endsWith(".xml")) {
+        if (this.isXmlFileNameSimilar(origBaseName, chunkBaseName)) {
+          // XML文件名相似，继续其他匹配检查
+        } else {
+          return false;
+        }
+      } else if (origBaseName !== chunkBaseName) {
+        // 对于Java文件，检查是否一个包含另一个（处理内部类等情况）
+        if (
+          !origBaseName.includes(chunkBaseName) &&
+          !chunkBaseName.includes(origBaseName)
+        ) {
+          // 检查是否是常见的命名变体
+          if (!this.isFileNameVariant(origBaseName, chunkBaseName)) {
+            return false;
+          }
+        }
+      }
     }
 
-    // 3. 路径后缀匹配 - 检查是否是同一个文件的不同路径表示
-    const origPathParts = normalizedOrigPath.split("/").filter(part => part.length > 0);
-    const chunkPathParts = normalizedChunkPath.split("/").filter(part => part.length > 0);
+    // 3. 智能路径匹配 - 处理包名差异和路径前缀差异
+    const origPathParts = normalizedOrigPath
+      .split("/")
+      .filter((part: string) => part.length > 0);
+    const chunkPathParts = normalizedChunkPath
+      .split("/")
+      .filter((part: string) => part.length > 0);
 
-    // 从后往前比较路径部分，允许前缀不同
+    // 提取关键路径信息
+    const origInfo = this.extractPathInfo(origPathParts);
+    const chunkInfo = this.extractPathInfo(chunkPathParts);
+
+    // 4. 检查路径有效性
+    if (chunkInfo.isValid === false) {
+      console.warn(`🚨 检测到损坏的LLM路径: ${normalizedChunkPath}`);
+      // 对于损坏的路径，降低匹配标准，主要基于文件名和项目信息
+      if (origInfo.fileName && chunkInfo.fileName) {
+        const origBaseName = origInfo.fileName.replace(
+          /\.(java|xml|kt|scala)$/,
+          "",
+        );
+        const chunkBaseName = chunkInfo.fileName.replace(
+          /\.(java|xml|kt|scala)$/,
+          "",
+        );
+
+        // 如果文件名有一定相似性，且项目信息匹配，则认为可能是同一文件
+        if (
+          this.isFileNameVariant(origBaseName, chunkBaseName) &&
+          origInfo.projectName &&
+          chunkInfo.projectName &&
+          this.isProjectNameMatch(origInfo.projectName, chunkInfo.projectName)
+        ) {
+          console.warn(
+            `🔧 基于文件名和项目信息的模糊匹配: ${origBaseName} ≈ ${chunkBaseName}`,
+          );
+          return true;
+        }
+      }
+      return false; // 损坏路径且无法模糊匹配，直接拒绝
+    }
+
+    // 5. 基于关键信息的匹配
+    // 检查项目/模块名匹配
+    if (origInfo.projectName && chunkInfo.projectName) {
+      if (
+        !this.isProjectNameMatch(origInfo.projectName, chunkInfo.projectName)
+      ) {
+        // 项目名不匹配，但可能是简化版本，继续其他检查
+      }
+    }
+
+    // 检查包名匹配（处理com.yinhai vs yinhai的情况）
+    if (origInfo.packagePath && chunkInfo.packagePath) {
+      if (
+        this.isPackagePathMatch(origInfo.packagePath, chunkInfo.packagePath)
+      ) {
+        return true;
+      }
+    }
+
+    // 特殊处理XML文件的路径匹配
+    if (origInfo.fileType === "xml" && chunkInfo.fileType === "xml") {
+      if (this.isXmlPathMatch(origInfo, chunkInfo)) {
+        return true;
+      }
+    }
+
+    // 5. 从后往前的路径匹配（原有逻辑，但更宽松）
     const minLength = Math.min(origPathParts.length, chunkPathParts.length);
     let matchCount = 0;
+    let consecutiveMatches = 0;
 
     for (let i = 1; i <= minLength; i++) {
       const origPart = origPathParts[origPathParts.length - i];
@@ -1126,33 +2136,112 @@ Example:
 
       if (origPart === chunkPart) {
         matchCount++;
+        consecutiveMatches++;
       } else {
-        break;
+        // 允许一些常见的差异
+        if (this.isPathPartSimilar(origPart, chunkPart)) {
+          matchCount++;
+          consecutiveMatches++;
+        } else {
+          consecutiveMatches = 0;
+        }
       }
     }
 
-    // 如果至少有2个路径部分匹配（包括文件名），认为是匹配的
-    if (matchCount >= 2) {
+    // 如果有足够的连续匹配，认为是同一个文件
+    if (consecutiveMatches >= 2 || matchCount >= 3) {
       return true;
     }
 
-    // 4. 模糊匹配 - 检查关键路径部分
-    // 提取关键路径部分（去除常见的目录名）
-    const commonDirs = new Set(['src', 'main', 'java', 'resources', 'test', 'target', 'classes']);
-    const origKeyParts = origPathParts.filter(part => !commonDirs.has(part));
-    const chunkKeyParts = chunkPathParts.filter(part => !commonDirs.has(part));
+    // 6. 模糊匹配 - 检查关键路径部分
+    const commonDirs = new Set([
+      "src",
+      "main",
+      "java",
+      "resources",
+      "test",
+      "target",
+      "classes",
+      "com",
+      "org",
+      "net", // 常见包前缀
+      "entity",
+      "dto",
+      "vo",
+      "domain",
+      "service",
+      "controller",
+      "repository", // 常见目录
+    ]);
 
-    // 检查关键部分是否有足够的重叠
+    const origKeyParts = origPathParts.filter(
+      (part: string) => !commonDirs.has(part),
+    );
+    const chunkKeyParts = chunkPathParts.filter(
+      (part: string) => !commonDirs.has(part),
+    );
+
+    // 检查关键部分的相似度
+    const similarity = this.calculatePathSimilarity(
+      origKeyParts,
+      chunkKeyParts,
+    );
+    if (similarity > 0.6) {
+      // 60%相似度阈值
+      return true;
+    }
+
+    // 7. 包含关系匹配 - 一个路径包含另一个路径的关键部分
     const origKeyPath = origKeyParts.join("/");
     const chunkKeyPath = chunkKeyParts.join("/");
 
-    if (origKeyPath === chunkKeyPath && origKeyPath.length > 0) {
+    if (origKeyPath.length > 0 && chunkKeyPath.length > 0) {
+      if (
+        origKeyPath.includes(chunkKeyPath) ||
+        chunkKeyPath.includes(origKeyPath)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * 行号容错匹配 - 允许一定范围内的行号差异
+   * @param originalLine 原始行号
+   * @param chunkLine LLM返回的行号
+   */
+  private isLineNumberMatch(originalLine: number, chunkLine: number): boolean {
+    // 1. 完全匹配
+    if (originalLine === chunkLine) {
       return true;
     }
 
-    // 5. 包含关系匹配 - 一个路径包含另一个路径
-    if (normalizedOrigPath.includes(normalizedChunkPath) || normalizedChunkPath.includes(normalizedOrigPath)) {
+    const lineDiff = Math.abs(originalLine - chunkLine);
+
+    // 2. 允许小范围的行号差异（±10行）
+    if (lineDiff <= 10) {
       return true;
+    }
+
+    // 3. 特殊情况：如果其中一个行号是1，另一个在合理范围内，也认为匹配
+    // 这处理了LLM可能返回文件开头行号的情况，但要排除已经被小范围差异覆盖的情况
+    if (
+      (originalLine === 1 && chunkLine <= 50 && lineDiff > 10) ||
+      (chunkLine === 1 && originalLine <= 50 && lineDiff > 10)
+    ) {
+      return true;
+    }
+
+    // 4. 对于较大的文件，允许更大的行号差异
+    // 如果原始行号较大，说明是大文件，可以允许更大的容错范围
+    if (originalLine > 100) {
+      // 对于大文件，允许±5%的行号差异，但最多不超过50行
+      const allowedDiff = Math.min(Math.floor(originalLine * 0.05), 50);
+      if (lineDiff <= allowedDiff) {
+        return true;
+      }
     }
 
     return false;
@@ -1167,6 +2256,410 @@ Example:
   }
 
   /**
+   * 提取路径关键信息（改进版，支持XML和损坏路径处理）
+   */
+  private extractPathInfo(pathParts: string[]): {
+    projectName?: string;
+    packagePath?: string;
+    fileName?: string;
+    fileType?: string;
+    isValid?: boolean;
+  } {
+    if (pathParts.length === 0) {
+      return { isValid: false };
+    }
+
+    const fileName = pathParts[pathParts.length - 1];
+    let packagePath = "";
+    let projectName = "";
+    let fileType = "unknown";
+    let isValid = true;
+
+    // 检测文件类型
+    if (fileName) {
+      if (fileName.endsWith(".java")) {
+        fileType = "java";
+      } else if (fileName.endsWith(".xml")) {
+        fileType = "xml";
+      } else if (fileName.endsWith(".kt")) {
+        fileType = "kotlin";
+      } else if (fileName.endsWith(".scala")) {
+        fileType = "scala";
+      }
+    }
+
+    // 检查路径是否损坏（包含明显错误的部分）
+    const pathString = pathParts.join("/");
+    if (this.isPathCorrupted(pathString)) {
+      isValid = false;
+    }
+
+    // 根据文件类型提取包路径
+    if (fileType === "java" || fileType === "kotlin" || fileType === "scala") {
+      // 查找java目录的位置，从那里开始是包路径
+      const javaIndex = pathParts.findIndex((part) => part === "java");
+      if (javaIndex >= 0 && javaIndex < pathParts.length - 1) {
+        packagePath = pathParts.slice(javaIndex + 1, -1).join("/");
+      }
+    } else if (fileType === "xml") {
+      // 对于XML文件，查找resources目录
+      const resourcesIndex = pathParts.findIndex(
+        (part) => part === "resources",
+      );
+      if (resourcesIndex >= 0 && resourcesIndex < pathParts.length - 1) {
+        packagePath = pathParts.slice(resourcesIndex + 1, -1).join("/");
+      }
+    }
+
+    // 尝试提取项目名（通常在ta404, component等关键词附近）
+    for (let i = 0; i < pathParts.length; i++) {
+      const part = pathParts[i];
+      if (
+        part.includes("ta404") ||
+        part.includes("ta3404") ||
+        part.includes("component")
+      ) {
+        projectName = part;
+        break;
+      }
+    }
+
+    return { projectName, packagePath, fileName, fileType, isValid };
+  }
+
+  /**
+   * 检查路径是否损坏
+   */
+  private isPathCorrupted(pathString: string): boolean {
+    // 检查常见的路径损坏模式
+    const corruptionPatterns = [
+      /com\/yai\/ta\/domain\/coreuserauth/, // 缺少部分包名
+      /aggregaterole\/repository\/writeaRole/, // 连接错误的路径部分
+      /writeaRoleWriteRepository/, // 重复或错误的类名
+      /[a-zA-Z]{50,}/, // 异常长的单个路径部分
+      /\/\/+/, // 多个连续斜杠
+      /[^a-zA-Z0-9\/\-_\.]/, // 包含异常字符
+    ];
+
+    return corruptionPatterns.some((pattern) => pattern.test(pathString));
+  }
+
+  /**
+   * XML文件路径匹配
+   */
+  private isXmlPathMatch(origInfo: any, chunkInfo: any): boolean {
+    // 检查文件名相似性
+    if (origInfo.fileName && chunkInfo.fileName) {
+      const origBaseName = origInfo.fileName.replace(/\.xml$/, "");
+      const chunkBaseName = chunkInfo.fileName.replace(/\.xml$/, "");
+
+      if (!this.isXmlFileNameSimilar(origBaseName, chunkBaseName)) {
+        return false;
+      }
+    }
+
+    // 检查XML特定的路径结构
+    if (origInfo.packagePath && chunkInfo.packagePath) {
+      // 移除XML特定的子目录差异
+      const origXmlPath = origInfo.packagePath.replace(
+        /\/(read|write|query|command)$/,
+        "",
+      );
+      const chunkXmlPath = chunkInfo.packagePath.replace(
+        /\/(read|write|query|command)$/,
+        "",
+      );
+
+      // 检查核心路径是否匹配
+      if (origXmlPath === chunkXmlPath) {
+        return true;
+      }
+
+      // 检查是否包含关系
+      if (
+        origXmlPath.includes(chunkXmlPath) ||
+        chunkXmlPath.includes(origXmlPath)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * 检查项目名是否匹配
+   */
+  private isProjectNameMatch(orig: string, chunk: string): boolean {
+    // 完全匹配
+    if (orig === chunk) return true;
+
+    // 一个包含另一个
+    if (orig.includes(chunk) || chunk.includes(orig)) return true;
+
+    // 都包含关键词
+    const keywords = ["ta404", "component", "domain", "core"];
+    const origKeywords = keywords.filter((kw: string) => orig.includes(kw));
+    const chunkKeywords = keywords.filter((kw: string) => chunk.includes(kw));
+
+    return (
+      origKeywords.length > 0 &&
+      chunkKeywords.length > 0 &&
+      origKeywords.some((kw) => chunkKeywords.includes(kw))
+    );
+  }
+
+  /**
+   * 检查包路径是否匹配
+   */
+  private isPackagePathMatch(orig: string, chunk: string): boolean {
+    // 完全匹配
+    if (orig === chunk) return true;
+
+    // 处理com.yinhai vs yinhai的情况
+    const origParts = orig.split("/").filter((p: string) => p.length > 0);
+    const chunkParts = chunk.split("/").filter((p: string) => p.length > 0);
+
+    // 移除常见的包前缀
+    const origFiltered = origParts.filter(
+      (p: string) => !["com", "org", "net"].includes(p),
+    );
+    const chunkFiltered = chunkParts.filter(
+      (p: string) => !["com", "org", "net"].includes(p),
+    );
+
+    // 检查过滤后的包路径
+    const origFilteredPath = origFiltered.join("/");
+    const chunkFilteredPath = chunkFiltered.join("/");
+
+    if (origFilteredPath === chunkFilteredPath) return true;
+
+    // 检查一个是否包含另一个
+    if (
+      origFilteredPath.includes(chunkFilteredPath) ||
+      chunkFilteredPath.includes(origFilteredPath)
+    )
+      return true;
+
+    // 检查后缀匹配（从后往前匹配至少2个部分）
+    const minLength = Math.min(origFiltered.length, chunkFiltered.length);
+    let matchCount = 0;
+
+    for (let i = 1; i <= minLength && i <= 3; i++) {
+      const origPart = origFiltered[origFiltered.length - i];
+      const chunkPart = chunkFiltered[chunkFiltered.length - i];
+
+      if (origPart === chunkPart) {
+        matchCount++;
+      } else {
+        break;
+      }
+    }
+
+    return matchCount >= 2;
+  }
+
+  /**
+   * 检查路径部分是否相似
+   */
+  private isPathPartSimilar(orig: string, chunk: string): boolean {
+    // 完全匹配
+    if (orig === chunk) return true;
+
+    // 一个包含另一个
+    if (orig.includes(chunk) || chunk.includes(orig)) return true;
+
+    // 检查是否是常见的变体
+    const variants = [
+      ["entity", "entities"],
+      ["dto", "dtos"],
+      ["vo", "vos"],
+      ["domain", "domains"],
+      ["aggregate", "aggregates"],
+      ["service", "services"],
+      ["repository", "repositories"],
+      ["controller", "controllers"],
+    ];
+
+    for (const [v1, v2] of variants) {
+      if ((orig === v1 && chunk === v2) || (orig === v2 && chunk === v1)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * 计算路径相似度 - 改进版本，优先考虑文件名匹配
+   */
+  private calculatePathSimilarity(
+    origParts: string[],
+    chunkParts: string[],
+  ): number {
+    if (origParts.length === 0 && chunkParts.length === 0) return 1.0;
+    if (origParts.length === 0 || chunkParts.length === 0) return 0.0;
+
+    // 提取文件名
+    const origFileName = origParts[origParts.length - 1] || "";
+    const chunkFileName = chunkParts[chunkParts.length - 1] || "";
+
+    // 如果文件名完全相同，给予很高的基础分数
+    let baseScore = 0;
+    if (origFileName === chunkFileName) {
+      baseScore = 0.8; // 同名文件基础分数80%
+    } else {
+      // 检查文件名相似性（去除扩展名）
+      const origBaseName = origFileName.replace(/\.(java|xml|kt|scala)$/, "");
+      const chunkBaseName = chunkFileName.replace(/\.(java|xml|kt|scala)$/, "");
+
+      if (origBaseName === chunkBaseName) {
+        baseScore = 0.7; // 同基础名文件70%
+      } else if (this.isFileNameVariant(origBaseName, chunkBaseName)) {
+        baseScore = 0.5; // 文件名变体50%
+      } else {
+        baseScore = 0.1; // 不同文件名只有10%
+      }
+    }
+
+    // 计算路径部分的相似度（除了文件名）
+    const origPathParts = origParts.slice(0, -1);
+    const chunkPathParts = chunkParts.slice(0, -1);
+
+    const origSet = new Set(origPathParts);
+    const chunkSet = new Set(chunkPathParts);
+
+    // 计算交集
+    const origArray = Array.from(origSet);
+    const intersection = new Set(
+      origArray.filter((x: string) => chunkSet.has(x)),
+    );
+
+    // 计算并集
+    const origArrayForUnion = Array.from(origSet);
+    const chunkArrayForUnion = Array.from(chunkSet);
+    const union = new Set([...origArrayForUnion, ...chunkArrayForUnion]);
+
+    // 路径相似度（Jaccard相似度）
+    const pathSimilarity =
+      union.size > 0 ? intersection.size / union.size : 1.0;
+
+    // 综合分数：文件名权重70%，路径权重30%
+    return baseScore * 0.7 + pathSimilarity * 0.3;
+  }
+
+  /**
+   * 检查XML文件名是否相似
+   */
+  private isXmlFileNameSimilar(orig: string, chunk: string): boolean {
+    // 完全匹配
+    if (orig === chunk) return true;
+
+    // 移除常见的XML文件后缀变体
+    const origCore = orig.replace(/(Read|Write|Query|Command|Mapper)$/, "");
+    const chunkCore = chunk.replace(/(Read|Write|Query|Command|Mapper)$/, "");
+
+    // 核心名称匹配
+    if (origCore === chunkCore && origCore.length > 0) return true;
+
+    // 检查一个是否包含另一个
+    if (orig.includes(chunk) || chunk.includes(orig)) return true;
+
+    // 检查是否是常见的MyBatis Mapper变体
+    const mapperVariants = [
+      [orig + "Mapper", chunk],
+      [orig, chunk + "Mapper"],
+      [orig + "ReadMapper", chunk + "Mapper"],
+      [orig + "WriteMapper", chunk + "Mapper"],
+      [orig + "Mapper", chunk + "ReadMapper"],
+      [orig + "Mapper", chunk + "WriteMapper"],
+    ];
+
+    for (const [v1, v2] of mapperVariants) {
+      if (v1 === v2) return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 检查文件名是否是常见变体
+   */
+  private isFileNameVariant(orig: string, chunk: string): boolean {
+    // 完全匹配
+    if (orig === chunk) return true;
+
+    // 检查一个是否包含另一个
+    if (orig.includes(chunk) || chunk.includes(orig)) return true;
+
+    // 常见的Java类名变体
+    const javaVariants = [
+      // Repository变体
+      [orig + "Repository", chunk],
+      [orig, chunk + "Repository"],
+      [orig + "ReadRepository", chunk + "Repository"],
+      [orig + "WriteRepository", chunk + "Repository"],
+      [orig + "Repository", chunk + "ReadRepository"],
+      [orig + "Repository", chunk + "WriteRepository"],
+
+      // Service变体
+      [orig + "Service", chunk],
+      [orig, chunk + "Service"],
+      [orig + "ServiceImpl", chunk + "Service"],
+      [orig + "Service", chunk + "ServiceImpl"],
+
+      // Entity变体
+      [orig + "Entity", chunk],
+      [orig, chunk + "Entity"],
+
+      // DTO/VO变体
+      [orig + "DTO", chunk],
+      [orig, chunk + "DTO"],
+      [orig + "VO", chunk],
+      [orig, chunk + "VO"],
+
+      // Controller变体
+      [orig + "Controller", chunk],
+      [orig, chunk + "Controller"],
+    ];
+
+    for (const [v1, v2] of javaVariants) {
+      if (v1 === v2) return true;
+    }
+
+    // 检查是否是缩写或展开形式
+    if (this.isAbbreviationMatch(orig, chunk)) return true;
+
+    return false;
+  }
+
+  /**
+   * 检查是否是缩写匹配
+   */
+  private isAbbreviationMatch(orig: string, chunk: string): boolean {
+    // 检查常见的缩写模式
+    const abbreviations = [
+      ["Ta", "Table"],
+      ["Mgmt", "Management"],
+      ["Auth", "Authentication"],
+      ["Org", "Organization"],
+      ["User", "UserAuth"],
+      ["Role", "RoleManagement"],
+    ];
+
+    for (const [abbr, full] of abbreviations) {
+      if (
+        (orig.includes(abbr) && chunk.includes(full)) ||
+        (orig.includes(full) && chunk.includes(abbr))
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * 智能选择代码片段 - 保留所有高分片段，不被topN严格限制
    * @param scores 评分数组
    * @param topN 建议的片段数量
@@ -1175,7 +2668,7 @@ Example:
   private selectTopSnippetsWithHighScorePreservation(
     scores: RelevanceScore[],
     topN: number,
-    highScoreThreshold: number = 9.0
+    highScoreThreshold: number = 9.8,
   ): RelevanceScore[] {
     if (!scores.length) {
       return [];
@@ -1185,11 +2678,15 @@ Example:
     const sortedScores = scores.sort((a, b) => b.score - a.score);
 
     // 找到所有高分片段
-    const highScoreSnippets = sortedScores.filter(score => score.score >= highScoreThreshold);
+    const highScoreSnippets = sortedScores.filter(
+      (score) => score.score >= highScoreThreshold,
+    );
 
     if (highScoreSnippets.length > topN) {
       // 如果高分片段数量超过topN，保留所有高分片段
-      console.log(`📈 发现 ${highScoreSnippets.length} 个高分片段(≥${highScoreThreshold})，超过topN(${topN})，保留所有高分片段`);
+      console.log(
+        `📈 发现 ${highScoreSnippets.length} 个高分片段(≥${highScoreThreshold})，超过topN(${topN})，保留所有高分片段`,
+      );
       return highScoreSnippets;
     } else if (highScoreSnippets.length === topN) {
       // 如果高分片段数量正好等于topN，直接返回
@@ -1198,13 +2695,15 @@ Example:
       // 如果高分片段数量少于topN，补充其他片段到topN
       const remainingSlots = topN - highScoreSnippets.length;
       const otherSnippets = sortedScores
-        .filter(score => score.score < highScoreThreshold)
+        .filter((score: any) => score.score < highScoreThreshold)
         .slice(0, remainingSlots);
 
       const result = [...highScoreSnippets, ...otherSnippets];
 
       if (highScoreSnippets.length > 0) {
-        console.log(`📊 保留 ${highScoreSnippets.length} 个高分片段 + ${otherSnippets.length} 个其他片段，共 ${result.length} 个`);
+        console.log(
+          `📊 保留 ${highScoreSnippets.length} 个高分片段 + ${otherSnippets.length} 个其他片段，共 ${result.length} 个`,
+        );
       }
 
       return result;
@@ -1220,7 +2719,7 @@ Example:
   private selectTopScoredChunksWithHighScorePreservation(
     chunks: ScoredChunk[],
     topN: number,
-    highScoreThreshold: number = 9.0
+    highScoreThreshold: number = 9.0,
   ): ScoredChunk[] {
     if (!chunks.length) {
       return [];
@@ -1230,11 +2729,15 @@ Example:
     const sortedChunks = chunks.sort((a, b) => b.score - a.score);
 
     // 找到所有高分片段
-    const highScoreChunks = sortedChunks.filter(chunk => chunk.score >= highScoreThreshold);
+    const highScoreChunks = sortedChunks.filter(
+      (chunk) => chunk.score >= highScoreThreshold,
+    );
 
     if (highScoreChunks.length > topN) {
       // 如果高分片段数量超过topN，保留所有高分片段
-      console.log(`📈 发现 ${highScoreChunks.length} 个高分片段(≥${highScoreThreshold})，超过topN(${topN})，保留所有高分片段`);
+      console.log(
+        `📈 发现 ${highScoreChunks.length} 个高分片段(≥${highScoreThreshold})，超过topN(${topN})，保留所有高分片段`,
+      );
       return highScoreChunks;
     } else if (highScoreChunks.length === topN) {
       // 如果高分片段数量正好等于topN，直接返回
@@ -1243,13 +2746,15 @@ Example:
       // 如果高分片段数量少于topN，补充其他片段到topN
       const remainingSlots = topN - highScoreChunks.length;
       const otherChunks = sortedChunks
-        .filter(chunk => chunk.score < highScoreThreshold)
+        .filter((chunk: any) => chunk.score < highScoreThreshold)
         .slice(0, remainingSlots);
 
       const result = [...highScoreChunks, ...otherChunks];
 
       if (highScoreChunks.length > 0) {
-        console.log(`📊 保留 ${highScoreChunks.length} 个高分片段 + ${otherChunks.length} 个其他片段，共 ${result.length} 个`);
+        console.log(
+          `📊 保留 ${highScoreChunks.length} 个高分片段 + ${otherChunks.length} 个其他片段，共 ${result.length} 个`,
+        );
       }
 
       return result;
@@ -1484,124 +2989,136 @@ ${snippetDescriptions.join("\n\n")}`;
     moduleFileMap: ModuleFileMap,
     userRequest: string,
     topN: number = 5,
-    batchSize: number = 10,
+    batchSize: number = 15,
   ): Promise<ScoredChunk[]> {
     if (!Object.keys(moduleFileMap).length || !userRequest) {
       throw new Error("模块文件映射和用户请求必须提供且非空");
     }
 
-    // 获取当前IDE打开的工作空间目录
-    const workspaceDirs = await this.ide.getWorkspaceDirs();
-    if (!workspaceDirs.length) {
-      throw new Error("未找到工作空间目录");
-    }
-
-    // 使用第一个工作空间目录作为基础路径
-    const basePath = workspaceDirs[0];
-    const normalizedBasePath = basePath.startsWith("file://")
-      ? localPathOrUriToPath(basePath)
-      : basePath;
-
-    const baseUri = this.safePathToUri(normalizedBasePath);
-
-    if (!(await this.ide.fileExists(baseUri))) {
-      throw new Error(`工作空间目录 ${normalizedBasePath} 不存在`);
-    }
-
-    // 为每个模块并发处理
-    const moduleResults: ScoredChunk[] = [];
-    const moduleTasks: Promise<ScoredChunk[]>[] = [];
-
-    for (const [moduleName, files] of Object.entries(moduleFileMap)) {
-      const moduleTask = this.concurrencyManager.execute(async () => {
-        return await this.processModuleChunks(
-          moduleName,
-          files,
-          normalizedBasePath,
-          userRequest,
-          topN,
-          batchSize,
-        );
-      });
-      moduleTasks.push(moduleTask);
-    }
-
-    // 等待所有模块处理完成
-    const moduleTaskResults = await Promise.allSettled(moduleTasks);
-
-    let successModules = 0;
-    let errorModules = 0;
-    let totalProvidedChunks = 0;
-
-    // 计算总的提供片段数
-    for (const files of Object.values(moduleFileMap)) {
-      totalProvidedChunks += files.length; // 这里是文件数，实际片段数会更多
-    }
-
-    for (let i = 0; i < moduleTaskResults.length; i++) {
-      const result = moduleTaskResults[i];
-      const moduleName = Object.keys(moduleFileMap)[i];
-
-      if (result.status === "fulfilled") {
-        const moduleChunks = result.value;
-        moduleResults.push(...moduleChunks);
-        successModules++;
-      } else {
-        console.error(`❌ 模块 ${moduleName} 处理失败: ${result.reason}`);
-        errorModules++;
+    try {
+      // 获取当前IDE打开的工作空间目录
+      const workspaceDirs = await this.ide.getWorkspaceDirs();
+      if (!workspaceDirs.length) {
+        throw new Error("未找到工作空间目录");
       }
-    }
 
-    // 显示并发管理器统计信息
-    const stats = this.concurrencyManager.getStats();
-    // 按模块统计过滤前的片段数
-    const moduleStats = new Map<string, number>();
-    for (const snippet of moduleResults) {
-      const module = snippet.module || "未知模块";
-      moduleStats.set(module, (moduleStats.get(module) || 0) + 1);
-    }
+      // 使用第一个工作空间目录作为基础路径
+      const basePath = workspaceDirs[0];
+      const normalizedBasePath = basePath.startsWith("file://")
+        ? localPathOrUriToPath(basePath)
+        : basePath;
 
-    if (moduleResults.length === 0) {
-      console.warn("⚠️ 没有代码片段需要过滤，使用备选方案获取基础代码片段");
-      const fallbackSnippets = await this.getFallbackSnippets(
-        moduleFileMap,
+      const baseUri = this.safePathToUri(normalizedBasePath);
+
+      if (!(await this.ide.fileExists(baseUri))) {
+        throw new Error(`工作空间目录 ${normalizedBasePath} 不存在`);
+      }
+
+      // 为每个模块并发处理
+      const moduleResults: ScoredChunk[] = [];
+      const moduleTasks: Promise<ScoredChunk[]>[] = [];
+
+      for (const [moduleName, files] of Object.entries(moduleFileMap)) {
+        const moduleTask = this.concurrencyManager.execute(async () => {
+          return await this.processModuleChunks(
+            moduleName,
+            files,
+            normalizedBasePath,
+            userRequest,
+            topN,
+            batchSize,
+          );
+        });
+        moduleTasks.push(moduleTask);
+      }
+
+      // 等待所有模块处理完成
+      const moduleTaskResults = await Promise.allSettled(moduleTasks);
+
+      let successModules = 0;
+      let errorModules = 0;
+      let totalProvidedChunks = 0;
+
+      // 计算总的提供片段数
+      for (const files of Object.values(moduleFileMap)) {
+        totalProvidedChunks += files.length; // 这里是文件数，实际片段数会更多
+      }
+
+      for (let i = 0; i < moduleTaskResults.length; i++) {
+        const result = moduleTaskResults[i];
+        const moduleName = Object.keys(moduleFileMap)[i];
+
+        if (result.status === "fulfilled") {
+          const moduleChunks = result.value;
+          moduleResults.push(...moduleChunks);
+          successModules++;
+        } else {
+          console.error(`❌ 模块 ${moduleName} 处理失败: ${result.reason}`);
+          errorModules++;
+        }
+      }
+
+      // 按模块统计过滤前的片段数
+      const moduleStats = new Map<string, number>();
+      for (const snippet of moduleResults) {
+        const module = snippet.module || "未知模块";
+        moduleStats.set(module, (moduleStats.get(module) || 0) + 1);
+      }
+
+      if (moduleResults.length === 0) {
+        console.warn("⚠️ 没有代码片段需要过滤，使用备选方案获取基础代码片段");
+        const fallbackSnippets = await this.getFallbackSnippets(
+          moduleFileMap,
+          userRequest,
+          normalizedBasePath,
+          topN,
+        );
+        console.log(`📋 备选方案获取到 ${fallbackSnippets.length} 个代码片段`);
+        return fallbackSnippets;
+      }
+
+      const filteredResults = await this.filterIrrelevantSnippets(
         userRequest,
-        normalizedBasePath,
-        topN,
+        moduleResults,
       );
-      console.log(`📋 备选方案获取到 ${fallbackSnippets.length} 个代码片段`);
-      return fallbackSnippets;
-    }
 
-    const filteredResults = await this.filterIrrelevantSnippets(
-      userRequest,
-      moduleResults,
-    );
+      // 按模块统计过滤后的片段数
+      const filteredModuleStats = new Map<string, number>();
+      for (const snippet of filteredResults) {
+        const module = snippet.module || "未知模块";
+        filteredModuleStats.set(
+          module,
+          (filteredModuleStats.get(module) || 0) + 1,
+        );
+      }
 
-    // 按模块统计过滤后的片段数
-    const filteredModuleStats = new Map<string, number>();
-    for (const snippet of filteredResults) {
-      const module = snippet.module || "未知模块";
-      filteredModuleStats.set(
-        module,
-        (filteredModuleStats.get(module) || 0) + 1,
+      // 如果过滤后没有结果，使用备选方案
+      if (filteredResults.length === 0) {
+        console.warn("⚠️ 过滤后没有相关代码片段，使用备选方案获取基础代码片段");
+        const fallbackSnippets = await this.getFallbackSnippets(
+          moduleFileMap,
+          userRequest,
+          normalizedBasePath,
+          Math.min(topN, 5), // 备选方案返回较少的片段
+        );
+        console.log(`📋 备选方案获取到 ${fallbackSnippets.length} 个代码片段`);
+
+        // 为备选方案的代码片段生成总结并输出到日志
+        this.generateAndLogSummaries(fallbackSnippets, userRequest);
+
+        return fallbackSnippets;
+      }
+
+      // 注意：代码总结已经在 processModuleChunks 中完成，这里不需要重复总结
+      console.log(
+        `✅ 代码分析完成，返回 ${filteredResults.length} 个相关代码片段`,
       );
-    }
 
-    // 如果过滤后没有结果，使用备选方案
-    if (filteredResults.length === 0) {
-      console.warn("⚠️ 过滤后没有相关代码片段，使用备选方案获取基础代码片段");
-      const fallbackSnippets = await this.getFallbackSnippets(
-        moduleFileMap,
-        userRequest,
-        normalizedBasePath,
-        Math.min(topN, 5), // 备选方案返回较少的片段
-      );
-      console.log(`📋 备选方案获取到 ${fallbackSnippets.length} 个代码片段`);
-      return fallbackSnippets;
+      return filteredResults;
+    } catch (error) {
+      // 重新抛出异常
+      throw error;
     }
-
-    return filteredResults;
   }
 
   /**
@@ -1653,6 +3170,9 @@ ${snippetDescriptions.join("\n\n")}`;
       return [];
     }
 
+    // 为所有读取的代码块生成总结并输出到日志
+    this.logAllCodeChunks(moduleName, moduleChunks);
+
     // 对该模块的代码块进行批处理评分
     const moduleScores: RelevanceScore[] = [];
     const batchTasks: Promise<{
@@ -1660,6 +3180,11 @@ ${snippetDescriptions.join("\n\n")}`;
       scores: RelevanceScore[];
       error?: Error;
     }>[] = [];
+
+    const totalBatches = Math.ceil(moduleChunks.length / batchSize);
+    console.log(
+      `📊 模块 ${moduleName}: ${moduleChunks.length} 个代码块，分 ${totalBatches} 批处理（每批 ${batchSize} 个）- Token优化生效`,
+    );
 
     for (let i = 0; i < moduleChunks.length; i += batchSize) {
       const batchIndex = Math.floor(i / batchSize) + 1;
@@ -1707,7 +3232,10 @@ ${snippetDescriptions.join("\n\n")}`;
     }
 
     // 智能选择该模块的代码片段 - 保留所有高分片段
-    const selectedChunks = this.selectTopSnippetsWithHighScorePreservation(moduleScores, topN);
+    const selectedChunks = this.selectTopSnippetsWithHighScorePreservation(
+      moduleScores,
+      topN,
+    );
 
     // 构建该模块的结果
     const moduleResults: ScoredChunk[] = [];
@@ -1716,7 +3244,14 @@ ${snippetDescriptions.join("\n\n")}`;
       let matched = false;
       for (const origChunk of moduleChunks) {
         // 使用更宽松的路径匹配逻辑
-        if (this.isPathMatch(origChunk.file_path, chunk.file, origChunk.start_line, chunk.start_line)) {
+        if (
+          this.isPathMatch(
+            origChunk.file_path,
+            chunk.file,
+            origChunk.start_line,
+            chunk.start_line,
+          )
+        ) {
           moduleResults.push({
             file: chunk.file,
             start_line: chunk.start_line,
@@ -1733,16 +3268,404 @@ ${snippetDescriptions.join("\n\n")}`;
         console.warn(
           `⚠️ 未找到匹配的原始代码块: ${chunk.file}:${chunk.start_line} (评分: ${chunk.score})`,
         );
-        // 输出一些调试信息
-        console.warn(
-          `   可用的原始代码块路径示例: ${moduleChunks
-            .slice(0, 3)
-            .map((c) => c.file_path)
-            .join(", ")}`,
-        );
+
+        // 输出详细的调试信息
+        console.warn(`   LLM返回路径: ${chunk.file}`);
+        console.warn(`   可用的原始代码块路径示例:`);
+        moduleChunks.slice(0, 3).forEach((c, index) => {
+          console.warn(`     ${index + 1}. ${c.file_path}:${c.start_line}`);
+        });
+
+        // 尝试找到最相似的路径 - 优先考虑同名文件
+        let bestMatch = null;
+        let bestSimilarity = 0;
+        let sameNameMatches: any[] = [];
+
+        // 首先查找同名文件
+        const chunkFileName = this.extractFileName(chunk.file);
+        for (const origChunk of moduleChunks) {
+          const origFileName = this.extractFileName(origChunk.file_path);
+          if (origFileName === chunkFileName) {
+            sameNameMatches.push(origChunk);
+
+            // 如果同名文件且行号匹配或接近，直接使用
+            if (
+              this.isLineNumberMatch(origChunk.start_line, chunk.start_line)
+            ) {
+              console.warn(
+                `🎯 找到同名文件且行号匹配: ${origChunk.file_path}:${origChunk.start_line} ≈ ${chunk.file}:${chunk.start_line}`,
+              );
+              bestMatch = origChunk;
+              bestSimilarity = 1.0;
+              break;
+            }
+          }
+        }
+
+        // 如果没有找到行号匹配的同名文件，从候选中选择最佳匹配
+        if (bestSimilarity < 1.0) {
+          const candidateChunks =
+            sameNameMatches.length > 0
+              ? sameNameMatches
+              : moduleChunks.slice(0, 20);
+
+          for (const origChunk of candidateChunks) {
+            const origParts = origChunk.file_path
+              .replace(/\\/g, "/")
+              .split("/")
+              .filter((p: string) => p.length > 0);
+            const chunkParts = chunk.file
+              .replace(/\\/g, "/")
+              .split("/")
+              .filter((p: string) => p.length > 0);
+
+            const similarity = this.calculatePathSimilarity(
+              origParts,
+              chunkParts,
+            );
+            if (similarity > bestSimilarity) {
+              bestSimilarity = similarity;
+              bestMatch = origChunk;
+            }
+          }
+        }
+
+        if (bestMatch && bestSimilarity > 0.1) {
+          const isSameName = sameNameMatches.length > 0;
+          console.warn(
+            `   最相似路径 (${(bestSimilarity * 100).toFixed(1)}%${isSameName ? ", 同名文件" : ""}): ${bestMatch.file_path}:${bestMatch.start_line}`,
+          );
+
+          if (sameNameMatches.length > 1) {
+            console.warn(`   找到 ${sameNameMatches.length} 个同名文件候选`);
+          }
+
+          // 分析为什么没有匹配
+          const origInfo = this.extractPathInfo(
+            bestMatch.file_path.replace(/\\/g, "/").split("/"),
+          );
+          const chunkInfo = this.extractPathInfo(
+            chunk.file.replace(/\\/g, "/").split("/"),
+          );
+
+          console.warn(`   路径分析:`);
+          console.warn(
+            `     原始项目: ${origInfo.projectName || "N/A"}, 包路径: ${origInfo.packagePath || "N/A"}, 文件: ${origInfo.fileName || "N/A"}`,
+          );
+          console.warn(
+            `     LLM项目: ${chunkInfo.projectName || "N/A"}, 包路径: ${chunkInfo.packagePath || "N/A"}, 文件: ${chunkInfo.fileName || "N/A"}`,
+          );
+          console.warn(
+            `     行号匹配: ${bestMatch.start_line === chunk.start_line ? "✅" : "❌"} (${bestMatch.start_line} vs ${chunk.start_line})`,
+          );
+        }
       }
     }
 
     return moduleResults;
+  }
+
+  /**
+   * 为所有读取的代码块生成总结并输出到日志
+   * @param moduleName 模块名称
+   * @param codeChunks 原始代码块数组
+   */
+  private logAllCodeChunks(moduleName: string, codeChunks: CodeChunk[]): void {
+    if (!this.enableSummaries || !this.llm || codeChunks.length === 0) {
+      return;
+    }
+
+    // 异步执行，不阻塞主流程
+    Promise.resolve().then(async () => {
+      try {
+        console.log(
+          `📚 模块 ${moduleName} 读取了 ${codeChunks.length} 个代码块，开始生成总结...`,
+        );
+
+        // 将 CodeChunk 转换为 ScoredChunk 格式以便复用现有的总结方法
+        const scoredChunks: ScoredChunk[] = codeChunks.map((chunk) => ({
+          file: chunk.file_path,
+          start_line: chunk.start_line,
+          score: 1.0, // 给所有代码块一个默认分数
+          code: chunk.chunk,
+          module: moduleName,
+        }));
+
+        // 生成代码片段总结并输出到日志
+        await this.logCodeSummaries(scoredChunks);
+
+        // 为该模块生成总结
+        const moduleChunks = new Map<string, ScoredChunk[]>();
+        moduleChunks.set(moduleName, scoredChunks);
+        await this.logModuleSummaries(moduleChunks);
+
+        console.log(
+          `✅ 模块 ${moduleName} 的所有代码块总结完成 (${codeChunks.length} 个代码块)`,
+        );
+      } catch (error) {
+        console.warn(
+          `⚠️ 模块 ${moduleName} 代码块总结生成失败:`,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    });
+  }
+
+  /**
+   * 为代码片段生成简短总结并输出到日志
+   * @param codeChunks 代码片段数组
+   */
+  private async logCodeSummaries(codeChunks: ScoredChunk[]): Promise<void> {
+    if (!this.llm || !codeChunks.length) {
+      return;
+    }
+
+    try {
+      console.log("🔍 开始生成代码片段总结...");
+
+      // 构建代码片段描述
+      const chunkDescriptions = codeChunks.map(
+        (chunk, index) =>
+          `【代码片段 ${index + 1}】
+文件: ${chunk.file}
+起始行: ${chunk.start_line}
+代码内容:
+\`\`\`java
+${chunk.code.substring(0, 800)}${chunk.code.length > 800 ? "..." : ""}
+\`\`\``,
+      );
+
+      const userContent = `请为以下代码片段生成简短总结：
+
+${chunkDescriptions.join("\n\n")}`;
+
+      // 重置之前的结果
+      this.toolCallResults.codeSummaries = undefined;
+
+      // 创建带超时的 AbortController
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, 30000); // 30秒超时
+
+      const messages: ChatMessage[] = [
+        {
+          role: "system",
+          content: this.summarySystemPrompt,
+        },
+        { role: "user", content: userContent },
+      ];
+
+      const response = await this.llm.chat(messages, abortController.signal, {
+        temperature: 0.0,
+        maxTokens: 4096,
+      });
+
+      clearTimeout(timeoutId);
+
+      // 处理LLM响应内容
+      const content = response.content;
+      if (typeof content === "string") {
+        try {
+          const args = this.extractToolCallArgs(content, "submitCodeSummaries");
+
+          if (args.summaries && Array.isArray(args.summaries)) {
+            this.submitCodeSummaries(args.summaries);
+          } else {
+            console.warn("⚠️ 工具调用参数中缺少 summaries 数组");
+          }
+        } catch (extractError) {
+          console.error(
+            "❌ 从内容中提取代码总结失败:",
+            extractError instanceof Error
+              ? extractError.message
+              : String(extractError),
+          );
+        }
+      }
+
+      // 检查是否有工具调用结果并输出到日志
+      const codeSummaries = this.toolCallResults.codeSummaries;
+      if (codeSummaries && Array.isArray(codeSummaries)) {
+        const summaries = codeSummaries as CodeSummary[];
+        if (summaries.length > 0) {
+          console.log("📄 代码片段总结:");
+          summaries.forEach((summary, index) => {
+            console.log(
+              `  ${index + 1}. ${summary.file}:${summary.start_line}`,
+            );
+            console.log(`     总结: ${summary.summary}`);
+          });
+        } else {
+          console.warn("⚠️ 代码总结结果为空");
+        }
+      } else {
+        console.warn("⚠️ 无法获取代码总结结果");
+      }
+    } catch (error) {
+      console.warn(
+        "⚠️ 生成代码总结过程出错:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  /**
+   * 为模块生成总结并输出到日志
+   * @param moduleChunks 按模块分组的代码片段
+   */
+  private async logModuleSummaries(
+    moduleChunks: Map<string, ScoredChunk[]>,
+  ): Promise<void> {
+    if (!this.llm || moduleChunks.size === 0) {
+      return;
+    }
+
+    console.log("📊 开始生成模块总结...");
+
+    const moduleEntries = Array.from(moduleChunks.entries());
+    for (const [moduleName, chunks] of moduleEntries) {
+      try {
+        // 构建模块的代码描述（基于代码内容而不是总结）
+        const chunkDescriptions = chunks
+          .slice(0, 5) // 只取前5个代码片段避免内容过长
+          .map((chunk, index) => {
+            const codePreview = chunk.code
+              .substring(0, 200)
+              .replace(/\n/g, " ");
+            return `${index + 1}. ${chunk.file}:${chunk.start_line} - ${codePreview}${chunk.code.length > 200 ? "..." : ""}`;
+          });
+
+        const userContent = `模块名称: ${moduleName}
+代码片段总数: ${chunks.length}
+
+主要代码片段:
+${chunkDescriptions.join("\n")}
+
+请为此模块生成一个综合性的总结。`;
+
+        // 重置之前的结果
+        this.toolCallResults.moduleSummaries = undefined;
+
+        // 创建带超时的 AbortController
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => {
+          abortController.abort();
+        }, 25000); // 25秒超时
+
+        const messages: ChatMessage[] = [
+          {
+            role: "system",
+            content: this.moduleSummarySystemPrompt,
+          },
+          { role: "user", content: userContent },
+        ];
+
+        const response = await this.llm.chat(messages, abortController.signal, {
+          temperature: 0.0,
+          maxTokens: 2048,
+        });
+
+        clearTimeout(timeoutId);
+
+        // 处理LLM响应内容
+        const content = response.content;
+        if (typeof content === "string") {
+          try {
+            const args = this.extractToolCallArgs(
+              content,
+              "submitModuleSummaries",
+            );
+
+            if (args.summaries && Array.isArray(args.summaries)) {
+              this.submitModuleSummaries(args.summaries);
+            } else {
+              console.warn("⚠️ 工具调用参数中缺少 summaries 数组");
+            }
+          } catch (extractError) {
+            console.error(
+              "❌ 从内容中提取模块总结失败:",
+              extractError instanceof Error
+                ? extractError.message
+                : String(extractError),
+            );
+          }
+        }
+
+        // 检查是否有工具调用结果并输出到日志
+        const moduleResults = this.toolCallResults.moduleSummaries;
+        if (moduleResults && Array.isArray(moduleResults)) {
+          const summaries = moduleResults as ModuleSummary[];
+          if (summaries.length > 0) {
+            console.log(`🏗️ 模块 ${moduleName} 总结:`);
+            summaries.forEach((summary) => {
+              console.log(`   总结: ${summary.summary}`);
+              console.log(`   片段数: ${summary.chunk_count}`);
+            });
+          } else {
+            console.log(
+              `🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`,
+            );
+          }
+        } else {
+          console.log(
+            `🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`,
+          );
+        }
+      } catch (error) {
+        console.warn(
+          `⚠️ 生成模块 ${moduleName} 总结过程出错:`,
+          error instanceof Error ? error.message : String(error),
+        );
+        console.log(`🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`);
+      }
+    }
+  }
+
+  /**
+   * 生成并输出代码总结到日志（异步执行，不阻塞主流程）
+   * 注意：这个方法主要用于备选方案，因为正常流程中代码总结已经在 processModuleChunks 中完成
+   * @param chunks 代码片段数组
+   * @param userRequest 用户请求
+   */
+  private generateAndLogSummaries(
+    chunks: ScoredChunk[],
+    userRequest: string,
+  ): void {
+    if (!this.llm || chunks.length === 0) {
+      return;
+    }
+
+    // 异步执行，不阻塞主流程
+    Promise.resolve().then(async () => {
+      try {
+        console.log(`📋 备选方案：为 ${chunks.length} 个代码片段生成总结...`);
+
+        // 生成代码片段总结并输出到日志
+        await this.logCodeSummaries(chunks);
+
+        // 按模块分组代码片段
+        const moduleChunks = new Map<string, ScoredChunk[]>();
+        for (const chunk of chunks) {
+          const module = chunk.module || "未知模块";
+          if (!moduleChunks.has(module)) {
+            moduleChunks.set(module, []);
+          }
+          moduleChunks.get(module)!.push(chunk);
+        }
+
+        // 生成模块总结并输出到日志
+        await this.logModuleSummaries(moduleChunks);
+
+        console.log(
+          `✅ 备选方案总结生成完成: ${chunks.length} 个代码片段, ${moduleChunks.size} 个模块`,
+        );
+      } catch (error) {
+        console.warn(
+          "⚠️ 备选方案总结生成过程出错:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    });
   }
 }

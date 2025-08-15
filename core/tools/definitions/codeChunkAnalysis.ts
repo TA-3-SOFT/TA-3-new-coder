@@ -40,8 +40,8 @@ export const codeChunkAnalysisTool: Tool = {
         },
         batchSize: {
           type: "number",
-          description: "批处理大小（默认10）",
-          default: 10,
+          description: "批处理大小（默认15，增大可减少LLM调用次数）",
+          default: 15,
         },
         maxChunkSize: {
           type: "number",

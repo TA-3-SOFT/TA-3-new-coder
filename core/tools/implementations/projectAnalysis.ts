@@ -42,10 +42,6 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
 
     // 构建基本项目信息
     let content = `# Maven项目分析报告\n\n`;
-    content += `## 📋 项目基本信息\n`;
-    content += `- **项目根目录**: ${rootDir}\n`;
-    content += `- **项目类型**: Maven项目\n`;
-    content += `- **总模块数**: ${allModules.length}\n\n`;
 
     // 如果提供了需求，进行模块和文件推荐
     if (finalRequirement) {

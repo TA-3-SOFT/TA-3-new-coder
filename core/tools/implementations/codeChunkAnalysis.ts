@@ -7,10 +7,8 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
     moduleFileMap,
     userRequest,
     topN = 10,
-    batchSize = 10,
+    batchSize = 15,
     maxChunkSize = 800,
-    analysisMethod = "auto",
-    useKeywordMatching,
   } = args;
 
   let finalUserRequest = extras.contextData?.requirementFinal || userRequest;
@@ -51,75 +49,11 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
     let analyzer: CodeSnippetAnalyzer;
     let methodUsed: string;
 
-    // 获取嵌入提供者
-    const embeddingsProvider = extras.config?.selectedModelByRole?.embed;
-
-    // if (analysisMethod === "vector") {
-    //   if (!embeddingsProvider) {
-    //     return [
-    //       {
-    //         name: "代码片段分析错误",
-    //         description: "向量化方法需要嵌入提供者",
-    //         content:
-    //           "向量化分析方法需要配置嵌入模型。请在配置中设置 embeddingsProvider。",
-    //       },
-    //     ];
-    //   }
-    //   analyzer = new CodeVectorAnalyzer(
-    //     extras.ide,
-    //     embeddingsProvider,
-    //     extras.llm,
-    //     maxChunkSize,
-    //   );
-    //   methodUsed = "向量化匹配";
-    // } else if (analysisMethod === "llm") {
-    //   analyzer = new CodeSnippetAnalyzer(extras.ide, extras.llm, maxChunkSize);
-    //   methodUsed = "LLM语义分析";
-    // } else {
-    //   // auto: 根据需求复杂度自动选择
-    //   if (
-    //     (finalUserRequest.length > 100 ||
-    //       finalUserRequest.split(/[，。,\.]/).length > 3) &&
-    //     embeddingsProvider
-    //   ) {
-    //     analyzer = new CodeVectorAnalyzer(
-    //       extras.ide,
-    //       embeddingsProvider,
-    //       extras.llm,
-    //       maxChunkSize,
-    //     );
-    //     methodUsed = "向量化匹配（自动选择）";
-    //   } else {
-    //     analyzer = new CodeSnippetAnalyzer(
-    //       extras.ide,
-    //       extras.llm,
-    //       maxChunkSize,
-    //     );
-    //     methodUsed = "LLM语义分析（自动选择）";
-    //   }
-    // }
-
     analyzer = new CodeSnippetAnalyzer(extras.ide, extras.llm, maxChunkSize);
     methodUsed = "LLM语义分析";
 
     // 调用分析器
     let snippets;
-    // if (analyzer instanceof CodeVectorAnalyzer) {
-    //   snippets = await analyzer.getRelevantSnippets(
-    //     moduleFileMap,
-    //     finalUserRequest,
-    //     topN,
-    //     batchSize,
-    //     useKeywordMatching,
-    //   );
-    // } else {
-    //   snippets = await analyzer.getRelevantSnippets(
-    //     moduleFileMap,
-    //     finalUserRequest,
-    //     topN,
-    //     batchSize,
-    //   );
-    // }
 
     snippets = await analyzer.getRelevantSnippets(
       moduleFileMap,
@@ -139,9 +73,6 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
         },
       ];
     }
-
-    console.log("工具过滤后的结果");
-    console.log(snippets);
 
     // 构建结果内容
     const moduleList = Object.keys(moduleFileMap);
