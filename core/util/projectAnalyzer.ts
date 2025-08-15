@@ -68,53 +68,58 @@ export class ProjectAnalyzer {
   private cleanXmlResponse(
     content: string,
     defaultReasoning: string = "Analysis completed.",
-    responseType: 'module' | 'file' = 'module'
+    responseType: "module" | "file" = "module",
   ): string {
-    console.log(`🧹 [ProjectAnalyzer] 开始清理 XML 响应，类型: ${responseType}`);
-    console.log(`📄 [ProjectAnalyzer] 原始内容长度: ${content.length} 字符`);
-    console.log(`📄 [ProjectAnalyzer] 原始内容前500字符: ${content.substring(0, 500)}`);
-
     try {
       // 尝试解析 XML
       console.log(`🔍 [ProjectAnalyzer] 尝试直接解析原始 XML...`);
       const testResult = this.parseXmlToObject(content, responseType);
 
       // 检查解析结果是否有效
-      const hasValidContent = responseType === 'module'
-        ? (testResult as ModuleRecommendationResult).recommended_modules.length > 0
-        : (testResult as FileAnalysisResult).recommended_files.length > 0;
+      const hasValidContent =
+        responseType === "module"
+          ? (testResult as ModuleRecommendationResult).recommended_modules
+              .length > 0
+          : (testResult as FileAnalysisResult).recommended_files.length > 0;
 
       if (hasValidContent) {
-        console.log(`✅ [ProjectAnalyzer] 原始 XML 解析成功且有有效内容，无需修复`);
         return content; // XML 已经完整，直接返回
       } else {
-        console.log(`⚠️ [ProjectAnalyzer] 原始 XML 解析成功但内容为空，可能需要修复`);
         throw new Error("解析结果为空，需要修复");
       }
     } catch (parseError) {
-      console.warn(`⚠️ [ProjectAnalyzer] XML 解析失败，尝试修复: ${parseError}`);
+      console.warn(
+        `⚠️ [ProjectAnalyzer] XML 解析失败，尝试修复: ${parseError}`,
+      );
 
       let cleanedContent = content.trim();
-      console.log(`🔧 [ProjectAnalyzer] 开始修复过程...`);
 
       // 移除可能的 markdown 代码块标记
       const beforeMarkdownClean = cleanedContent.length;
-      cleanedContent = cleanedContent.replace(/```xml\s*/g, '').replace(/```\s*$/g, '');
+      cleanedContent = cleanedContent
+        .replace(/```xml\s*/g, "")
+        .replace(/```\s*$/g, "");
       if (cleanedContent.length !== beforeMarkdownClean) {
         console.log(`🧹 [ProjectAnalyzer] 移除了 markdown 代码块标记`);
       }
 
       // 确保有根标签
-      if (!cleanedContent.includes('<response>')) {
+      if (!cleanedContent.includes("<response>")) {
         console.log(`🏷️ [ProjectAnalyzer] 添加根标签 <response>`);
         cleanedContent = `<response>\n${cleanedContent}\n</response>`;
       }
 
       // 修复未闭合的标签
       console.log(`🔧 [ProjectAnalyzer] 修复未闭合的标签...`);
-      cleanedContent = this.fixUnclosedXmlTags(cleanedContent, responseType, defaultReasoning);
+      cleanedContent = this.fixUnclosedXmlTags(
+        cleanedContent,
+        responseType,
+        defaultReasoning,
+      );
 
-      console.log(`📄 [ProjectAnalyzer] 修复后的 XML 长度: ${cleanedContent.length} 字符`);
+      console.log(
+        `📄 [ProjectAnalyzer] 修复后的 XML 长度: ${cleanedContent.length} 字符`,
+      );
       console.log(`📄 [ProjectAnalyzer] 修复后的 XML 内容: ${cleanedContent}`);
 
       // 再次验证修复后的 XML
@@ -124,8 +129,13 @@ export class ProjectAnalyzer {
         console.log(`✅ [ProjectAnalyzer] XML 修复成功`);
         return cleanedContent;
       } catch (secondError) {
-        console.error(`❌ [ProjectAnalyzer] XML 修复失败，使用默认响应: ${secondError}`);
-        const defaultResponse = this.createDefaultXmlResponse(responseType, defaultReasoning);
+        console.error(
+          `❌ [ProjectAnalyzer] XML 修复失败，使用默认响应: ${secondError}`,
+        );
+        const defaultResponse = this.createDefaultXmlResponse(
+          responseType,
+          defaultReasoning,
+        );
         console.log(`📄 [ProjectAnalyzer] 默认响应: ${defaultResponse}`);
         return defaultResponse;
       }
@@ -137,10 +147,12 @@ export class ProjectAnalyzer {
    */
   private fixUnclosedXmlTags(
     content: string,
-    responseType: 'module' | 'file',
-    defaultReasoning: string
+    responseType: "module" | "file",
+    defaultReasoning: string,
   ): string {
-    console.log(`🔧 [ProjectAnalyzer] 开始修复 XML 标签，类型: ${responseType}`);
+    console.log(
+      `🔧 [ProjectAnalyzer] 开始修复 XML 标签，类型: ${responseType}`,
+    );
     let fixed = content;
 
     // 修复常见的不完整标签问题
@@ -148,16 +160,16 @@ export class ProjectAnalyzer {
     const fileTagPattern = /<file>[^<]*<\/(?!file>)/g;
     if (fileTagPattern.test(fixed)) {
       console.log(`🔧 [ProjectAnalyzer] 修复截断的 <file> 标签`);
-      fixed = fixed.replace(/<file>([^<]*)<\/(?!file>).*$/g, '<file>$1</file>');
+      fixed = fixed.replace(/<file>([^<]*)<\/(?!file>).*$/g, "<file>$1</file>");
     }
 
     // 2. 修复截断的最后一个 <file> 标签（如 <file>path</）
     const lastIncompleteFile = fixed.match(/<file>[^<]*<\/?\s*$/);
     if (lastIncompleteFile) {
       console.log(`🔧 [ProjectAnalyzer] 修复最后一个截断的 <file> 标签`);
-      const beforeIncomplete = fixed.substring(0, fixed.lastIndexOf('<file>'));
-      const fileContent = fixed.substring(fixed.lastIndexOf('<file>') + 6);
-      const cleanContent = fileContent.replace(/<\/?\s*$/, '');
+      const beforeIncomplete = fixed.substring(0, fixed.lastIndexOf("<file>"));
+      const fileContent = fixed.substring(fixed.lastIndexOf("<file>") + 6);
+      const cleanContent = fileContent.replace(/<\/?\s*$/, "");
       if (cleanContent.trim()) {
         fixed = beforeIncomplete + `<file>${cleanContent}</file>`;
       } else {
@@ -166,85 +178,125 @@ export class ProjectAnalyzer {
     }
 
     // 3. 修复 </recommended_files 缺少 >
-    if (fixed.includes('</recommended_files') && !fixed.includes('</recommended_files>')) {
+    if (
+      fixed.includes("</recommended_files") &&
+      !fixed.includes("</recommended_files>")
+    ) {
       console.log(`🔧 [ProjectAnalyzer] 修复不完整的 </recommended_files 标签`);
-      fixed = fixed.replace('</recommended_files', '</recommended_files>');
+      fixed = fixed.replace("</recommended_files", "</recommended_files>");
     }
 
     // 4. 修复 </recommended_modules 缺少 >
-    if (fixed.includes('</recommended_modules') && !fixed.includes('</recommended_modules>')) {
-      console.log(`🔧 [ProjectAnalyzer] 修复不完整的 </recommended_modules 标签`);
-      fixed = fixed.replace('</recommended_modules', '</recommended_modules>');
+    if (
+      fixed.includes("</recommended_modules") &&
+      !fixed.includes("</recommended_modules>")
+    ) {
+      console.log(
+        `🔧 [ProjectAnalyzer] 修复不完整的 </recommended_modules 标签`,
+      );
+      fixed = fixed.replace("</recommended_modules", "</recommended_modules>");
     }
 
     // 确保有完整的根标签
-    if (!fixed.includes('</response>')) {
-      if (!fixed.includes('<response>')) {
+    if (!fixed.includes("</response>")) {
+      if (!fixed.includes("<response>")) {
         console.log(`🔧 [ProjectAnalyzer] 添加根标签 <response>`);
         fixed = `<response>\n${fixed}\n</response>`;
       } else {
         console.log(`🔧 [ProjectAnalyzer] 添加根标签结束 </response>`);
-        fixed = fixed + '\n</response>';
+        fixed = fixed + "\n</response>";
       }
     }
 
     // 根据响应类型修复特定标签
-    if (responseType === 'module') {
+    if (responseType === "module") {
       // 修复模块推荐相关标签
-      if (fixed.includes('<recommended_modules>') && !fixed.includes('</recommended_modules>')) {
-        console.log(`🔧 [ProjectAnalyzer] 修复未闭合的 <recommended_modules> 标签`);
+      if (
+        fixed.includes("<recommended_modules>") &&
+        !fixed.includes("</recommended_modules>")
+      ) {
+        console.log(
+          `🔧 [ProjectAnalyzer] 修复未闭合的 <recommended_modules> 标签`,
+        );
         // 找到最后一个 <module> 标签的位置，在其后添加结束标签
-        const lastModuleEnd = fixed.lastIndexOf('</module>');
+        const lastModuleEnd = fixed.lastIndexOf("</module>");
         if (lastModuleEnd !== -1) {
-          const beforeEnd = fixed.substring(0, lastModuleEnd + '</module>'.length);
-          const afterEnd = fixed.substring(lastModuleEnd + '</module>'.length);
-          fixed = beforeEnd + '\n</recommended_modules>' + afterEnd;
+          const beforeEnd = fixed.substring(
+            0,
+            lastModuleEnd + "</module>".length,
+          );
+          const afterEnd = fixed.substring(lastModuleEnd + "</module>".length);
+          fixed = beforeEnd + "\n</recommended_modules>" + afterEnd;
         } else {
           // 如果没有找到 module 标签，直接闭合
-          fixed = fixed.replace('<recommended_modules>', '<recommended_modules>\n</recommended_modules>');
+          fixed = fixed.replace(
+            "<recommended_modules>",
+            "<recommended_modules>\n</recommended_modules>",
+          );
         }
       }
 
       // 确保有必需的标签
-      if (!fixed.includes('<recommended_modules>')) {
-        console.log(`🔧 [ProjectAnalyzer] 添加缺失的 <recommended_modules> 标签`);
-        fixed = fixed.replace('</response>', `<recommended_modules></recommended_modules>\n<reasoning>${defaultReasoning}</reasoning>\n</response>`);
+      if (!fixed.includes("<recommended_modules>")) {
+        console.log(
+          `🔧 [ProjectAnalyzer] 添加缺失的 <recommended_modules> 标签`,
+        );
+        fixed = fixed.replace(
+          "</response>",
+          `<recommended_modules></recommended_modules>\n<reasoning>${defaultReasoning}</reasoning>\n</response>`,
+        );
       }
     } else {
       // 修复文件分析相关标签
-      if (fixed.includes('<recommended_files>') && !fixed.includes('</recommended_files>')) {
-        console.log(`🔧 [ProjectAnalyzer] 修复未闭合的 <recommended_files> 标签`);
+      if (
+        fixed.includes("<recommended_files>") &&
+        !fixed.includes("</recommended_files>")
+      ) {
+        console.log(
+          `🔧 [ProjectAnalyzer] 修复未闭合的 <recommended_files> 标签`,
+        );
         // 找到最后一个 <file> 标签的位置，在其后添加结束标签
-        const lastFileEnd = fixed.lastIndexOf('</file>');
+        const lastFileEnd = fixed.lastIndexOf("</file>");
         if (lastFileEnd !== -1) {
-          const beforeEnd = fixed.substring(0, lastFileEnd + '</file>'.length);
-          const afterEnd = fixed.substring(lastFileEnd + '</file>'.length);
-          fixed = beforeEnd + '\n</recommended_files>' + afterEnd;
+          const beforeEnd = fixed.substring(0, lastFileEnd + "</file>".length);
+          const afterEnd = fixed.substring(lastFileEnd + "</file>".length);
+          fixed = beforeEnd + "\n</recommended_files>" + afterEnd;
         } else {
           // 如果没有找到 file 标签，直接闭合
-          fixed = fixed.replace('<recommended_files>', '<recommended_files>\n</recommended_files>');
+          fixed = fixed.replace(
+            "<recommended_files>",
+            "<recommended_files>\n</recommended_files>",
+          );
         }
       }
 
       // 确保有必需的标签
-      if (!fixed.includes('<recommended_files>')) {
+      if (!fixed.includes("<recommended_files>")) {
         console.log(`🔧 [ProjectAnalyzer] 添加缺失的 <recommended_files> 标签`);
-        fixed = fixed.replace('</response>', `<recommended_files></recommended_files>\n<reasoning>${defaultReasoning}</reasoning>\n</response>`);
+        fixed = fixed.replace(
+          "</response>",
+          `<recommended_files></recommended_files>\n<reasoning>${defaultReasoning}</reasoning>\n</response>`,
+        );
       }
     }
 
     // 添加缺失的 reasoning 标签
-    if (!fixed.includes('<reasoning>')) {
+    if (!fixed.includes("<reasoning>")) {
       console.log(`🔧 [ProjectAnalyzer] 添加缺失的 <reasoning> 标签`);
-      fixed = fixed.replace('</response>', `<reasoning>${defaultReasoning}</reasoning>\n</response>`);
+      fixed = fixed.replace(
+        "</response>",
+        `<reasoning>${defaultReasoning}</reasoning>\n</response>`,
+      );
     }
 
     // 修复未闭合的 reasoning 标签
-    if (fixed.includes('<reasoning>') && !fixed.includes('</reasoning>')) {
+    if (fixed.includes("<reasoning>") && !fixed.includes("</reasoning>")) {
       console.log(`🔧 [ProjectAnalyzer] 修复未闭合的 <reasoning> 标签`);
-      const reasoningStart = fixed.indexOf('<reasoning>');
+      const reasoningStart = fixed.indexOf("<reasoning>");
       const beforeReasoning = fixed.substring(0, reasoningStart);
-      fixed = beforeReasoning + `<reasoning>${defaultReasoning}</reasoning>\n</response>`;
+      fixed =
+        beforeReasoning +
+        `<reasoning>${defaultReasoning}</reasoning>\n</response>`;
     }
 
     console.log(`✅ [ProjectAnalyzer] XML 标签修复完成`);
@@ -255,10 +307,10 @@ export class ProjectAnalyzer {
    * 创建默认的 XML 响应
    */
   private createDefaultXmlResponse(
-    responseType: 'module' | 'file',
-    defaultReasoning: string
+    responseType: "module" | "file",
+    defaultReasoning: string,
   ): string {
-    if (responseType === 'module') {
+    if (responseType === "module") {
       return `<response>
 <recommended_modules></recommended_modules>
 <reasoning>${defaultReasoning}</reasoning>
@@ -276,7 +328,7 @@ export class ProjectAnalyzer {
    */
   private parseXmlToObject(
     xmlContent: string,
-    responseType: 'module' | 'file'
+    responseType: "module" | "file",
   ): ModuleRecommendationResult | FileAnalysisResult {
     console.log(`🔍 [ProjectAnalyzer] 开始解析 XML，类型: ${responseType}`);
     console.log(`📄 [ProjectAnalyzer] XML 内容长度: ${xmlContent.length} 字符`);
@@ -288,27 +340,43 @@ export class ProjectAnalyzer {
       const startIndex = xml.indexOf(startTag);
       const endIndex = xml.indexOf(endTag);
 
-      console.log(`🏷️ [ProjectAnalyzer] 提取标签 ${tagName}: startIndex=${startIndex}, endIndex=${endIndex}`);
+      console.log(
+        `🏷️ [ProjectAnalyzer] 提取标签 ${tagName}: startIndex=${startIndex}, endIndex=${endIndex}`,
+      );
 
       if (startIndex === -1 || endIndex === -1) {
-        console.warn(`⚠️ [ProjectAnalyzer] 标签 ${tagName} 未找到完整的开始或结束标签`);
-        return '';
+        console.warn(
+          `⚠️ [ProjectAnalyzer] 标签 ${tagName} 未找到完整的开始或结束标签`,
+        );
+        return "";
       }
 
-      const content = xml.substring(startIndex + startTag.length, endIndex).trim();
-      console.log(`✅ [ProjectAnalyzer] 标签 ${tagName} 内容: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
+      const content = xml
+        .substring(startIndex + startTag.length, endIndex)
+        .trim();
+      console.log(
+        `✅ [ProjectAnalyzer] 标签 ${tagName} 内容: "${content.substring(0, 100)}${content.length > 100 ? "..." : ""}"`,
+      );
       return content;
     };
 
-    const extractListItems = (xml: string, containerTag: string, itemTag: string): string[] => {
-      console.log(`📋 [ProjectAnalyzer] 提取列表项: 容器=${containerTag}, 项目=${itemTag}`);
+    const extractListItems = (
+      xml: string,
+      containerTag: string,
+      itemTag: string,
+    ): string[] => {
+      console.log(
+        `📋 [ProjectAnalyzer] 提取列表项: 容器=${containerTag}, 项目=${itemTag}`,
+      );
       const containerContent = extractTagContent(xml, containerTag);
       if (!containerContent) {
         console.warn(`⚠️ [ProjectAnalyzer] 容器 ${containerTag} 为空`);
         return [];
       }
 
-      console.log(`📦 [ProjectAnalyzer] 容器 ${containerTag} 内容长度: ${containerContent.length} 字符`);
+      console.log(
+        `📦 [ProjectAnalyzer] 容器 ${containerTag} 内容长度: ${containerContent.length} 字符`,
+      );
 
       const items: string[] = [];
       const startTag = `<${itemTag}>`;
@@ -323,7 +391,9 @@ export class ProjectAnalyzer {
         const endIndex = containerContent.indexOf(endTag, startIndex);
         if (endIndex === -1) break;
 
-        const item = containerContent.substring(startIndex + startTag.length, endIndex).trim();
+        const item = containerContent
+          .substring(startIndex + startTag.length, endIndex)
+          .trim();
         if (item) {
           items.push(item);
           itemCount++;
@@ -333,28 +403,40 @@ export class ProjectAnalyzer {
         searchStart = endIndex + endTag.length;
       }
 
-      console.log(`✅ [ProjectAnalyzer] 从 ${containerTag} 中提取了 ${items.length} 个 ${itemTag} 项目`);
+      console.log(
+        `✅ [ProjectAnalyzer] 从 ${containerTag} 中提取了 ${items.length} 个 ${itemTag} 项目`,
+      );
       return items;
     };
 
     try {
-      const reasoning = extractTagContent(xmlContent, 'reasoning');
+      const reasoning = extractTagContent(xmlContent, "reasoning");
 
-      if (responseType === 'module') {
-        const modules = extractListItems(xmlContent, 'recommended_modules', 'module');
+      if (responseType === "module") {
+        const modules = extractListItems(
+          xmlContent,
+          "recommended_modules",
+          "module",
+        );
         const result = {
           recommended_modules: modules,
-          reasoning: reasoning || 'Modules selected based on requirement analysis.'
+          reasoning:
+            reasoning || "Modules selected based on requirement analysis.",
         } as ModuleRecommendationResult;
-        console.log(`🎯 [ProjectAnalyzer] 模块解析结果: ${modules.length} 个模块`);
+        console.log(
+          `🎯 [ProjectAnalyzer] 模块解析结果: ${modules.length} 个模块`,
+        );
         return result;
       } else {
-        const files = extractListItems(xmlContent, 'recommended_files', 'file');
+        const files = extractListItems(xmlContent, "recommended_files", "file");
         const result = {
           recommended_files: files,
-          reasoning: reasoning || 'Files selected based on requirement analysis.'
+          reasoning:
+            reasoning || "Files selected based on requirement analysis.",
         } as FileAnalysisResult;
-        console.log(`🎯 [ProjectAnalyzer] 文件解析结果: ${files.length} 个文件`);
+        console.log(
+          `🎯 [ProjectAnalyzer] 文件解析结果: ${files.length} 个文件`,
+        );
         return result;
       }
     } catch (error) {
@@ -366,23 +448,33 @@ export class ProjectAnalyzer {
   /**
    * 验证 XML 格式是否正确
    */
-  private validateXmlFormat(xmlContent: string, responseType: 'module' | 'file'): boolean {
+  private validateXmlFormat(
+    xmlContent: string,
+    responseType: "module" | "file",
+  ): boolean {
     try {
       // 基本的 XML 结构验证
-      if (!xmlContent.includes('<response>') || !xmlContent.includes('</response>')) {
+      if (
+        !xmlContent.includes("<response>") ||
+        !xmlContent.includes("</response>")
+      ) {
         return false;
       }
 
-      if (responseType === 'module') {
-        return xmlContent.includes('<recommended_modules>') &&
-               xmlContent.includes('</recommended_modules>') &&
-               xmlContent.includes('<reasoning>') &&
-               xmlContent.includes('</reasoning>');
+      if (responseType === "module") {
+        return (
+          xmlContent.includes("<recommended_modules>") &&
+          xmlContent.includes("</recommended_modules>") &&
+          xmlContent.includes("<reasoning>") &&
+          xmlContent.includes("</reasoning>")
+        );
       } else {
-        return xmlContent.includes('<recommended_files>') &&
-               xmlContent.includes('</recommended_files>') &&
-               xmlContent.includes('<reasoning>') &&
-               xmlContent.includes('</reasoning>');
+        return (
+          xmlContent.includes("<recommended_files>") &&
+          xmlContent.includes("</recommended_files>") &&
+          xmlContent.includes("<reasoning>") &&
+          xmlContent.includes("</reasoning>")
+        );
       }
     } catch (error) {
       return false;
@@ -395,7 +487,7 @@ export class ProjectAnalyzer {
   private async callLLMWithRetry(
     messages: ChatMessage[],
     maxRetries: number = 2,
-    responseType: 'module' | 'file' = 'module'
+    responseType: "module" | "file" = "module",
   ): Promise<ModuleRecommendationResult | FileAnalysisResult> {
     let lastError: Error | null = null;
 
@@ -405,7 +497,9 @@ export class ProjectAnalyzer {
           throw new Error("LLM not available");
         }
 
-        console.log(`🔄 [ProjectAnalyzer] LLM 调用尝试 ${attempt + 1}/${maxRetries + 1}`);
+        console.log(
+          `🔄 [ProjectAnalyzer] LLM 调用尝试 ${attempt + 1}/${maxRetries + 1}`,
+        );
 
         const response = await this.llm.chat(
           messages,
@@ -417,36 +511,44 @@ export class ProjectAnalyzer {
         );
 
         const content = response.content;
-        console.log(`📝 [ProjectAnalyzer] LLM 原始响应长度: ${(<string>content).length} 字符`);
+        console.log(
+          `📝 [ProjectAnalyzer] LLM 原始响应长度: ${(<string>content).length} 字符`,
+        );
         console.log(`📄 [ProjectAnalyzer] LLM 原始响应内容:`, <string>content);
 
         // 清理和修复 XML 内容
         const cleanedContent = this.cleanXmlResponse(
           <string>content,
-          responseType === 'module'
+          responseType === "module"
             ? "Modules selected based on requirement analysis."
             : "Files selected based on requirement analysis.",
-          responseType
+          responseType,
         );
 
         console.log(`🧹 [ProjectAnalyzer] 清理后的 XML 内容:`, cleanedContent);
 
         // 解析 XML 内容
         const result = this.parseXmlToObject(cleanedContent, responseType);
-        console.log(`🎯 [ProjectAnalyzer] 解析结果:`, JSON.stringify(result, null, 2));
+        console.log(
+          `🎯 [ProjectAnalyzer] 解析结果:`,
+          JSON.stringify(result, null, 2),
+        );
 
-        console.log(`✅ [ProjectAnalyzer] LLM 调用成功，尝试次数: ${attempt + 1}`);
+        console.log(
+          `✅ [ProjectAnalyzer] LLM 调用成功，尝试次数: ${attempt + 1}`,
+        );
         return result;
-
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.warn(`⚠️ [ProjectAnalyzer] LLM 调用尝试 ${attempt + 1} 失败: ${lastError.message}`);
+        console.warn(
+          `⚠️ [ProjectAnalyzer] LLM 调用尝试 ${attempt + 1} 失败: ${lastError.message}`,
+        );
 
         // 如果不是最后一次尝试，等待一段时间后重试
         if (attempt < maxRetries) {
           const waitTime = Math.pow(2, attempt) * 1000; // 指数退避
           console.log(`⏳ [ProjectAnalyzer] 等待 ${waitTime}ms 后重试...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
       }
     }
@@ -455,15 +557,15 @@ export class ProjectAnalyzer {
     console.error(`❌ [ProjectAnalyzer] 所有重试都失败，返回默认结果`);
     console.error(`🔍 [ProjectAnalyzer] 最后一个错误:`, lastError);
 
-    if (responseType === 'module') {
+    if (responseType === "module") {
       return {
         recommended_modules: [],
-        reasoning: "由于多次解析错误，无法推荐模块。请检查输入要求或重试。"
+        reasoning: "由于多次解析错误，无法推荐模块。请检查输入要求或重试。",
       } as ModuleRecommendationResult;
     } else {
       return {
         recommended_files: [],
-        reasoning: "由于多次解析错误，无法推荐文件。请检查输入要求或重试。"
+        reasoning: "由于多次解析错误，无法推荐文件。请检查输入要求或重试。",
       } as FileAnalysisResult;
     }
   }
@@ -655,7 +757,9 @@ export class ProjectAnalyzer {
       try {
         const content = await this.ide.readFile(gitignoreUri);
         const lines = content.split("\n");
-        console.log(`📋 [ProjectAnalyzer] .gitignore 文件包含 ${lines.length} 行`);
+        console.log(
+          `📋 [ProjectAnalyzer] .gitignore 文件包含 ${lines.length} 行`,
+        );
 
         let validPatternCount = 0;
         for (const line of lines) {
@@ -665,7 +769,9 @@ export class ProjectAnalyzer {
             validPatternCount++;
           }
         }
-        console.log(`✅ [ProjectAnalyzer] 从 .gitignore 解析出 ${validPatternCount} 个有效模式`);
+        console.log(
+          `✅ [ProjectAnalyzer] 从 .gitignore 解析出 ${validPatternCount} 个有效模式`,
+        );
       } catch (error) {
         console.error(
           `❌ [ProjectAnalyzer] 无法读取 .gitignore 文件 ${gitignorePath}: ${error}`,
@@ -677,7 +783,9 @@ export class ProjectAnalyzer {
 
     // 明确添加 target/ 到忽略模式
     patterns.push("target/");
-    console.log(`📋 [ProjectAnalyzer] 最终忽略模式列表 (${patterns.length} 个):`);
+    console.log(
+      `📋 [ProjectAnalyzer] 最终忽略模式列表 (${patterns.length} 个):`,
+    );
     patterns.forEach((pattern, index) => {
       console.log(`   ${index + 1}. ${pattern}`);
     });
@@ -749,7 +857,9 @@ export class ProjectAnalyzer {
         const dirUri = this.safePathToUri(directory);
         console.log(`🔍 [ProjectAnalyzer] 扫描目录: ${directory}`);
         const entries = await this.ide.listDir(dirUri);
-        console.log(`📋 [ProjectAnalyzer] 目录 ${directory} 包含 ${entries.length} 个条目`);
+        console.log(
+          `📋 [ProjectAnalyzer] 目录 ${directory} 包含 ${entries.length} 个条目`,
+        );
 
         let ignoredCount = 0;
         let fileCount = 0;
@@ -763,7 +873,9 @@ export class ProjectAnalyzer {
             this.shouldIgnore(entryPath, normalizedRootDir, gitignorePatterns)
           ) {
             ignoredCount++;
-            console.log(`🚫 [ProjectAnalyzer] 忽略: ${entryName} (匹配忽略规则)`);
+            console.log(
+              `🚫 [ProjectAnalyzer] 忽略: ${entryName} (匹配忽略规则)`,
+            );
             continue;
           }
 
@@ -771,7 +883,9 @@ export class ProjectAnalyzer {
             // File
             fileCount++;
             const ext = path.extname(entryName).toLowerCase();
-            console.log(`📄 [ProjectAnalyzer] 发现文件: ${entryName} (扩展名: ${ext})`);
+            console.log(
+              `📄 [ProjectAnalyzer] 发现文件: ${entryName} (扩展名: ${ext})`,
+            );
 
             if (ALLOWED_EXTENSIONS.has(ext)) {
               allowedFileCount++;
@@ -781,7 +895,9 @@ export class ProjectAnalyzer {
               files.push(relPath);
               console.log(`✅ [ProjectAnalyzer] 添加文件: ${relPath}`);
             } else {
-              console.log(`❌ [ProjectAnalyzer] 跳过文件: ${entryName} (扩展名不在允许列表中)`);
+              console.log(
+                `❌ [ProjectAnalyzer] 跳过文件: ${entryName} (扩展名不在允许列表中)`,
+              );
             }
           } else if (fileType === 2) {
             // Directory
@@ -789,7 +905,9 @@ export class ProjectAnalyzer {
             console.log(`📁 [ProjectAnalyzer] 发现子目录: ${entryName}`);
             const subFiles = await collectFiles(entryPath);
             files.push(...subFiles);
-            console.log(`📁 [ProjectAnalyzer] 子目录 ${entryName} 贡献了 ${subFiles.length} 个文件`);
+            console.log(
+              `📁 [ProjectAnalyzer] 子目录 ${entryName} 贡献了 ${subFiles.length} 个文件`,
+            );
           }
         }
 
@@ -800,9 +918,10 @@ export class ProjectAnalyzer {
         console.log(`   - 目录: ${dirCount}`);
         console.log(`   - 允许的文件: ${allowedFileCount}`);
         console.log(`   - 最终收集文件: ${files.length}`);
-
       } catch (error) {
-        console.error(`❌ [ProjectAnalyzer] 无法访问目录 ${directory}: ${error}`);
+        console.error(
+          `❌ [ProjectAnalyzer] 无法访问目录 ${directory}: ${error}`,
+        );
       }
       return files;
     };
@@ -811,13 +930,19 @@ export class ProjectAnalyzer {
 
     console.log(`🎯 [ProjectAnalyzer] 模块 ${modulePath} 文件收集完成:`);
     console.log(`   - 总文件数: ${files.length}`);
-    console.log(`   - 允许的扩展名: ${Array.from(ALLOWED_EXTENSIONS).join(', ')}`);
+    console.log(
+      `   - 允许的扩展名: ${Array.from(ALLOWED_EXTENSIONS).join(", ")}`,
+    );
 
     if (files.length === 0) {
-      console.warn(`⚠️ [ProjectAnalyzer] 模块 ${modulePath} 没有找到任何符合条件的文件`);
+      console.warn(
+        `⚠️ [ProjectAnalyzer] 模块 ${modulePath} 没有找到任何符合条件的文件`,
+      );
       console.log(`🔍 [ProjectAnalyzer] 请检查:`);
       console.log(`   1. 模块目录是否包含源代码文件`);
-      console.log(`   2. 文件扩展名是否在允许列表中: ${Array.from(ALLOWED_EXTENSIONS).join(', ')}`);
+      console.log(
+        `   2. 文件扩展名是否在允许列表中: ${Array.from(ALLOWED_EXTENSIONS).join(", ")}`,
+      );
       console.log(`   3. 文件是否被 .gitignore 或其他忽略规则排除`);
     } else {
       console.log(`📄 [ProjectAnalyzer] 找到的文件列表:`);
@@ -999,15 +1124,25 @@ export class ProjectAnalyzer {
     // 加载并展平模块信息（仅叶子模块）
     const modules = await this.loadModuleInfo(projectStructure);
 
-    // 构建模块推荐提示
-    const prompt = `
-You are an expert in software architecture and module analysis. Given a user requirement and a list of leaf modules (modules with no submodules) with their descriptions, determine which module(s) are most relevant for implementing or modifying code to meet the requirement.
-
+    // 构建简洁的用户消息
+    const userMessage = `
 **User Requirement:**
 ${requirement}
 
 **Leaf Modules Information:**
 ${modules.map((module) => `- ${module.name}: ${module.description}`).join("\n")}
+`;
+
+    // 调用LLM推荐模块
+    if (!this.llm) {
+      throw new Error("LLM not available for module recommendation");
+    }
+
+    try {
+      const messages: ChatMessage[] = [
+        {
+          role: "system",
+          content: `You are an expert in software architecture and module analysis. Given a user requirement and a list of leaf modules (modules with no submodules) with their descriptions, determine which module(s) are most relevant for implementing or modifying code to meet the requirement.
 
 **Instructions:**
 - Analyze the requirement and match it to the module descriptions.
@@ -1033,24 +1168,16 @@ Return your response in the following XML format:
 - The XML must be well-formed and complete
 - Each module path must be wrapped in <module></module> tags
 - Include reasoning in <reasoning></reasoning> tags
-- Do not include any text before or after the XML response
-`;
-
-    // 调用LLM推荐模块
-    if (!this.llm) {
-      throw new Error("LLM not available for module recommendation");
-    }
-
-    try {
-      const messages: ChatMessage[] = [
-        {
-          role: "system",
-          content: "You are a helpful assistant for code module analysis. Always return well-formed XML responses.",
+- Do not include any text before or after the XML response`,
         },
-        { role: "user", content: prompt },
+        { role: "user", content: userMessage },
       ];
 
-      const result = await this.callLLMWithRetry(messages, 2, 'module') as ModuleRecommendationResult;
+      const result = (await this.callLLMWithRetry(
+        messages,
+        2,
+        "module",
+      )) as ModuleRecommendationResult;
 
       // 验证和修正返回的模块路径
       if (result.recommended_modules) {
@@ -1092,7 +1219,7 @@ Return your response in the following XML format:
       // 返回空结果作为最终降级方案
       return {
         recommended_modules: [],
-        reasoning: "由于系统错误，无法推荐模块。请检查输入要求或重试。"
+        reasoning: "由于系统错误，无法推荐模块。请检查输入要求或重试。",
       } as ModuleRecommendationResult;
     }
   }
@@ -1107,8 +1234,12 @@ Return your response in the following XML format:
   ): Promise<FileAnalysisResult> {
     console.log(`📁 [ProjectAnalyzer] 开始分析模块文件: ${moduleName}`);
     console.log(`📋 [ProjectAnalyzer] 需求: ${requirement}`);
-    console.log(`📄 [ProjectAnalyzer] 文件列表长度: ${fileList ? fileList.length : 0} 字符`);
-    console.log(`📄 [ProjectAnalyzer] 文件列表内容预览: ${fileList ? fileList.substring(0, 200) + (fileList.length > 200 ? '...' : '') : '(空)'}`);
+    console.log(
+      `📄 [ProjectAnalyzer] 文件列表长度: ${fileList ? fileList.length : 0} 字符`,
+    );
+    console.log(
+      `📄 [ProjectAnalyzer] 文件列表内容预览: ${fileList ? fileList.substring(0, 200) + (fileList.length > 200 ? "..." : "") : "(空)"}`,
+    );
 
     if (!fileList) {
       console.warn(`⚠️ [ProjectAnalyzer] 模块 ${moduleName} 没有找到任何文件`);
@@ -1118,17 +1249,18 @@ Return your response in the following XML format:
       };
     }
 
-    if (fileList.trim() === '') {
-      console.warn(`⚠️ [ProjectAnalyzer] 模块 ${moduleName} 的文件列表为空字符串`);
+    if (fileList.trim() === "") {
+      console.warn(
+        `⚠️ [ProjectAnalyzer] 模块 ${moduleName} 的文件列表为空字符串`,
+      );
       return {
         recommended_files: [],
         reasoning: `Empty file list for module ${moduleName}`,
       };
     }
 
-    const prompt = `
-You are a software architecture and file analysis expert. Based on user requirements and the list of files within the module, determine which files are most relevant to implementing or modifying code to meet the requirements.
-
+    // 构建简洁的用户消息
+    const userMessage = `
 **User Requirements:**
 ${requirement}
 
@@ -1137,6 +1269,17 @@ ${moduleName}
 
 **File List:**
 ${fileList}
+`;
+
+    if (!this.llm) {
+      throw new Error("LLM not available for file analysis");
+    }
+
+    try {
+      const messages: ChatMessage[] = [
+        {
+          role: "system",
+          content: `You are a software architecture and file analysis expert. Based on user requirements and the list of files within the module, determine which files are most relevant to implementing or modifying code to meet the requirements.
 
 **Instructions:**
 - Analyze requirements and match them with filenames and their paths.
@@ -1160,23 +1303,16 @@ Return your response in the following XML format:
 - The XML must be well-formed and complete
 - Each file path must be wrapped in <file></file> tags
 - Include reasoning in <reasoning></reasoning> tags
-- Do not include any text before or after the XML response
-`;
-
-    if (!this.llm) {
-      throw new Error("LLM not available for file analysis");
-    }
-
-    try {
-      const messages: ChatMessage[] = [
-        {
-          role: "system",
-          content: "You are a helpful assistant for code file analysis. Always return well-formed XML responses.",
+- Do not include any text before or after the XML response`,
         },
-        { role: "user", content: prompt },
+        { role: "user", content: userMessage },
       ];
 
-      const result = await this.callLLMWithRetry(messages, 2, 'file') as FileAnalysisResult;
+      const result = (await this.callLLMWithRetry(
+        messages,
+        2,
+        "file",
+      )) as FileAnalysisResult;
       return result;
     } catch (error) {
       console.error(`❌ [ProjectAnalyzer] analyzeFilesWithLLM 方法出错:`);
@@ -1190,7 +1326,7 @@ Return your response in the following XML format:
       // 返回空结果作为最终降级方案
       return {
         recommended_files: [],
-        reasoning: "由于系统错误，无法推荐文件。请检查输入要求或重试。"
+        reasoning: "由于系统错误，无法推荐文件。请检查输入要求或重试。",
       } as FileAnalysisResult;
     }
   }
@@ -1214,7 +1350,9 @@ Return your response in the following XML format:
       projectStructure,
     );
 
-    console.log(`✅ [ProjectAnalyzer] 模块推荐完成，推荐了 ${moduleResult.recommended_modules.length} 个模块:`);
+    console.log(
+      `✅ [ProjectAnalyzer] 模块推荐完成，推荐了 ${moduleResult.recommended_modules.length} 个模块:`,
+    );
     moduleResult.recommended_modules.forEach((module, index) => {
       console.log(`   ${index + 1}. ${module}`);
     });
@@ -1229,10 +1367,14 @@ Return your response in the following XML format:
 
     for (let i = 0; i < (moduleResult.recommended_modules || []).length; i++) {
       const modulePath = moduleResult.recommended_modules[i];
-      console.log(`\n📂 [ProjectAnalyzer] 处理模块 ${i + 1}/${moduleResult.recommended_modules.length}: ${modulePath}`);
+      console.log(
+        `\n📂 [ProjectAnalyzer] 处理模块 ${i + 1}/${moduleResult.recommended_modules.length}: ${modulePath}`,
+      );
 
       const fileList = await this.getDirectoryTree(modulePath, rootDir);
-      console.log(`📄 [ProjectAnalyzer] 模块 ${modulePath} 获取到文件列表长度: ${fileList.length} 字符`);
+      console.log(
+        `📄 [ProjectAnalyzer] 模块 ${modulePath} 获取到文件列表长度: ${fileList.length} 字符`,
+      );
 
       const fileResult = await this.analyzeFilesWithLLM(
         requirement,
@@ -1240,7 +1382,9 @@ Return your response in the following XML format:
         fileList,
       );
 
-      console.log(`✅ [ProjectAnalyzer] 模块 ${modulePath} 文件分析完成，推荐了 ${fileResult.recommended_files.length} 个文件`);
+      console.log(
+        `✅ [ProjectAnalyzer] 模块 ${modulePath} 文件分析完成，推荐了 ${fileResult.recommended_files.length} 个文件`,
+      );
       fileResult.recommended_files.forEach((file, index) => {
         console.log(`     ${index + 1}. ${file}`);
       });
@@ -1255,7 +1399,9 @@ Return your response in the following XML format:
     console.log(`🎉 [ProjectAnalyzer] 模块和文件推荐完成!`);
     console.log(`📊 [ProjectAnalyzer] 最终统计:`);
     console.log(`   - 推荐模块数: ${result.recommended_modules.length}`);
-    console.log(`   - 总推荐文件数: ${result.recommended_files.reduce((sum, item) => sum + item.files.length, 0)}`);
+    console.log(
+      `   - 总推荐文件数: ${result.recommended_files.reduce((sum, item) => sum + item.files.length, 0)}`,
+    );
 
     return result;
   }
