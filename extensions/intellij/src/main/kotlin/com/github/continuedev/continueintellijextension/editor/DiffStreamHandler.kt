@@ -45,6 +45,8 @@ class DiffStreamHandler(
     private val continuePluginService = ServiceManager.getService(project, ContinuePluginService::class.java)
     private val virtualFile = FileDocumentManager.getInstance().getFile(editor.document)
 
+    // 保存原始文档状态用于完全撤销
+    private val originalDocumentText: String = editor.document.text
 
     init {
         initUnfinishedRangeHighlights()
@@ -91,10 +93,24 @@ class DiffStreamHandler(
                 blocksToReject.toList().forEach { it.handleReject() }
             }
         } else {
-            undoChanges()
-            // We have to manually call `handleClosedState`, but above,
-            // this is done by invoking the button handlers
-            setClosed(true)
+            // 如果没有接受或拒绝任何块，直接恢复到原始状态
+            try {
+                restoreOriginalDocument()
+                setClosed(true)
+            } catch (e: Exception) {
+                println("Failed to restore original document, trying undo: ${e.message}")
+                // 如果直接恢复失败，尝试使用 undo
+                undoChanges()
+                setClosed(true)
+            }
+        }
+    }
+
+    private fun restoreOriginalDocument() {
+        // 完全恢复到原始文档状态
+        WriteCommandAction.runWriteCommandAction(project) {
+            // 直接替换整个文档内容为原始内容
+            editor.document.setText(originalDocumentText)
         }
     }
 
