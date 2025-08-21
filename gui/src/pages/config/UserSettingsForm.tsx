@@ -80,7 +80,6 @@ export function UserSettingsForm() {
   const useCurrentFileAsContext =
     config.experimental?.useCurrentFileAsContext ?? false;
 
-  const allowAnonymousTelemetry = config.allowAnonymousTelemetry ?? true;
   const disableIndexing = config.disableIndexing ?? false;
 
   // const useAutocompleteCache = config.tabAutocompleteOptions?.useCache ?? true;
@@ -200,16 +199,6 @@ export function UserSettingsForm() {
                 })
               }
               text="格式化 Markdown"
-            />
-
-            <ToggleSwitch
-              isToggled={allowAnonymousTelemetry}
-              onToggle={() =>
-                handleUpdate({
-                  allowAnonymousTelemetry: !allowAnonymousTelemetry,
-                })
-              }
-              text="允许匿名遥测"
             />
 
             <ToggleSwitch

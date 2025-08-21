@@ -11,17 +11,11 @@ class TelemetryService {
     private var distinctId: String? = null;
     
     fun setup(distinctId: String) {
-        this.posthog = Builder(POSTHOG_API_KEY).host("https://app.posthog.com").build()
-        this.distinctId = distinctId
+        // Telemetry disabled - no setup
     }
 
     fun capture(eventName: String, properties: Map<String, *>) {
-        if (this.posthog == null || this.distinctId == null) {
-            return;
-        }
-        try {
-            this.posthog?.capture(this.distinctId, eventName, properties)
-        } catch (e: Exception) {}
+        // Telemetry disabled - no data collection
     }
 
     fun shutdown() {

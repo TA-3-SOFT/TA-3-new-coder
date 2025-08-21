@@ -28,14 +28,7 @@ class CoreMessengerManager(
         try {
             coreMessenger = CoreMessenger(project, continueCorePath, ideProtocolClient, coroutineScope)
 
-        coreMessenger?.request("config/getSerializedProfileInfo", null, null) { response ->
-            val allowAnonymousTelemetry = response.castNestedOrNull<Boolean>("content", "result", "config", "allowAnonymousTelemetry")
-
-            val telemetryService = service<TelemetryService>()
-            if (allowAnonymousTelemetry == true || allowAnonymousTelemetry == null) {
-                telemetryService.setup(getMachineUniqueID())
-            }
-        }
+        // Telemetry disabled - no setup needed
 
             // On exit, use exponential backoff to create another CoreMessenger
             coreMessenger?.onDidExit {

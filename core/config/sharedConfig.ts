@@ -10,7 +10,6 @@ import {
 export const sharedConfigSchema = z
   .object({
     // boolean fields in config.json
-    allowAnonymousTelemetry: z.boolean(),
     disableIndexing: z.boolean(),
     disableSessionTitles: z.boolean(),
     keepToolCallsInChatMode: z.boolean(), // 新增配置项
@@ -44,12 +43,6 @@ export type SharedConfigSchema = z.infer<typeof sharedConfigSchema>;
 // For security in case of damaged config file, try to salvage any security-related values
 export function salvageSharedConfig(sharedConfig: object): SharedConfigSchema {
   const salvagedConfig: SharedConfigSchema = {};
-  if ("allowAnonymousTelemetry" in sharedConfig) {
-    const val = z.boolean().safeParse(sharedConfig.allowAnonymousTelemetry);
-    if (val.success) {
-      salvagedConfig.allowAnonymousTelemetry = val.data;
-    }
-  }
   if ("disableIndexing" in sharedConfig) {
     const val = z.boolean().safeParse(sharedConfig.disableIndexing);
     if (val.success) {
@@ -147,9 +140,6 @@ export function modifyAnyConfigWithSharedConfig<
       sharedConfig.autoAcceptEditToolDiffs;
   }
 
-  if (sharedConfig.allowAnonymousTelemetry !== undefined) {
-    configCopy.allowAnonymousTelemetry = sharedConfig.allowAnonymousTelemetry;
-  }
   if (sharedConfig.disableIndexing !== undefined) {
     configCopy.disableIndexing = sharedConfig.disableIndexing;
   }

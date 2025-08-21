@@ -248,15 +248,7 @@ export default async function doLoadConfig(options: {
     }
   });
 
-  newConfig.allowAnonymousTelemetry =
-    newConfig.allowAnonymousTelemetry && (await ide.isTelemetryEnabled());
-
-  // Setup telemetry only after (and if) we know it is enabled
-  await Telemetry.setup(
-    newConfig.allowAnonymousTelemetry ?? true,
-    await ide.getUniqueId(),
-    ideInfo,
-  );
+  // Telemetry disabled - no setup needed
 
   // TODO: pass config to pre-load non-system TTS models
   await TTS.setup();
