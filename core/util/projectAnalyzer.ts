@@ -57,6 +57,10 @@ const ALLOWED_EXTENSIONS = new Set([
 const IGNORE_PATTERNS = ["target/", "node_modules", ".git", ".idea", ".vscode"];
 
 export class ProjectAnalyzer {
+  // 简单的路径映射缓存
+  private modulePathMap: Map<number, string> = new Map();
+  private filePathMap: Map<number, string> = new Map();
+
   constructor(
     private ide: IDE,
     private llm?: ILLM,
@@ -972,13 +976,19 @@ export class ProjectAnalyzer {
     // 加载并展平模块信息（仅叶子模块）
     const modules = await this.loadModuleInfo(projectStructure);
 
-    // 构建简洁的用户消息
+    // 清空并重建模块路径映射
+    this.modulePathMap.clear();
+    modules.forEach((module, index) => {
+      this.modulePathMap.set(index + 1, module.name);
+    });
+
+    // 构建带编号的用户消息
     const userMessage = `
 **User Requirement:**
 ${requirement}
 
 **Leaf Modules Information:**
-${modules.map((module) => `- ${module.name}: ${module.description}`).join("\n")}
+${modules.map((module, index) => `${index + 1}. ${module.name}: ${module.description}`).join("\n")}
 `;
 
     // 调用LLM推荐模块
@@ -990,23 +1000,23 @@ ${modules.map((module) => `- ${module.name}: ${module.description}`).join("\n")}
       const messages: ChatMessage[] = [
         {
           role: "system",
-          content: `You are an expert in software architecture and module analysis. Given a user requirement and a list of leaf modules (modules with no submodules) with their descriptions, determine which module(s) are most relevant for implementing or modifying code to meet the requirement.
+          content: `You are an expert in software architecture and module analysis. Given a user requirement and a list of numbered leaf modules (modules with no submodules) with their descriptions, determine which module(s) are most relevant for implementing or modifying code to meet the requirement.
 
 **Instructions:**
 - Analyze the requirement and match it to the module descriptions.
 - Recommend up to five most relevant leaf module(s) based on functionality.
 - If fewer than five leaf modules are relevant, return only those.
 - Ensure all recommended modules are leaf modules (no submodules).
-- CRITICAL: Use the EXACT module paths as provided in the Leaf Modules Information list. Do not modify, abbreviate, or change the paths in any way.
+- CRITICAL: Return ONLY the numbers of the recommended modules, not the full paths.
 
 **Response Format:**
 Return your response in the following XML format:
 
 <response>
 <recommended_modules>
-<module>exact_module_path_1</module>
-<module>exact_module_path_2</module>
-<module>exact_module_path_3</module>
+<module>1</module>
+<module>3</module>
+<module>5</module>
 </recommended_modules>
 <reasoning>Brief explanation of why these modules were chosen</reasoning>
 </response>
@@ -1014,7 +1024,7 @@ Return your response in the following XML format:
 **IMPORTANT:**
 - Return ONLY the XML response without any markdown formatting or code blocks
 - The XML must be well-formed and complete
-- Each module path must be wrapped in <module></module> tags
+- Each module number must be wrapped in <module></module> tags
 - Include reasoning in <reasoning></reasoning> tags
 - Do not include any text before or after the XML response`,
         },
@@ -1027,31 +1037,27 @@ Return your response in the following XML format:
         "module",
       )) as ModuleRecommendationResult;
 
-      // 验证和修正返回的模块路径
+      // 将返回的编号转换为模块路径
       if (result.recommended_modules) {
         const validatedModules: string[] = [];
-        const invalidModules: string[] = [];
 
-        for (const modulePath of result.recommended_modules) {
-          const validPath = await this.validateModulePath(
-            modulePath,
-            projectStructure,
-          );
-          if (validPath) {
-            validatedModules.push(validPath);
+        for (const moduleNumberStr of result.recommended_modules) {
+          const moduleNumber = parseInt(moduleNumberStr.trim());
+          if (!isNaN(moduleNumber) && this.modulePathMap.has(moduleNumber)) {
+            const modulePath = this.modulePathMap.get(moduleNumber)!;
+            validatedModules.push(modulePath);
           } else {
-            invalidModules.push(modulePath);
-            console.warn(`LLM返回的模块路径无效: ${modulePath}`);
+            console.warn(`LLM返回的模块编号无效: ${moduleNumberStr}`);
           }
         }
 
         result.recommended_modules = validatedModules;
       }
 
-      if (result.recommended_modules && result.recommended_modules.length > 3) {
-        result.recommended_modules = result.recommended_modules.slice(0, 3);
+      if (result.recommended_modules && result.recommended_modules.length > 5) {
+        result.recommended_modules = result.recommended_modules.slice(0, 5);
         result.reasoning +=
-          " (Note: Limited to top 3 leaf modules as per requirement.)";
+          " (Note: Limited to top 5 leaf modules as per requirement.)";
       }
 
       return result;
@@ -1098,7 +1104,14 @@ Return your response in the following XML format:
       };
     }
 
-    // 构建简洁的用户消息
+    // 清空并重建文件路径映射
+    this.filePathMap.clear();
+    const files = fileList.split('\n').filter(file => file.trim());
+    files.forEach((file, index) => {
+      this.filePathMap.set(index + 1, file.trim());
+    });
+
+    // 构建带编号的用户消息
     const userMessage = `
 **User Requirements:**
 ${requirement}
@@ -1107,7 +1120,7 @@ ${requirement}
 ${moduleName}
 
 **File List:**
-${fileList}
+${files.map((file, index) => `${index + 1}. ${file}`).join("\n")}
 `;
 
     if (!this.llm) {
@@ -1118,21 +1131,21 @@ ${fileList}
       const messages: ChatMessage[] = [
         {
           role: "system",
-          content: `You are a software architecture and file analysis expert. Based on user requirements and the list of files within the module, determine which files are most relevant to implementing or modifying code to meet the requirements.
+          content: `You are a software architecture and file analysis expert. Based on user requirements and the numbered list of files within the module, determine which files are most relevant to implementing or modifying code to meet the requirements.
 
 **Instructions:**
 - Analyze requirements and match them with filenames and their paths.
 - Recommend any number of the most relevant files based on filenames and potential content (e.g., Java files for implementation, configuration files for settings).
-- Provide clear and concise reasoning for your choices.
+- CRITICAL: Return ONLY the numbers of the recommended files, not the full paths.
 
 **Response Format:**
 Return your response in the following XML format:
 
 <response>
 <recommended_files>
-<file>relative/path/to/file1.java</file>
-<file>relative/path/to/file2.xml</file>
-<file>relative/path/to/file3.properties</file>
+<file>1</file>
+<file>3</file>
+<file>7</file>
 </recommended_files>
 <reasoning>Brief explanation of why these files were selected</reasoning>
 </response>
@@ -1140,7 +1153,7 @@ Return your response in the following XML format:
 **IMPORTANT:**
 - Return ONLY the XML response without any markdown formatting or code blocks
 - The XML must be well-formed and complete
-- Each file path must be wrapped in <file></file> tags
+- Each file number must be wrapped in <file></file> tags
 - Include reasoning in <reasoning></reasoning> tags
 - Do not include any text before or after the XML response`,
         },
@@ -1152,6 +1165,24 @@ Return your response in the following XML format:
         2,
         "file",
       )) as FileAnalysisResult;
+
+      // 将返回的编号转换为文件路径
+      if (result.recommended_files) {
+        const validatedFiles: string[] = [];
+
+        for (const fileNumberStr of result.recommended_files) {
+          const fileNumber = parseInt(fileNumberStr.trim());
+          if (!isNaN(fileNumber) && this.filePathMap.has(fileNumber)) {
+            const filePath = this.filePathMap.get(fileNumber)!;
+            validatedFiles.push(filePath);
+          } else {
+            console.warn(`LLM返回的文件编号无效: ${fileNumberStr}`);
+          }
+        }
+
+        result.recommended_files = validatedFiles;
+      }
+
       return result;
     } catch (error) {
       console.error(`❌ [ProjectAnalyzer] analyzeFilesWithLLM 方法出错:`);
@@ -1300,5 +1331,41 @@ Return your response in the following XML format:
     });
 
     const result = await this.validateModulePath(modulePath, projectStructure);
+  }
+
+  /**
+   * 获取模块路径映射（用于调试）
+   */
+  getModulePathMap(): Map<number, string> {
+    return new Map(this.modulePathMap);
+  }
+
+  /**
+   * 获取文件路径映射（用于调试）
+   */
+  getFilePathMap(): Map<number, string> {
+    return new Map(this.filePathMap);
+  }
+
+  /**
+   * 根据编号获取模块路径
+   */
+  getModulePathById(id: number): string | undefined {
+    return this.modulePathMap.get(id);
+  }
+
+  /**
+   * 根据编号获取文件路径
+   */
+  getFilePathById(id: number): string | undefined {
+    return this.filePathMap.get(id);
+  }
+
+  /**
+   * 清空路径映射缓存
+   */
+  clearPathMaps(): void {
+    this.modulePathMap.clear();
+    this.filePathMap.clear();
   }
 }
