@@ -7,11 +7,17 @@ import com.github.continuedev.continueintellijextension.services.ContinueExtensi
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService
 import com.github.continuedev.continueintellijextension.utils.*
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.diff.DiffContentFactory
+import com.intellij.diff.DiffManager
+import com.intellij.diff.DiffRequestPanel
+import com.intellij.diff.contents.DiffContent
+import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
 import com.intellij.history.LocalHistoryException
 import com.intellij.history.integration.LocalHistoryImpl
 import com.intellij.history.integration.ui.models.DirectoryHistoryDialogModel
+import com.intellij.history.integration.ui.models.EntireFileHistoryDialogModel
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.notification.NotificationAction
@@ -20,6 +26,8 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
+import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.editor.impl.DocumentMarkupModel
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -32,6 +40,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.testFramework.LightVirtualFile
+import com.intellij.vcs.log.history.FileHistoryData
 import kotlinx.coroutines.*
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
@@ -41,6 +50,9 @@ import java.io.FileInputStream
 import java.io.InputStreamReader
 import java.net.URI
 import java.nio.charset.Charset
+import java.nio.file.Paths
+import javax.swing.Action
+import javax.swing.JComponent
 
 class IntelliJIDE(
     private val project: Project,
@@ -233,6 +245,12 @@ class IntelliJIDE(
         }
     }
 
+    override suspend fun saveAllFiles() {
+        ApplicationManager.getApplication().invokeLater {
+            FileDocumentManager.getInstance().saveAllDocuments()
+        }
+    }
+
     override suspend fun readFile(filepath: String): String {
         return try {
             val content = ApplicationManager.getApplication().runReadAction<String?> {
@@ -299,6 +317,57 @@ class IntelliJIDE(
         continuePluginService.diffManager?.showDiff(filepath, newContents, stepIndex)
     }
 
+    override suspend fun showAgentDiff(filepath: String, timestamp: Long) {
+
+        try {
+            // 获取文件的VirtualFile对象
+            val virtualFile = LocalFileSystem.getInstance()
+                .findFileByPath(UriUtils.uriToFile(filepath).absolutePath)
+
+            if (virtualFile == null) {
+                throw IllegalArgumentException("File not found: $filepath")
+            }
+
+            val localHistoryImpl = LocalHistoryImpl.getInstanceImpl()
+            val fileHistoryModel = EntireFileHistoryDialogModel(
+                project,
+                localHistoryImpl.gateway,
+                localHistoryImpl.facade,
+                virtualFile
+            )
+
+            // 获取最适合的历史版本：优先使用指定时间戳之前的版本，如果没有则使用最原始版本
+            val targetRevision = LocalHistoryUtil.findBestHistoricalRevision(fileHistoryModel, timestamp)
+                ?: throw LocalHistoryException("No revision history found for file: $filepath")
+
+            // 从历史版本中获取文件内容
+            val historicalContent = try {
+                val content = targetRevision.revision.findEntry()?.content
+                if (content != null) {
+                    String(content.bytes, Charset.forName("UTF-8"))
+                } else {
+                    // 如果历史版本中没有找到文件内容，可能文件在那个时间点不存在
+                    ""
+                }
+            } catch (e: Exception) {
+                // 如果获取历史内容失败，使用空字符串
+                ""
+            }
+
+            // 获取当前文件内容
+            val currentContent = readFile(filepath)
+
+            // 显示diff
+            showHistoricalDiff(filepath, historicalContent, currentContent, timestamp)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+
+
+    }
+
     override suspend fun getOpenFiles(): List<String> {
         val fileEditorManager = FileEditorManager.getInstance(project)
         return fileEditorManager.openFiles.mapNotNull { it.toUriOrNull() }.toList()
@@ -317,14 +386,15 @@ class IntelliJIDE(
         }
     }
 
-    override suspend fun getCurrentFileWithLineNumbers(): Map<String, Any>?  {
+    override suspend fun getCurrentFileWithLineNumbers(): Map<String, Any>? {
         val fileEditorManager = FileEditorManager.getInstance(project)
         val editor = fileEditorManager.selectedTextEditor
         val virtualFile = editor?.document?.let { FileDocumentManager.getInstance().getFile(it) }
         return virtualFile?.toUriOrNull()?.let {
             mapOf(
                 "path" to it,
-                "contents" to editor.document.text.lines().mapIndexed { index, line -> "${index + 1}: $line" }.joinToString("\n"),
+                "contents" to editor.document.text.lines().mapIndexed { index, line -> "${index + 1}: $line" }
+                    .joinToString("\n"),
                 "isUntitled" to false
             )
         }
@@ -364,6 +434,7 @@ class IntelliJIDE(
             throw NotImplementedError("Ripgrep not supported, this workspace is remote")
         }
     }
+
     override suspend fun getSearchResults(query: String): String {
         val ideInfo = this.getIdeInfo()
         if (ideInfo.remoteName == "local") {
@@ -642,23 +713,25 @@ class IntelliJIDE(
                             projectDir
                         )
 
-                        // 使用 LocalHistoryUtil 查找离目标时间戳最近且在其之前的版本
-                        val targetRevisionIndex = LocalHistoryUtil.findClosestRevisionBeforeTimestamp(
+                        // 使用 LocalHistoryUtil 获取最适合的历史版本
+                        val targetRevision = LocalHistoryUtil.findBestHistoricalRevision(
                             dirHistoryModel,
                             targetTimestamp
                         )
 
-                        if (targetRevisionIndex < 0) {
-                            throw LocalHistoryException("No suitable revision found before timestamp: $targetTimestamp")
+                        if (targetRevision == null) {
+                            throw LocalHistoryException("No suitable revision found for timestamp: $targetTimestamp")
                         }
 
-                        val leftRev = targetRevisionIndex
+                        // 获取版本在列表中的索引
+                        val revisions = dirHistoryModel.revisions
+                        val leftRev = revisions.indexOf(targetRevision)
 
                         if (leftRev < 0) {
                             throw LocalHistoryException("Couldn't find label revision")
-                        } else if (leftRev != 0) {
+                        } else {
                             try {
-                                dirHistoryModel.selectRevisions(-1, leftRev - 1)
+                                dirHistoryModel.selectRevisions(-1, leftRev)
                                 dirHistoryModel.createReverter().revert()
                             } catch (e: java.lang.Exception) {
                                 throw LocalHistoryException(
@@ -673,6 +746,7 @@ class IntelliJIDE(
                         e.printStackTrace()
                         throw e
                     }
+                    FileDocumentManager.getInstance().saveAllDocuments()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -680,5 +754,166 @@ class IntelliJIDE(
             }
         }
     }
+
+
+    override suspend fun revertFile(filepath: String, timestamp: Long) {
+        return withContext(Dispatchers.IO) {
+            try {
+                ApplicationManager.getApplication().invokeAndWait {
+                    try {
+                        // 获取文件的VirtualFile对象
+                        val virtualFile = LocalFileSystem.getInstance()
+                            .findFileByPath(UriUtils.uriToFile(filepath).absolutePath)
+
+                        if (virtualFile == null) {
+                            throw IllegalArgumentException("File not found: $filepath")
+                        }
+
+                        val localHistoryImpl = LocalHistoryImpl.getInstanceImpl()
+                        val fileHistoryModel = EntireFileHistoryDialogModel(
+                            project,
+                            localHistoryImpl.gateway,
+                            localHistoryImpl.facade,
+                            virtualFile
+                        )
+
+                        // 获取最适合的历史版本：优先使用指定时间戳之前的版本，如果没有则使用最原始版本
+                        val targetRevision = LocalHistoryUtil.findBestHistoricalRevision(fileHistoryModel, timestamp)
+                            ?: throw LocalHistoryException("No revision history found for file: $filepath")
+
+                        // 获取版本在列表中的索引
+                        val revisions = fileHistoryModel.revisions
+                        val leftRev = revisions.indexOf(targetRevision)
+
+                        if (leftRev < 0) {
+                            throw LocalHistoryException("Couldn't find label revision")
+                        } else {
+                            try {
+                                fileHistoryModel.selectRevisions(-1, leftRev)
+                                fileHistoryModel.createReverter().revert()
+                            } catch (e: java.lang.Exception) {
+                                throw LocalHistoryException(
+                                    String.format(
+                                        "Couldn't revert %s to local history label.",
+                                        virtualFile.getName()
+                                    ), e
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        throw e
+                    }
+                    FileDocumentManager.getInstance().saveAllDocuments()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw RuntimeException("Failed to rollback to checkpoint: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * 显示历史版本与当前版本的diff
+     * @param filepath 文件路径
+     * @param historicalContent 历史版本内容
+     * @param currentContent 当前版本内容
+     * @param timestamp 时间戳
+     */
+    private suspend fun showHistoricalDiff(
+        filepath: String,
+        historicalContent: String,
+        currentContent: String,
+        timestamp: Long
+    ) {
+        withContext(Dispatchers.Main) {
+            try {
+                // 直接显示diff窗口，不需要创建临时文件
+                showHistoricalDiffWindow(
+                    historicalContent,
+                    currentContent,
+                    filepath,
+                    timestamp
+                )
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw RuntimeException("Failed to create diff view: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * 显示历史版本diff窗口
+     */
+    private fun showHistoricalDiffWindow(
+        historicalContentText: String,
+        currentContentText: String,
+        originalFilepath: String,
+        timestamp: Long
+    ) {
+        ApplicationManager.getApplication().invokeLater {
+            try {
+                // 直接从字符串创建DiffContent，无需临时文件
+                val historicalContent: DiffContent = DiffContentFactory.getInstance()
+                    .create(historicalContentText)
+                val currentContent: DiffContent = DiffContentFactory.getInstance()
+                    .create(currentContentText)
+
+                // 格式化时间戳为可读格式
+                val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                val formattedTime = dateFormat.format(java.util.Date(timestamp))
+
+                // 创建diff请求
+                val diffRequest = SimpleDiffRequest(
+                    "变更对比 - $originalFilepath",
+                    historicalContent,
+                    currentContent,
+                    "之前版本 ($formattedTime)",
+                    "当前版本"
+                )
+
+                // 创建diff面板
+                val diffPanel: DiffRequestPanel = DiffManager.getInstance()
+                    .createRequestPanel(project, Disposer.newDisposable(), null)
+                diffPanel.setRequest(diffRequest)
+
+                // 创建对话框
+                val dialog = object : DialogWrapper(project, true, IdeModalityType.MODELESS) {
+                    init {
+                        init()
+                        title = "变更对比 - ${UriUtils.uriToFile(originalFilepath).name}"
+                    }
+
+                    override fun createCenterPanel(): JComponent? {
+                        return diffPanel.component
+                    }
+
+                    override fun createActions(): Array<Action> {
+                        // 只显示关闭按钮，因为这是只读的diff查看
+                        return arrayOf(cancelAction.apply {
+                            putValue(Action.NAME, "关闭")
+                        })
+                    }
+
+                    override fun doCancelAction() {
+                        super.doCancelAction()
+                        // 不再需要清理临时文件
+                    }
+                }
+
+                // 设置对话框大小并显示
+                val screenSize = Toolkit.getDefaultToolkit().screenSize
+                dialog.setSize((screenSize.width * 0.8).toInt(), (screenSize.height * 0.8).toInt())
+                dialog.show()
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw RuntimeException("Failed to show diff window: ${e.message}", e)
+            }
+        }
+    }
+
+
 
 }

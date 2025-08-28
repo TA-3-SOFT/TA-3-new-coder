@@ -20,6 +20,8 @@ import {
   SessionMetadata,
   StructuredAgentWorkflowState,
   StructuredAgentStepType,
+  FullyAutomaticEditModeMetadataState,
+  ModifiedFile,
 } from "core";
 import { NEW_SESSION_TITLE } from "core/util/constants";
 import { renderChatMessage } from "core/util/messageContent";
@@ -54,6 +56,9 @@ type SessionState = {
   };
   newestToolbarPreviewForInput: Record<string, string>;
   structuredAgentWorkflow: StructuredAgentWorkflowState;
+  fullyAutomaticEditModeMetadata: FullyAutomaticEditModeMetadataState;
+  // showModifiedFilesList: boolean;
+  // acceptHistoryIndex: number;
 };
 
 const initialState: SessionState = {
@@ -80,6 +85,13 @@ const initialState: SessionState = {
     isWaitingForConfirmation: false,
     stepHistoryStartIndex: undefined,
   },
+  fullyAutomaticEditModeMetadata: {
+    showModifiedFilesList: true,
+    acceptHistoryIndex: 0,
+    pendingConfirmFilesList: [],
+  },
+  // showModifiedFilesList: true,
+  // acceptHistoryIndex: 0,
 };
 
 export const sessionSlice = createSlice({
@@ -416,10 +428,23 @@ export const sessionSlice = createSlice({
         state.history = payload.history as any;
         state.title = payload.title;
         state.id = payload.sessionId;
+        // 从保存的会话中恢复 showModifiedFilesList 状态，如果没有则默认为 true
+        // state.showModifiedFilesList = payload.showModifiedFilesList ?? true;
+        // state.acceptHistoryIndex = payload.acceptHistoryIndex ?? 0;
+        state.fullyAutomaticEditModeMetadata =
+          payload.fullyAutomaticEditModeMetadata;
       } else {
         state.history = [];
         state.title = NEW_SESSION_TITLE;
         state.id = uuidv4();
+        // 新会话时重置修改文件列表显示状态
+        // state.showModifiedFilesList = true;
+        // state.acceptHistoryIndex = 0;
+        state.fullyAutomaticEditModeMetadata = {
+          showModifiedFilesList: true,
+          acceptHistoryIndex: 0,
+          pendingConfirmFilesList: [],
+        };
       }
     },
     updateSessionTitle: (state, { payload }: PayloadAction<string>) => {
@@ -705,6 +730,21 @@ export const sessionSlice = createSlice({
       state.streamAborter = new AbortController();
       state.isStreaming = false;
     },
+    setShowModifiedFilesList: (state, { payload }: PayloadAction<boolean>) => {
+      state.fullyAutomaticEditModeMetadata.showModifiedFilesList = payload;
+    },
+    setAcceptHistoryIndex: (state, { payload }: PayloadAction<number>) => {
+      state.fullyAutomaticEditModeMetadata.acceptHistoryIndex = payload;
+    },
+    setPendingConfirmFilesList: (
+      state,
+      { payload }: PayloadAction<ModifiedFile[]>,
+    ) => {
+      state.fullyAutomaticEditModeMetadata.pendingConfirmFilesList = payload;
+    },
+    clearPendingConfirmFilesList: (state) => {
+      state.fullyAutomaticEditModeMetadata.pendingConfirmFilesList = [];
+    },
   },
   selectors: {
     selectIsGatheringContext: (state) => {
@@ -797,6 +837,10 @@ export const {
   setStructuredAgentUserFeedback,
   resetStructuredAgentWorkflow,
   stopStructuredAgentWorkflow,
+  setShowModifiedFilesList,
+  setAcceptHistoryIndex,
+  setPendingConfirmFilesList,
+  clearPendingConfirmFilesList,
 } = sessionSlice.actions;
 
 export const { selectIsGatheringContext } = sessionSlice.selectors;

@@ -250,6 +250,9 @@ export interface Session {
   title: string;
   workspaceDirectory: string;
   history: ChatHistoryItem[];
+  fullyAutomaticEditModeMetadata: FullyAutomaticEditModeMetadataState;
+  // showModifiedFilesList?: boolean;
+  // acceptHistoryIndex?: number;
 }
 
 export interface SessionMetadata {
@@ -888,6 +891,18 @@ export interface StructuredAgentWorkflowState {
   userFeedbackContent?: string; // 用于传递给工具的用户反馈
 }
 
+export interface FullyAutomaticEditModeMetadataState {
+  showModifiedFilesList: boolean;
+  acceptHistoryIndex: number;
+  pendingConfirmFilesList: ModifiedFile[];
+}
+
+export interface ModifiedFile {
+  filepath: string;
+  type: "create" | "edit";
+  toolCallId?: string;
+}
+
 export type ContextProviderName =
   | "diff"
   | "terminal"
@@ -1253,6 +1268,7 @@ export interface ContinueUIConfig {
   codeWrap?: boolean;
   showSessionTabs?: boolean;
   autoAcceptEditToolDiffs?: boolean;
+  fullyAutomaticEditMode?: boolean;
 }
 
 export interface ContextMenuConfig {

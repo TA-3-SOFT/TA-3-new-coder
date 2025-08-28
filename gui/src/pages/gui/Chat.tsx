@@ -24,6 +24,7 @@ import TimelineItem from "../../components/gui/TimelineItem";
 import { NewSessionButton } from "../../components/mainInput/belowMainInput/NewSessionButton";
 import ThinkingBlockPeek from "../../components/mainInput/belowMainInput/ThinkingBlockPeek";
 import ContinueInputBox from "../../components/mainInput/ContinueInputBox";
+import { ModifiedFilesList } from "../../components/ModifiedFilesList";
 import { useOnboardingCard } from "../../components/OnboardingCard";
 import StepContainer from "../../components/StepContainer";
 import StructuredAgentProgress from "../../components/StructuredAgentProgress/StructuredAgentProgress";
@@ -120,6 +121,11 @@ export function Chat() {
   const hasDismissedExploreDialog = useAppSelector(
     (state) => state.ui.hasDismissedExploreDialog,
   );
+
+  const fullyAutomaticEditMode = useAppSelector(
+    (state) => state.config.config.ui?.fullyAutomaticEditMode ?? false,
+  );
+
   const jetbrains = useMemo(() => {
     return isJetBrains();
   }, []);
@@ -379,6 +385,7 @@ export function Chat() {
         ))}
       </StepsDiv>
       <div className={"relative"}>
+        {fullyAutomaticEditMode && <ModifiedFilesList />}
         <ContinueInputBox
           isMainInput
           isLastUserInput={false}

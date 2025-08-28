@@ -148,8 +148,8 @@ export function History() {
       <div className="thin-scrollbar flex flex-1 flex-col overflow-y-auto pr-4">
         {filteredAndSortedSessions.length === 0 && (
           <div className="m-3 text-center">
-            No past sessions found. To start a new session, either click the "+"
-            button or use the keyboard shortcut: <Shortcut>meta L</Shortcut>
+            未找到历史会话。要开始新会话，请点击"+"按钮或使用键盘快捷键:
+            <Shortcut>meta L</Shortcut>
           </div>
         )}
 

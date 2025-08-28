@@ -155,6 +155,24 @@ class IdeProtocolClient(
                         respond(null)
                     }
 
+                    "showAgentDiff" -> {
+                        val params = Gson().fromJson(
+                            dataElement.toString(),
+                            ShowAgentDiffParams::class.java
+                        )
+                        ide.showAgentDiff(params.filepath,params.timestamp)
+                        respond(null)
+                    }
+
+                    "revertFile" -> {
+                        val params = Gson().fromJson(
+                            dataElement.toString(),
+                            RevertFileParams::class.java
+                        )
+                        ide.revertFile(params.filepath,params.timestamp)
+                        respond(null)
+                    }
+
                     "readFile" -> {
                         val params = Gson().fromJson(
                             dataElement.toString(),
@@ -212,6 +230,11 @@ class IdeProtocolClient(
                             SaveFileParams::class.java
                         )
                         ide.saveFile(params.filepath)
+                        respond(null)
+                    }
+
+                    "saveAllFiles" -> {
+                        ide.saveAllFiles()
                         respond(null)
                     }
 

@@ -91,6 +91,13 @@ class HistoryManager {
         title: NEW_SESSION_TITLE,
         workspaceDirectory: "",
         sessionId: sessionId,
+        // showModifiedFilesList: true,
+        // acceptHistoryIndex: 0,
+        fullyAutomaticEditModeMetadata: {
+          showModifiedFilesList: true,
+          acceptHistoryIndex: 0,
+          pendingConfirmFilesList: [],
+        },
       };
     }
   }
@@ -104,6 +111,9 @@ class HistoryManager {
       title: session.title,
       workspaceDirectory: session.workspaceDirectory,
       history: session.history,
+      // showModifiedFilesList: session.showModifiedFilesList,
+      // acceptHistoryIndex: session.acceptHistoryIndex,
+      fullyAutomaticEditModeMetadata: session.fullyAutomaticEditModeMetadata,
     };
     fs.writeFileSync(
       getSessionFilePath(session.sessionId),

@@ -74,6 +74,7 @@ export function UserSettingsForm() {
   const showChatScrollbar = config.ui?.showChatScrollbar ?? false;
   const readResponseTTS = config.experimental?.readResponseTTS ?? false;
   const autoAcceptEditToolDiffs = config.ui?.autoAcceptEditToolDiffs ?? false;
+  const fullyAutomaticEditMode = config.ui?.fullyAutomaticEditMode ?? false;
   const displayRawMarkdown = config.ui?.displayRawMarkdown ?? false;
   const disableSessionTitles = config.disableSessionTitles ?? false;
   const keepToolCallsInChatMode = config.keepToolCallsInChatMode ?? false;
@@ -243,7 +244,27 @@ export function UserSettingsForm() {
                     className="h-3 w-3 text-yellow-500"
                   />
                   <ToolTip id={`auto-accept-diffs-warning-tooltip`}>
-                    {`注意：当启用时，智能体模式的编辑工具可以对文件进行更改，而无需手动审核或保证停止点。`}
+                    {`注意：当启用时，智能体模式的编辑工具对文件进行修改后，会跳过人工确认步骤，自动接受修改内容。`}
+                  </ToolTip>
+                </>
+              }
+            />
+            <ToggleSwitch
+              isToggled={fullyAutomaticEditMode}
+              onToggle={() =>
+                handleUpdate({
+                  fullyAutomaticEditMode: !fullyAutomaticEditMode,
+                })
+              }
+              text="统一修改模式"
+              showIfToggled={
+                <>
+                  <ExclamationTriangleIcon
+                    data-tooltip-id={`auto-accept-diffs-warning-tooltip`}
+                    className="h-3 w-3 text-yellow-500"
+                  />
+                  <ToolTip id={`fully-automatic-edit-mode-warning-tooltip`}>
+                    {`警告：启用后，模型修改文件时将直接修改文件，无需任何确认操作，在全部修改完成后，会弹出统一确认框进行用户确认操作。`}
                   </ToolTip>
                 </>
               }

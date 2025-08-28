@@ -106,6 +106,7 @@ export const streamNormalInput = createAsyncThunk<
     // If it's a tool call that is automatically accepted, we should call it
     const newState = getState();
     const toolSettings = newState.ui.toolSettings;
+    const fullyAutomaticEditMode = newState.config.config.ui?.fullyAutomaticEditMode ?? false;
     const toolCallState = selectCurrentToolCall(newState);
     if (toolCallState) {
       dispatch(
@@ -114,7 +115,10 @@ export const streamNormalInput = createAsyncThunk<
         }),
       );
 
+      // In fully automatic edit mode, auto-call all tools
+      // Otherwise, only auto-call tools marked as "allowedWithoutPermission"
       if (
+        fullyAutomaticEditMode ||
         toolSettings[toolCallState.toolCall.function.name] ===
         "allowedWithoutPermission"
       ) {

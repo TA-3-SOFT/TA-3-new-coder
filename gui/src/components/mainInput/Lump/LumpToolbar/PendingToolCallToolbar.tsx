@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { useAppDispatch } from "../../../../redux/hooks";
+import { useAppDispatch, useAppSelector } from "../../../../redux/hooks";
 import {
   callCurrentTool,
   cancelCurrentToolCall,
@@ -29,6 +29,22 @@ const StopButton = styled.div`
 export function PendingToolCallToolbar() {
   const dispatch = useAppDispatch();
   const jetbrains = isJetBrains();
+  const fullyAutomaticEditMode = useAppSelector(
+    (state) => state.config.config.ui?.fullyAutomaticEditMode ?? false,
+  );
+
+  // In fully automatic edit mode, don't show the toolbar at all
+  if (fullyAutomaticEditMode) {
+    return (
+      <Container>
+        <div className="text-description flex flex-row items-center pb-0.5 pr-1 text-xs">
+          <span className="hidden sm:flex">
+            统一修改模式 - 工具自动执行中...
+          </span>
+        </div>
+      </Container>
+    );
+  }
 
   return (
     <Container>

@@ -64,4 +64,27 @@ object LocalHistoryUtil {
 
         return targetRevisionIndex
     }
+
+    /**
+     * 获取最适合的历史版本：优先使用指定时间戳之前的版本，如果没有则使用最原始版本
+     * @param dirHistoryModel 历史记录模型
+     * @param targetTimestamp 目标时间戳
+     * @return 历史版本项，如果没有历史记录返回 null
+     */
+    @JvmStatic
+    fun findBestHistoricalRevision(dirHistoryModel: HistoryDialogModel, targetTimestamp: Long): RevisionItem? {
+        val revisions = dirHistoryModel.revisions
+        if (revisions.isEmpty()) {
+            return null
+        }
+
+        val targetRevisionIndex = findClosestRevisionBeforeTimestamp(dirHistoryModel, targetTimestamp)
+
+        return if (targetRevisionIndex < 0) {
+            // 如果没有找到在时间戳之前的版本，使用最原始的版本（最后一个版本）
+            revisions.last()
+        } else {
+            revisions[targetRevisionIndex-1]
+        }
+    }
 }

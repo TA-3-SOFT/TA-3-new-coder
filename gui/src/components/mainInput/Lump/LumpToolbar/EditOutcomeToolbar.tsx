@@ -10,6 +10,9 @@ export function EditOutcomeToolbar() {
   const editApplyState = useAppSelector(
     (store) => store.editModeState.applyState,
   );
+  const fullyAutomaticEditMode = useAppSelector(
+    (state) => state.config.config.ui?.fullyAutomaticEditMode ?? false,
+  );
   const { mainEditor } = useMainEditor();
   const ideMessenger = useContext(IdeMessengerContext);
 
@@ -18,17 +21,23 @@ export function EditOutcomeToolbar() {
       <div className="bg-badge rounded px-1.5">
         <span>{`${editApplyState.numDiffs} diff${editApplyState.numDiffs !== 1 ? "s" : ""}`}</span>
       </div>
-      <AcceptRejectDiffButtons
-        applyStates={[editApplyState]}
-        onAcceptOrReject={async (outcome) => {
-          if (outcome === "acceptDiff") {
-            await dispatch(exitEdit({}));
-            ideMessenger.post("focusEditor", undefined);
-          } else {
-            mainEditor?.commands.focus();
-          }
-        }}
-      />
+      {fullyAutomaticEditMode ? (
+        <div className="text-description-muted text-xs">
+          <span>统一修改模式 - 已自动应用</span>
+        </div>
+      ) : (
+        <AcceptRejectDiffButtons
+          applyStates={[editApplyState]}
+          onAcceptOrReject={async (outcome) => {
+            if (outcome === "acceptDiff") {
+              await dispatch(exitEdit({}));
+              ideMessenger.post("focusEditor", undefined);
+            } else {
+              mainEditor?.commands.focus();
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

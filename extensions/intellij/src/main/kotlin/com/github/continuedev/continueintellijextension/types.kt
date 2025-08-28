@@ -135,6 +135,8 @@ interface IDE {
 
     suspend fun saveFile(filepath: String)
 
+    suspend fun saveAllFiles()
+
     suspend fun readFile(filepath: String): String
 
     suspend fun readFileWithLineNumbers(filepath: String): String
@@ -151,6 +153,16 @@ interface IDE {
         filepath: String,
         newContents: String,
         stepIndex: Int
+    )
+
+    suspend fun showAgentDiff(
+        filepath: String,
+        timestamp: Long,
+    )
+
+    suspend fun revertFile(
+        filepath: String,
+        timestamp: Long,
     )
 
     suspend fun getOpenFiles(): List<String>

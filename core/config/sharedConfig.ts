@@ -28,6 +28,7 @@ export const sharedConfigSchema = z
     displayRawMarkdown: z.boolean(),
     showChatScrollbar: z.boolean(),
     autoAcceptEditToolDiffs: z.boolean(),
+    fullyAutomaticEditMode: z.boolean(),
 
     // `tabAutocompleteOptions` in `ContinueConfig`
     useAutocompleteCache: z.boolean(),
@@ -138,6 +139,9 @@ export function modifyAnyConfigWithSharedConfig<
   if (sharedConfig.autoAcceptEditToolDiffs !== undefined) {
     configCopy.ui.autoAcceptEditToolDiffs =
       sharedConfig.autoAcceptEditToolDiffs;
+  }
+  if (sharedConfig.fullyAutomaticEditMode !== undefined) {
+    configCopy.ui.fullyAutomaticEditMode = sharedConfig.fullyAutomaticEditMode;
   }
 
   if (sharedConfig.disableIndexing !== undefined) {

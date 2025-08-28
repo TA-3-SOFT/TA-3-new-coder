@@ -213,6 +213,10 @@ export const saveCurrentSession = createAsyncThunk<
       title,
       workspaceDirectory: window.workspacePaths?.[0] || "",
       history: state.session.history,
+      // showModifiedFilesList: state.session.showModifiedFilesList,
+      // acceptHistoryIndex: state.session.acceptHistoryIndex,
+      fullyAutomaticEditModeMetadata:
+        state.session.fullyAutomaticEditModeMetadata,
     };
 
     const result = await dispatch(updateSession(session));

@@ -1030,6 +1030,9 @@ declare global {
     displayRawMarkdown?: boolean;
     showChatScrollbar?: boolean;
     codeWrap?: boolean;
+    showSessionTabs?: boolean;
+    autoAcceptEditToolDiffs?: boolean;
+    fullyAutomaticEditMode?: boolean;
   }
   
   interface ContextMenuConfig {

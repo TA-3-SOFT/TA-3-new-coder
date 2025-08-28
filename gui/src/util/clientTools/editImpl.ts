@@ -44,7 +44,10 @@ export const editToolImpl: ClientToolImpl = async (
   }
   const state = extras.getState();
   const autoAccept = !!state.config.config.ui?.autoAcceptEditToolDiffs;
-  if (autoAccept) {
+  const fullyAutomaticEditMode = !!state.config.config.ui?.fullyAutomaticEditMode;
+
+  // Auto-accept in either auto-accept mode or fully automatic edit mode
+  if (autoAccept || fullyAutomaticEditMode) {
     // 等待apply状态变为"done"后再执行acceptDiff
     await waitForApplyStateToComplete(extras, extras.streamId);
 

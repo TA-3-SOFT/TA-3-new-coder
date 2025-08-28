@@ -48,6 +48,9 @@ export type ToIdeFromWebviewProtocol = ToIdeFromWebviewOrCoreProtocol & {
   "vscode/openMoveRightMarkdown": [undefined, void];
   acceptDiff: [AcceptOrRejectDiffPayload, void];
   rejectDiff: [AcceptOrRejectDiffPayload, void];
+  showAgentDiff: [{ filepath: string; timestamp: number }, void];
+  saveAllFiles: [{}, void];
+  revertFile: [{ filepath: string; timestamp: number }, void];
   "edit/sendPrompt": [
     {
       prompt: MessageContent;

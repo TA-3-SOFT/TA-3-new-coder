@@ -48,6 +48,15 @@ data class ReadRangeInFileParams(
     val range: Range
 )
 
+data class ShowAgentDiffParams(
+    val filepath: String,
+    var timestamp: Long
+)
+
+data class RevertFileParams(
+    val filepath: String,
+    var timestamp: Long
+)
 
 data class GetDiffParams(val includeUnstaged: Boolean)
 
