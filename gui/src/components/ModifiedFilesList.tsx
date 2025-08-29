@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useContext, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { v4 as uuidv4 } from "uuid";
 import {
   defaultBorderRadius,
   lightGray,
@@ -20,6 +21,7 @@ import {
   vscListActiveBackground,
 } from ".";
 import { IdeMessengerContext } from "../context/IdeMessenger";
+import { ToolTip } from "./gui/Tooltip";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { resolveRelativePathInDir } from "core/util/ideUtils";
 import { ModifiedFile } from "core";
@@ -145,10 +147,10 @@ const BottomActions = styled.div`
 
 const BottomButton = styled.button<{ variant: "discard" | "keep" }>`
   flex: 1;
-  padding: 8px 12px;
+  padding: 4px 4px;
   border: none;
   background-color: ${(props) =>
-    props.variant === "discard" ? "#f8f9fa" : "#d4edda"};
+    props.variant === "discard" ? "#F0F0F3" : "#d4edda"};
   color: ${(props) => (props.variant === "discard" ? "#6c757d" : "#155724")};
   font-size: 12px;
   font-weight: 500;
@@ -409,7 +411,7 @@ export function ModifiedFilesList() {
   };
 
   const handleDiscardAll = async () => {
-    console.log("Agent拒绝全部修改");
+    console.log("Agent回退全部修改");
     try {
       let message;
       if (acceptHistoryIndex > 0) {
@@ -428,7 +430,7 @@ export function ModifiedFilesList() {
               timestamp: message.timestamp,
             });
           } catch (diffError) {
-            console.log("Agent 拒绝全部修改失败");
+            console.log("Agent 回退全部修改失败");
           }
         }
         dispatch(setAcceptHistoryIndex(history.length - 1));
@@ -441,7 +443,7 @@ export function ModifiedFilesList() {
         );
       }
     } catch (error) {
-      console.error("Agent 拒绝全部修改失败:", error);
+      console.error("Agent 回退全部修改失败:", error);
     }
   };
 
@@ -498,24 +500,44 @@ export function ModifiedFilesList() {
               </div>
             </FileInfo>
             <FileActions>
-              <ActionButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleFileClick(file.filepath);
-                }}
-                title="打开文件"
-              >
-                <EyeIcon className="h-3.5 w-3.5" />
-              </ActionButton>
-              <ActionButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRevertFile(file.filepath);
-                }}
-                title="回退此文件的修改"
-              >
-                <TrashIcon className="h-3.5 w-3.5" />
-              </ActionButton>
+              {(() => {
+                const openFileTooltipId = `open-file-${uuidv4()}`;
+                return (
+                  <>
+                    <ActionButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFileClick(file.filepath);
+                      }}
+                      data-tooltip-id={openFileTooltipId}
+                    >
+                      <EyeIcon className="h-3.5 w-3.5" />
+                    </ActionButton>
+                    <ToolTip id={openFileTooltipId} place="top">
+                      <span className="text-xs">打开文件</span>
+                    </ToolTip>
+                  </>
+                );
+              })()}
+              {(() => {
+                const revertFileTooltipId = `revert-file-${uuidv4()}`;
+                return (
+                  <>
+                    <ActionButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRevertFile(file.filepath);
+                      }}
+                      data-tooltip-id={revertFileTooltipId}
+                    >
+                      <TrashIcon className="h-3.5 w-3.5" />
+                    </ActionButton>
+                    <ToolTip id={revertFileTooltipId} place="top">
+                      <span className="text-xs">回退修改</span>
+                    </ToolTip>
+                  </>
+                );
+              })()}
             </FileActions>
           </FileItem>
         ))}
@@ -523,7 +545,7 @@ export function ModifiedFilesList() {
       <BottomActions>
         <BottomButton variant="discard" onClick={handleDiscardAll}>
           <ArrowUturnLeftIcon className="h-3.5 w-3.5" />
-          拒绝全部
+          回退全部
         </BottomButton>
         <BottomButton variant="keep" onClick={handleKeepAll}>
           <CheckIcon className="h-3.5 w-3.5" />

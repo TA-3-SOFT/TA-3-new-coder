@@ -241,7 +241,7 @@ export function UserSettingsForm() {
                 <>
                   <ExclamationTriangleIcon
                     data-tooltip-id={`auto-accept-diffs-warning-tooltip`}
-                    className="h-3 w-3 text-yellow-500"
+                    className="h-3 w-3 text-blue-500"
                   />
                   <ToolTip id={`auto-accept-diffs-warning-tooltip`}>
                     {`注意：当启用时，智能体模式的编辑工具对文件进行修改后，会跳过人工确认步骤，自动接受修改内容。`}
@@ -260,8 +260,8 @@ export function UserSettingsForm() {
               showIfToggled={
                 <>
                   <ExclamationTriangleIcon
-                    data-tooltip-id={`auto-accept-diffs-warning-tooltip`}
-                    className="h-3 w-3 text-yellow-500"
+                    data-tooltip-id={`fully-automatic-edit-mode-warning-tooltip`}
+                    className="h-3 w-3 text-blue-500"
                   />
                   <ToolTip id={`fully-automatic-edit-mode-warning-tooltip`}>
                     {`警告：启用后，模型修改文件时将直接修改文件，无需任何确认操作，在全部修改完成后，会弹出统一确认框进行用户确认操作。`}
