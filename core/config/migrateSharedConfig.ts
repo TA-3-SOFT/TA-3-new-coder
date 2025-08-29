@@ -25,15 +25,15 @@ export function migrateJsonSharedConfig(filepath: string, ide: IDE): void {
 
     let effected = false;
 
-    const { allowAnonymousTelemetry, ...withoutAllowTelemetry } = config;
-    if (allowAnonymousTelemetry !== undefined) {
-      if (currentSharedConfig.allowAnonymousTelemetry !== false) {
-        // safe merge for security
-        shareConfigUpdates.allowAnonymousTelemetry = allowAnonymousTelemetry;
-      }
-      config = withoutAllowTelemetry;
-      effected = true;
-    }
+    // const { allowAnonymousTelemetry, ...withoutAllowTelemetry } = config;
+    // if (allowAnonymousTelemetry !== undefined) {
+    //   if (currentSharedConfig.allowAnonymousTelemetry !== false) {
+    //     // safe merge for security
+    //     shareConfigUpdates.allowAnonymousTelemetry = allowAnonymousTelemetry;
+    //   }
+    //   config = withoutAllowTelemetry;
+    //   effected = true;
+    // }
 
     const { disableIndexing, ...withoutDisableIndexing } = config;
     if (disableIndexing !== undefined) {
