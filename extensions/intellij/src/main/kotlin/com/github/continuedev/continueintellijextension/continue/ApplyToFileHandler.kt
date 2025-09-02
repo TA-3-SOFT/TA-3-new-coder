@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.net.URI
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -194,10 +195,10 @@ class ApplyToFileHandler(
             ide: IDE,
             params: ApplyToFileParams
         ) {
-//            val editorUtils = EditorUtils.getOrOpenEditor(project, params.filepath)
+            val filepath = URI(params.filepath).path
             val editorUtils =
-                if (EditorUtils.editorFileExist(params.filepath)) EditorUtils.getOrOpenEditor(project, params.filepath)
-                else EditorUtils.getEditorByCreateFile(project, params.filepath)
+                if (EditorUtils.editorFileExist(filepath)) EditorUtils.getOrOpenEditor(project, filepath)
+                else EditorUtils.getEditorByCreateFile(project, filepath)
             val diffStreamService = project.getService(DiffStreamService::class.java)
 
             val handler = ApplyToFileHandler(
