@@ -45,6 +45,7 @@ const saveSubsetFilters = [
     "lastSessionId",
     "title",
     // 在local storage中存入
+    "structuredAgentWorkflow",
     "fullyAutomaticEditModeMetadata",
 
     // Persist edit mode in case closes in middle

@@ -262,6 +262,7 @@ export default function StepContainer(props: StepContainerProps) {
             />
             {!hideActions &&
               mode === "structured-agent" &&
+              structuredAgentWorkflow &&
               structuredAgentWorkflow.isActive &&
               props.isLast && (
                 <div

@@ -414,32 +414,25 @@ export const sessionSlice = createSlice({
       state.isStreaming = false;
       state.symbols = {};
 
-      // 重置结构化智能体工作流程状态
-      state.structuredAgentWorkflow = {
-        isActive: false,
-        currentStep: "requirement-input",
-        stepIndex: 0,
-        totalSteps: 5,
-        isWaitingForConfirmation: false,
-        stepHistoryStartIndex: undefined,
-      };
-
       if (payload) {
         state.history = payload.history as any;
         state.title = payload.title;
         state.id = payload.sessionId;
-        // 从保存的会话中恢复 showModifiedFilesList 状态，如果没有则默认为 true
-        // state.showModifiedFilesList = payload.showModifiedFilesList ?? true;
-        // state.acceptHistoryIndex = payload.acceptHistoryIndex ?? 0;
+        state.structuredAgentWorkflow = payload.structuredAgentWorkflow;
         state.fullyAutomaticEditModeMetadata =
           payload.fullyAutomaticEditModeMetadata;
       } else {
         state.history = [];
         state.title = NEW_SESSION_TITLE;
         state.id = uuidv4();
-        // 新会话时重置修改文件列表显示状态
-        // state.showModifiedFilesList = true;
-        // state.acceptHistoryIndex = 0;
+        state.structuredAgentWorkflow = {
+          isActive: false,
+          currentStep: "requirement-input",
+          stepIndex: 0,
+          totalSteps: 5,
+          isWaitingForConfirmation: false,
+          stepHistoryStartIndex: undefined,
+        };
         state.fullyAutomaticEditModeMetadata = {
           showModifiedFilesList: true,
           acceptHistoryIndex: 0,

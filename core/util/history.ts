@@ -93,6 +93,14 @@ class HistoryManager {
         sessionId: sessionId,
         // showModifiedFilesList: true,
         // acceptHistoryIndex: 0,
+        structuredAgentWorkflow: {
+          isActive: false,
+          currentStep: "requirement-input",
+          stepIndex: 0,
+          totalSteps: 5,
+          isWaitingForConfirmation: false,
+          stepHistoryStartIndex: undefined,
+        },
         fullyAutomaticEditModeMetadata: {
           showModifiedFilesList: true,
           acceptHistoryIndex: 0,
@@ -111,8 +119,7 @@ class HistoryManager {
       title: session.title,
       workspaceDirectory: session.workspaceDirectory,
       history: session.history,
-      // showModifiedFilesList: session.showModifiedFilesList,
-      // acceptHistoryIndex: session.acceptHistoryIndex,
+      structuredAgentWorkflow: session.structuredAgentWorkflow,
       fullyAutomaticEditModeMetadata: session.fullyAutomaticEditModeMetadata,
     };
     fs.writeFileSync(
