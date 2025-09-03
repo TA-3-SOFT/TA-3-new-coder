@@ -135,6 +135,9 @@ export default function StepContainer(props: StepContainerProps) {
   );
   const uiConfig = useAppSelector(selectUIConfig);
   const mode = useAppSelector((state) => state.session.mode);
+  const structuredAgentWorkflow = useAppSelector(
+    (state) => state.session.structuredAgentWorkflow,
+  );
 
   const hideActionSpace =
     historyItemAfterThis?.message.role === "assistant" ||
@@ -257,6 +260,24 @@ export default function StepContainer(props: StepContainerProps) {
               source={stripImages(props.item.message.content)}
               itemIndex={props.index}
             />
+            {!hideActions &&
+              mode === "structured-agent" &&
+              structuredAgentWorkflow.isActive &&
+              props.isLast && (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    padding: "5px 8px",
+                  }}
+                >
+                  <br />
+                  [用户操作]：✅ 步骤完成，等待您的确认
+                  <br />
+                  执行下一步：点击下方“确认”按钮进入下一步，或在输入框中输入："确认"
+                  <br />
+                  调整回答内容：点击下方“编辑”按钮进入修改，或在输入框中输入具体的调整建议
+                </div>
+              )}
           </>
         )}
         {props.isLast && <ThinkingIndicator historyItem={props.item} />}

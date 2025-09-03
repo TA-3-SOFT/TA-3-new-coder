@@ -106,7 +106,8 @@ export const streamNormalInput = createAsyncThunk<
     // If it's a tool call that is automatically accepted, we should call it
     const newState = getState();
     const toolSettings = newState.ui.toolSettings;
-    const fullyAutomaticEditMode = newState.config.config.ui?.fullyAutomaticEditMode ?? false;
+    const fullyAutomaticEditMode =
+      newState.config.config.ui?.fullyAutomaticEditMode ?? false;
     const toolCallState = selectCurrentToolCall(newState);
     if (toolCallState) {
       dispatch(
@@ -120,7 +121,7 @@ export const streamNormalInput = createAsyncThunk<
       if (
         fullyAutomaticEditMode ||
         toolSettings[toolCallState.toolCall.function.name] ===
-        "allowedWithoutPermission"
+          "allowedWithoutPermission"
       ) {
         const response = await dispatch(callCurrentTool());
         unwrapResult(response);
@@ -154,13 +155,7 @@ export const streamNormalInput = createAsyncThunk<
 
             if (lastAssistantIndex !== -1) {
               // 添加用户操作提示
-              const enhancedContent = `${projectAnalysisResult}
-
----
-***【用户操作】***：✅ **步骤完成，等待您的确认**
-
-* 执行下一步：点击下方"确认"按钮进入下一步，或在输入框中输入："确认"。
-* 调整回答内容：点击下方"编辑"按钮进入修改，或在输入框中输入具体的调整建议。`;
+              const enhancedContent = `${projectAnalysisResult}`;
 
               // 直接更新消息内容
               dispatch(
