@@ -116,9 +116,9 @@ function IndexingProgress() {
         break;
       case "indexing":
       case "loading":
-      case "paused":
         if (update.progress < 1 && update.progress >= 0) {
-          setPaused((prev) => !prev);
+          // 取消索引任务
+          ideMessenger.post("index/cancelIndexing", undefined);
         } else {
           // 在IDEA中显示确认框，在其他环境中直接重新索引
           if (isJetBrains()) {
@@ -128,11 +128,15 @@ function IndexingProgress() {
           }
         }
         break;
+      case "paused":
+        setPaused((prev) => !prev);
+        break;
       case "disabled":
         ideMessenger.post("config/openProfile", {
           profileId: undefined,
         });
         break;
+      case "cancelled":
       case "done":
         // 在IDEA中显示确认框，在其他环境中直接重新索引
         if (isJetBrains()) {

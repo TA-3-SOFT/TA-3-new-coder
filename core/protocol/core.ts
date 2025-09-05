@@ -164,6 +164,7 @@ export type ToCoreFromIdeOrWebviewProtocol = {
 
   // Codebase indexing
   "index/setPaused": [boolean, void];
+  "index/cancelIndexing": [undefined, void];
   "index/forceReIndex": [
     undefined | { dirs?: string[]; shouldClearIndexes?: boolean },
     void,

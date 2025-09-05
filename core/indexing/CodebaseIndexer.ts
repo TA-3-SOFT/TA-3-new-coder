@@ -564,6 +564,7 @@ export class CodebaseIndexer {
           directoryFiles,
           branch,
           repoName,
+          abortSignal,
         )) {
           // Handle pausing in this loop because it's the only one really taking time
           if (abortSignal.aborted) {
@@ -699,6 +700,7 @@ export class CodebaseIndexer {
     files: string[],
     branch: string,
     repoName: string | undefined,
+    abortSignal?: AbortSignal,
   ): AsyncGenerator<IndexingProgressUpdate> {
     const stats = await this.ide.getFileStats(files);
     const indexesToBuild = await this.getIndexesToBuild();
@@ -728,12 +730,32 @@ export class CodebaseIndexer {
       // Don't update if nothing to update. Some of the indices might do unnecessary setup work
       if (totalOps > 0) {
         for (const subResult of this.batchRefreshIndexResults(results)) {
+          // 检查是否被取消
+          if (abortSignal?.aborted) {
+            yield {
+              progress: 0,
+              desc: "Indexing cancelled",
+              status: "cancelled",
+            };
+            return;
+          }
+
           for await (const { desc } of codebaseIndex.update(
             tag,
             subResult,
             markComplete,
             repoName,
           )) {
+            // 在更新过程中也检查取消信号
+            if (abortSignal?.aborted) {
+              yield {
+                progress: 0,
+                desc: "Indexing cancelled",
+                status: "cancelled",
+              };
+              return;
+            }
+
             yield {
               progress: progress,
               desc,

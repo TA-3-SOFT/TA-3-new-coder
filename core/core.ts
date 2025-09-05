@@ -589,6 +589,22 @@ export class Core {
       this.globalContext.update("indexingPaused", msg.data);
       this.indexingPauseToken.paused = msg.data;
     });
+    on("index/cancelIndexing", () => {
+      if (this.indexingCancellationController) {
+        this.indexingCancellationController.abort();
+        // 立即更新状态为已取消
+        void this.messenger.request("indexProgress", {
+          progress: 0,
+          desc: "索引已取消",
+          status: "cancelled",
+        });
+        this.codebaseIndexingState = {
+          progress: 0,
+          desc: "索引已取消",
+          status: "cancelled",
+        };
+      }
+    });
     on("index/indexingProgressBarInitialized", async (msg) => {
       // Triggered when progress bar is initialized.
       // If a non-default state has been stored, update the indexing display to that state
@@ -1089,8 +1105,31 @@ export class Core {
         if (update.status === "failed") {
           void this.sendIndexingErrorTelemetry(update);
         }
+
+        // 如果状态是 cancelled，直接返回
+        if (update.status === "cancelled") {
+          return;
+        }
       }
     } catch (e: any) {
+      // 检查是否是 AbortError
+      if (
+        e.name === "AbortError" ||
+        this.indexingCancellationController?.signal.aborted
+      ) {
+        console.log("Indexing was cancelled by user");
+        void this.messenger.request("indexProgress", {
+          progress: 0,
+          desc: "索引已取消",
+          status: "cancelled",
+        });
+        this.codebaseIndexingState = {
+          progress: 0,
+          desc: "索引已取消",
+          status: "cancelled",
+        };
+        return;
+      }
       console.log(`Failed refreshing codebase index directories : ${e}`);
       this.handleIndexingError(e);
     }
