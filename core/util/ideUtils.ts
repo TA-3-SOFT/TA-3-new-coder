@@ -17,9 +17,11 @@ export async function resolveRelativePathInDir(
   dirUriCandidates?: string[],
 ): Promise<string | undefined> {
   const dirs = dirUriCandidates ?? (await ide.getWorkspaceDirs());
+
   for (const dirUri of dirs) {
     const fullUri = joinPathsToUri(dirUri, path);
-    if (await ide.fileExists(fullUri)) {
+    const exists = await ide.fileExists(fullUri);
+    if (exists) {
       return fullUri;
     }
   }

@@ -32,6 +32,7 @@ import {
 } from "./util/processTerminalBackgroundStates";
 import { getSymbolsForManyFiles } from "./util/treeSitter";
 import { TTS } from "./util/tts";
+import { ProjectInfoInitializer } from "./util/projectInfoInitializer";
 
 import {
   ContextItemWithId,
@@ -778,6 +779,36 @@ export class Core {
         return isBackgrounded; // Return true to indicate the message was handled successfully
       },
     );
+
+    on("project/initializeInfo", async (msg) => {
+      try {
+        // 获取当前配置的聊天模型用于 LLM 分析
+        const { config } = await this.configHandler.loadConfig();
+        const chatModel = config?.selectedModelByRole.chat;
+
+        const projectInfoInitializer = new ProjectInfoInitializer(
+          this.ide,
+          chatModel ?? undefined // 传入 LLM 实例进行深度分析
+        );
+
+        await projectInfoInitializer.initializeProjectInfo();
+
+        // 显示成功提示
+        const successMessage = chatModel
+          ? "项目信息已成功生成到 new-coder.md 文件 (包含 AI 深度分析)"
+          : "项目信息已成功生成到 new-coder.md 文件";
+
+        await this.ide.showToast("info", successMessage);
+      } catch (error) {
+        console.error("项目信息初始化失败:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        await this.ide.showToast(
+          "error",
+          `项目信息初始化失败: ${errorMessage}`
+        );
+        throw error;
+      }
+    });
   }
 
   private async isItemTooBig(item: ContextItemWithId) {
