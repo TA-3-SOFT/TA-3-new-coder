@@ -28,6 +28,7 @@ export function rectifySelectedModelsFromGlobalContext(
     "embed",
     "rerank",
     "chat",
+    "longcontext",
   ];
 
   for (const role of roles) {

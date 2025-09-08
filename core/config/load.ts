@@ -338,6 +338,7 @@ async function intermediateToFinalConfig({
     "apply",
     "edit",
     "summarize",
+    "longcontext",
   ]); // Default to chat role if not specified
 
   // Free trial provider will be completely ignored
@@ -535,6 +536,7 @@ async function intermediateToFinalConfig({
       edit: models,
       apply: models,
       summarize: models,
+      longcontext: models,
       autocomplete: [...tabAutocompleteModels],
       embed: newEmbedder ? [newEmbedder] : [],
       rerank: newReranker ? [newReranker] : [],
@@ -547,6 +549,7 @@ async function intermediateToFinalConfig({
       autocomplete: null,
       rerank: newReranker ?? null,
       summarize: null, // Not implemented
+      longcontext: null, // Not implemented
     },
     rules: [],
   };

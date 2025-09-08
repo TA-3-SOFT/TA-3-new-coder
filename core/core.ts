@@ -800,11 +800,11 @@ export class Core {
       try {
         // 获取当前配置的聊天模型用于 LLM 分析
         const { config } = await this.configHandler.loadConfig();
-        const chatModel = config?.selectedModelByRole.chat;
+        const chatModel = config?.modelsByRole?.longcontext[0];
 
         const projectInfoInitializer = new ProjectInfoInitializer(
           this.ide,
-          chatModel ?? undefined // 传入 LLM 实例进行深度分析
+          chatModel ?? undefined, // 传入 LLM 实例进行深度分析
         );
 
         await projectInfoInitializer.initializeProjectInfo();
@@ -817,10 +817,11 @@ export class Core {
         await this.ide.showToast("info", successMessage);
       } catch (error) {
         console.error("项目信息初始化失败:", error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         await this.ide.showToast(
           "error",
-          `项目信息初始化失败: ${errorMessage}`
+          `项目信息初始化失败: ${errorMessage}`,
         );
         throw error;
       }

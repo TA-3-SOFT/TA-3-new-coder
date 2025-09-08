@@ -193,6 +193,7 @@ async function configYamlToContinueConfig(options: {
       autocomplete: [],
       rerank: [],
       summarize: [],
+      longcontext: [],
     },
     selectedModelByRole: {
       chat: null,
@@ -202,6 +203,7 @@ async function configYamlToContinueConfig(options: {
       autocomplete: null,
       rerank: null,
       summarize: null,
+      longcontext: null,
     },
     rules: [],
   };
@@ -292,7 +294,13 @@ async function configYamlToContinueConfig(options: {
 
   // Models
   let warnAboutFreeTrial = false;
-  const defaultModelRoles: ModelRole[] = ["chat", "summarize", "apply", "edit"];
+  const defaultModelRoles: ModelRole[] = [
+    "chat",
+    "summarize",
+    "apply",
+    "edit",
+    "longcontext",
+  ];
   for (const model of config.models ?? []) {
     model.roles = model.roles ?? defaultModelRoles; // Default to all 4 chat-esque roles if not specified
 
@@ -315,6 +323,10 @@ async function configYamlToContinueConfig(options: {
 
       if (model.roles?.includes("summarize")) {
         continueConfig.modelsByRole.summarize.push(...llms);
+      }
+
+      if (model.roles?.includes("longcontext")) {
+        continueConfig.modelsByRole.longcontext.push(...llms);
       }
 
       if (model.roles?.includes("apply")) {
