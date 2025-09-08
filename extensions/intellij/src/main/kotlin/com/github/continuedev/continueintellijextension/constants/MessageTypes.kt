@@ -114,6 +114,7 @@ class MessageTypes {
             "index/forceReIndex",
             "index/forceReIndexFiles",
             "index/indexingProgressBarInitialized",
+            "index/cancelIndexing",
             // Docs, etc.
             "indexing/reindex",
             "indexing/abort",
