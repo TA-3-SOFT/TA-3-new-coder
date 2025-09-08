@@ -800,7 +800,7 @@ export class Core {
       try {
         // 获取当前配置的聊天模型用于 LLM 分析
         const { config } = await this.configHandler.loadConfig();
-        const chatModel = config?.modelsByRole?.longcontext[0];
+        const chatModel = config?.selectedModelByRole?.longcontext;
 
         const projectInfoInitializer = new ProjectInfoInitializer(
           this.ide,

@@ -76,6 +76,13 @@ export function ModelsSection() {
           selectedModel={config.selectedModelByRole.rerank}
           onSelect={(model) => handleRoleUpdate("rerank", model)}
         />
+        <ModelRoleSelector
+          displayName="长上下文"
+          description="用于流程化智能体在特定工具中长上下文环境使用。"
+          models={config.modelsByRole.longcontext}
+          selectedModel={config.selectedModelByRole.longcontext}
+          onSelect={(model) => handleRoleUpdate("longcontext", model)}
+        />
       </div>
       {/*<ExploreBlocksButton blockType={"models"} />*/}
     </div>
