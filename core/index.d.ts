@@ -250,6 +250,7 @@ export interface Session {
   title: string;
   workspaceDirectory: string;
   history: ChatHistoryItem[];
+  structuredAgentWorkflow: StructuredAgentWorkflowState;
   fullyAutomaticEditModeMetadata: FullyAutomaticEditModeMetadataState;
   // showModifiedFilesList?: boolean;
   // acceptHistoryIndex?: number;

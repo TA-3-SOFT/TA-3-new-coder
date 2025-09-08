@@ -11,7 +11,7 @@ const STATUS_TO_SUBTITLE_TEXT: Record<
 > = {
   done: "点击重新索引",
   loading: "",
-  indexing: "点击暂停",
+  indexing: "点击取消",
   paused: "点击继续",
   failed: "点击重试",
   disabled: "点击打开设置",

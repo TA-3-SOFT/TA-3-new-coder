@@ -374,29 +374,33 @@ class IntelliJIDE(
     }
 
     override suspend fun getCurrentFile(): Map<String, Any>? {
-        val fileEditorManager = FileEditorManager.getInstance(project)
-        val editor = fileEditorManager.selectedTextEditor
-        val virtualFile = editor?.document?.let { FileDocumentManager.getInstance().getFile(it) }
-        return virtualFile?.toUriOrNull()?.let {
-            mapOf(
-                "path" to it,
-                "contents" to editor.document.text,
-                "isUntitled" to false
-            )
+        return withContext(Dispatchers.Main) {
+            val fileEditorManager = FileEditorManager.getInstance(project)
+            val editor = fileEditorManager.selectedTextEditor
+            val virtualFile = editor?.document?.let { FileDocumentManager.getInstance().getFile(it) }
+            return@withContext virtualFile?.toUriOrNull()?.let {
+                mapOf(
+                    "path" to it,
+                    "contents" to editor.document.text,
+                    "isUntitled" to false
+                )
+            }
         }
     }
 
     override suspend fun getCurrentFileWithLineNumbers(): Map<String, Any>? {
-        val fileEditorManager = FileEditorManager.getInstance(project)
-        val editor = fileEditorManager.selectedTextEditor
-        val virtualFile = editor?.document?.let { FileDocumentManager.getInstance().getFile(it) }
-        return virtualFile?.toUriOrNull()?.let {
-            mapOf(
-                "path" to it,
-                "contents" to editor.document.text.lines().mapIndexed { index, line -> "${index + 1}: $line" }
-                    .joinToString("\n"),
-                "isUntitled" to false
-            )
+        return withContext(Dispatchers.Main) {
+            val fileEditorManager = FileEditorManager.getInstance(project)
+            val editor = fileEditorManager.selectedTextEditor
+            val virtualFile = editor?.document?.let { FileDocumentManager.getInstance().getFile(it) }
+            return@withContext virtualFile?.toUriOrNull()?.let {
+                mapOf(
+                    "path" to it,
+                    "contents" to editor.document.text.lines().mapIndexed { index, line -> "${index + 1}: $line" }
+                        .joinToString("\n"),
+                    "isUntitled" to false
+                )
+            }
         }
     }
 

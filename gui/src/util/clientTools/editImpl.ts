@@ -44,7 +44,8 @@ export const editToolImpl: ClientToolImpl = async (
   }
   const state = extras.getState();
   const autoAccept = !!state.config.config.ui?.autoAcceptEditToolDiffs;
-  const fullyAutomaticEditMode = !!state.config.config.ui?.fullyAutomaticEditMode;
+  const fullyAutomaticEditMode =
+    !!state.config.config.ui?.fullyAutomaticEditMode;
 
   // Auto-accept in either auto-accept mode or fully automatic edit mode
   if (autoAccept || fullyAutomaticEditMode) {
@@ -75,8 +76,8 @@ async function waitForApplyStateToComplete(
   streamId: string,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const maxWaitTime = 30000; // 最大等待30秒
-    const checkInterval = 100; // 每100ms检查一次
+    const maxWaitTime = 60000; // 最大等待60秒
+    const checkInterval = 1000; // 每1000ms检查一次
     let elapsedTime = 0;
 
     const checkStatus = () => {

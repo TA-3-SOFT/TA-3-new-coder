@@ -6,11 +6,13 @@ import { Chat } from "./Chat";
 export default function GUI() {
   const mode = useAppSelector((state) => state.session.mode);
   const structuredAgentWorkflow = useAppSelector(
-    (state) => state.session.structuredAgentWorkflow
+    (state) => state.session.structuredAgentWorkflow,
   );
 
   const showStructuredAgentProgress =
-    mode === "structured-agent" && structuredAgentWorkflow.isActive;
+    mode === "structured-agent" &&
+    structuredAgentWorkflow &&
+    structuredAgentWorkflow.isActive;
 
   return (
     <div className="flex w-screen flex-row overflow-hidden">

@@ -78,12 +78,7 @@ ${projectMemory}
 </requirement_sub>
 </requirement_analysis>
 
-注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。
-在您的回复结尾使用以下固定格式：
----
-***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-* 执行下一步：点击下方“确认”按钮进入下一步，或在输入框中输入："确认"。
-* 调整回答内容：点击下方“编辑”按钮进入修改，或在输入框中输入具体的调整建议。`,
+注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。`,
     needsConfirmation: true,
     allowedTools: [], // 需求拆分步骤不使用任何工具
   },
@@ -99,12 +94,7 @@ ${requirementFinal}
 1. 使用project_analysis工具来分析当前Maven项目的结构，禁止传递任何参数给该工具（都使用默认的）。
 2. 调用project_analysis工具后，直接把project_analysis工具的返回结果作为您的回答，不要添加任何其它内容。
 
-注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。
-回答完成后请输出以下固定的完整内容：
----
-***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-* 执行下一步：点击下方“确认”按钮进入下一步，或在输入框中输入："确认"。
-* 调整回答内容：点击下方“编辑”按钮进入修改，或在输入框中输入具体的调整建议。`,
+注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。`,
     needsConfirmation: true,
     allowedTools: [BuiltInToolNames.ProjectAnalysis], // 项目理解步骤只允许使用项目分析工具
   },
@@ -122,12 +112,7 @@ ${requirementFinal}
 3. 依次调用完code_chunk_analysis工具后，如果code_chunk_analysis调用成功，根据调用结果做出简单总结回答
 4. 只管设计工作，不要完成代码编写这类开发工作
 
-注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。
-回答完成后请输出以下固定的完整内容：
----
-***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-* 执行下一步：点击下方“确认”按钮进入下一步，或在输入框中输入："确认"。
-* 调整回答内容：点击下方“编辑”按钮进入修改，或在输入框中输入具体的调整建议。`,
+注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。`,
     needsConfirmation: true,
     allowedTools: [BuiltInToolNames.CodeChunkAnalysis], // 代码分析步骤只允许使用代码块分析工具
   },
@@ -172,12 +157,7 @@ ${requirementFinal}
 1.xxxxxxx
 2.xxxxxxxx
 
-注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。
-回答完成后请输出以下固定的完整内容：
----
-***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-* 执行下一步：点击下方“确认”按钮进入下一步，或在输入框中输入："确认"。
-* 调整回答内容：点击下方“编辑”按钮进入修改，或在输入框中输入具体的调整建议。`,
+注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。`,
     needsConfirmation: true,
     allowedTools: [
       // 制定计划步骤允许使用只读工具来查看和分析代码
@@ -201,13 +181,7 @@ ${requirementFinal}
 1. 按照计划的顺序逐步实施
 2. 使用编辑工具对每个文件进行精确的修改
 3. 确保代码质量和一致性
-4. 在关键节点进行验证
-
-回答完成后请输出以下固定的完整内容：
----
-***【用户操作】***：✅ **步骤完成，等待您的确认**\n
-* 结束流程：点击下方“确认”按钮结束，或在输入框中输入："确认"。
-* 继续执行：请在输入框中输入您的要求。`,
+4. 在关键节点进行验证`,
     needsConfirmation: true,
     allowedTools: [
       // 执行计划步骤允许使用所有工具
@@ -728,10 +702,10 @@ export const getSessionHistoryLastContent = (
       );
     }
   }
-  if (result && result.includes("***【用户操作】***")) {
-    const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
-    result = result.substring(0, lastSeparatorIndex).trim();
-  }
+  // if (result && result.includes("***【用户操作】***")) {
+  //   const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
+  //   result = result.substring(0, lastSeparatorIndex).trim();
+  // }
   return result;
 };
 
@@ -741,10 +715,10 @@ export const getSessionHistoryContentByIndex = (
   index: number,
 ): string => {
   let result = history[index].message.content.toString();
-  if (result && result.includes("***【用户操作】***")) {
-    const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
-    result = result.substring(0, lastSeparatorIndex).trim();
-  }
+  // if (result && result.includes("***【用户操作】***")) {
+  //   const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
+  //   result = result.substring(0, lastSeparatorIndex).trim();
+  // }
   return result;
 };
 
@@ -761,10 +735,10 @@ export const getLastAssistantContent = (
     ) {
       let result = historyItem.message.content.toString();
       // 移除用户操作提示部分
-      if (result && result.includes("***【用户操作】***")) {
-        const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
-        result = result.substring(0, lastSeparatorIndex).trim();
-      }
+      // if (result && result.includes("***【用户操作】***")) {
+      //   const lastSeparatorIndex = result.lastIndexOf("***【用户操作】***");
+      //   result = result.substring(0, lastSeparatorIndex).trim();
+      // }
       return result;
     }
   }

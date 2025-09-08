@@ -39,10 +39,14 @@ export default function ResponseActions({
 }: ResponseActionsProps) {
   const dispatch = useDispatch();
   const mode = useAppSelector((state) => state.session.mode);
-  const structuredAgentWorkflow = useAppSelector((state) => state.session.structuredAgentWorkflow);
+  const structuredAgentWorkflow = useAppSelector(
+    (state) => state.session.structuredAgentWorkflow,
+  );
 
   // 在流程化智能体模式下，只在最新的回答中显示确认和编辑按钮
-  const shouldShowEditButtons = mode === "structured-agent" &&
+  const shouldShowEditButtons =
+    mode === "structured-agent" &&
+    structuredAgentWorkflow &&
     structuredAgentWorkflow.isActive &&
     isLast;
 

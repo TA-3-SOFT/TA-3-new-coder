@@ -215,6 +215,7 @@ export const saveCurrentSession = createAsyncThunk<
       history: state.session.history,
       // showModifiedFilesList: state.session.showModifiedFilesList,
       // acceptHistoryIndex: state.session.acceptHistoryIndex,
+      structuredAgentWorkflow: state.session.structuredAgentWorkflow,
       fullyAutomaticEditModeMetadata:
         state.session.fullyAutomaticEditModeMetadata,
     };
