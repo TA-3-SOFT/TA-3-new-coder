@@ -62,6 +62,7 @@ export class ProjectInfoInitializer {
       const newCoderUri = `file://${newCoderPath.replace(/\\/g, "/")}`;
 
       await this.ide.writeFile(newCoderUri, markdownContent);
+      await this.ide.openFile(newCoderUri);
 
       console.log(`项目信息已生成到: ${newCoderPath}`);
     } catch (error) {

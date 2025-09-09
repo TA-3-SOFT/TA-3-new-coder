@@ -649,6 +649,9 @@ export class Core {
           if (isLocalAssistantFile(uri)) {
             localAssistantCreated = true;
           }
+          if (uri.endsWith("new-coder.md")) {
+            await this.configHandler.reloadConfig();
+          }
         }
         if (localAssistantCreated) {
           await this.configHandler.refreshAll();
@@ -660,6 +663,11 @@ export class Core {
       if (data?.uris?.length) {
         walkDirCache.invalidate();
         void refreshIfNotIgnored(data.uris);
+        for (const uri of data.uris) {
+          if (uri.endsWith("new-coder.md")) {
+            await this.configHandler.reloadConfig();
+          }
+        }
       }
     });
 
@@ -914,7 +922,8 @@ export class Core {
           uri.endsWith(".continuerc.json") ||
           uri.endsWith(".prompt") ||
           uri.endsWith(SYSTEM_PROMPT_DOT_FILE) ||
-          (uri.includes(".continue") && uri.endsWith(".yaml"))
+          (uri.includes(".continue") && uri.endsWith(".yaml")) ||
+          uri.endsWith("new-coder.md")
         ) {
           await this.configHandler.reloadConfig();
         } else if (

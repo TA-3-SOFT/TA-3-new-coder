@@ -1,6 +1,9 @@
 import { ConfigValidationError } from "@continuedev/config-yaml";
 import { IDE, RuleWithSource } from "../..";
-import { getAllDotContinueDefinitionFiles } from "../loadLocalAssistants";
+import {
+  getAllDotContinueDefinitionFiles,
+  getNewCoderMdFile,
+} from "../loadLocalAssistants";
 import { convertMarkdownRuleToContinueRule } from "./parseMarkdownRule";
 
 /**
@@ -15,11 +18,12 @@ export async function loadMarkdownRules(ide: IDE): Promise<{
 
   try {
     // Get all .md files from .continue/rules
-    const markdownFiles = await getAllDotContinueDefinitionFiles(
-      ide,
-      { includeGlobal: true, includeWorkspace: true },
-      "rules",
-    );
+    // const markdownFiles = await getAllDotContinueDefinitionFiles(
+    //   ide,
+    //   { includeGlobal: true, includeWorkspace: true },
+    //   "rules",
+    // );
+    const markdownFiles = await getNewCoderMdFile(ide);
 
     // Filter to just .md files
     const mdFiles = markdownFiles.filter((file) => file.path.endsWith(".md"));

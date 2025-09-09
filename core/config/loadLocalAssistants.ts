@@ -113,3 +113,31 @@ export async function getAllDotContinueDefinitionFiles(
     }),
   );
 }
+
+/**
+ * This method searches only in workspace directories for new-coder.md file
+ * Returns the first found file or null if not found
+ */
+export async function getNewCoderMdFile(
+  ide: IDE,
+): Promise<{ path: string; content: string }[]> {
+  const workspaceDirs = await ide.getWorkspaceDirs();
+
+  for (const dir of workspaceDirs) {
+    try {
+      const newCoderMdPath = joinPathsToUri(dir, "new-coder.md");
+      const exists = await ide.fileExists(newCoderMdPath);
+      if (exists) {
+        const content = await ide.readFile(newCoderMdPath);
+        return [{ path: newCoderMdPath, content }];
+      }
+    } catch (e) {
+      // Continue to next directory if there's an error reading this one
+      console.error(
+        `Failed to read new-coder.md from workspace ${dir}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+  }
+
+  return [];
+}
