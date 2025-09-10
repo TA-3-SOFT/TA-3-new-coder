@@ -49,8 +49,10 @@ export const codeChunkAnalysisImpl: ToolImpl = async (args, extras) => {
     let analyzer: CodeSnippetAnalyzer;
     let methodUsed: string;
 
-    analyzer = new CodeSnippetAnalyzer(extras.ide, extras.llm, maxChunkSize);
-    methodUsed = "LLM语义分析";
+    // 使用longcontext模型而不是默认的extras.llm
+    const longContextLLM = extras.config?.selectedModelByRole?.longcontext;
+    analyzer = new CodeSnippetAnalyzer(extras.ide, longContextLLM || extras.llm, maxChunkSize);
+    methodUsed = longContextLLM ? "LLM语义分析 (longcontext模型)" : "LLM语义分析";
 
     // 调用分析器
     let snippets;

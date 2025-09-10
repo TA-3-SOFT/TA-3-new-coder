@@ -21,6 +21,8 @@ export interface ScoredChunk {
 }
 
 export interface RelevanceScore {
+  // 修改：支持ID匹配
+  id?: number; // 添加ID字段用于精确匹配
   file: string;
   start_line: number;
   score: number;
@@ -28,6 +30,7 @@ export interface RelevanceScore {
 
 // 新增：合并的评分和总结结果
 export interface ScoreAndSummary {
+  id?: number; // 添加ID字段用于精确匹配
   file: string;
   start_line: number;
   score: number;
@@ -39,6 +42,7 @@ export interface ModuleFileMap {
 }
 
 export interface SnippetFilterEvaluation {
+  id?: number; // 添加ID字段用于精确匹配
   file: string;
   start_line: number;
   is_relevant: boolean;
@@ -46,6 +50,7 @@ export interface SnippetFilterEvaluation {
 }
 
 export interface CodeSummary {
+  id?: number; // 添加ID字段用于精确匹配
   file: string;
   start_line: number;
   summary: string;
@@ -64,6 +69,11 @@ interface ToolCallResults {
   codeSummaries?: CodeSummary[];
   moduleSummaries?: ModuleSummary[];
   scoreAndSummaries?: ScoreAndSummary[]; // 新增：合并的评分和总结结果
+}
+
+// 添加：代码块索引映射
+interface CodeChunkIndex {
+  [id: number]: CodeChunk;
 }
 
 /**
@@ -131,6 +141,10 @@ export class CodeSnippetAnalyzer {
     scoreAndSummaries: undefined,
   };
 
+  // 添加：代码块索引映射
+  private codeChunkIndex: CodeChunkIndex = {};
+  private nextChunkId: number = 1;
+
   // 添加高级检索索引
   private ftsIndex: FullTextSearchCodebaseIndex;
   private lanceDbIndex: LanceDbIndex | null = null;
@@ -182,10 +196,6 @@ export class CodeSnippetAnalyzer {
         cleanedCount++;
       }
     }
-
-    if (cleanedCount > 0) {
-      console.log(`🧹 清理了 ${cleanedCount} 个过期的关键词缓存条目`);
-    }
   }
 
   /**
@@ -218,26 +228,26 @@ SCORING CRITERIA:
 - Relevant keywords/variables: Medium score
 - Related comments/documentation: Medium score
 - Generic code/imports only: Low score
-- Files with only import statements: Very low score (0-1)
-- Empty classes or methods without implementation: Very low score (0-1)
+- Files with only import statements: Very low score (0)
+- Empty classes or methods without implementation: Very low score (0)
 
 OUTPUT FORMAT:
 You MUST respond with ONLY this exact XML format:
 <scores>
-<score file="file_path" line="start_line" value="score_value" />
-<score file="file_path" line="start_line" value="score_value" />
+<score id="chunk_id" value="score_value" />
+<score id="chunk_id" value="score_value" />
 </scores>
 
 IMPORTANT RULES:
-1. Use forward slashes (/) in ALL file paths
+1. Use the ID attribute to identify code chunks
 2. Include ALL code snippets in your response
 3. No additional text or explanations
 4. Ensure valid XML format
 
 Example:
 <scores>
-<score file="src/main/java/Example.java" line="10" value="8" />
-<score file="src/main/java/Other.java" line="25" value="6" />
+<score id="1" value="8" />
+<score id="2" value="6" />
 </scores>
         `;
   }
@@ -264,20 +274,20 @@ RELEVANCE CRITERIA:
 OUTPUT FORMAT:
 You MUST respond with ONLY this exact XML format:
 <filters>
-<filter file="file_path" line="start_line" relevant="true_or_false" reason="brief_reason" />
-<filter file="file_path" line="start_line" relevant="true_or_false" reason="brief_reason" />
+<filter id="chunk_id" relevant="true_or_false" reason="brief_reason" />
+<filter id="chunk_id" relevant="true_or_false" reason="brief_reason" />
 </filters>
 
 IMPORTANT RULES:
-1. Use forward slashes (/) in ALL file paths
+1. Use the ID attribute to identify code chunks
 2. Include ALL code snippets in your response
 3. No additional text or explanations
 4. Ensure valid XML format
 
 Example:
 <filters>
-<filter file="src/main/java/Example.java" line="10" relevant="true" reason="implements cache functionality" />
-<filter file="src/main/java/Other.java" line="25" relevant="false" reason="only imports and boilerplate" />
+<filter id="1" relevant="true" reason="implements cache functionality" />
+<filter id="2" relevant="false" reason="only imports and boilerplate" />
 </filters>
         `;
   }
@@ -301,12 +311,12 @@ SUMMARY REQUIREMENTS:
 OUTPUT FORMAT:
 You MUST respond with ONLY this exact XML format:
 <summaries>
-<summary file="file_path" line="start_line" text="brief_description" />
-<summary file="file_path" line="start_line" text="brief_description" />
+<summary id="chunk_id" text="brief_description" />
+<summary id="chunk_id" text="brief_description" />
 </summaries>
 
 IMPORTANT RULES:
-1. Use forward slashes (/) in ALL file paths
+1. Use the ID attribute to identify code chunks
 2. Include ALL code snippets in your response
 3. No additional text or explanations
 4. Ensure valid XML format
@@ -314,8 +324,62 @@ IMPORTANT RULES:
 
 Example:
 <summaries>
-<summary file="src/main/java/Example.java" line="10" text="Implements user authentication with JWT tokens" />
-<summary file="src/main/java/Other.java" line="25" text="Validates input parameters and throws exceptions" />
+<summary id="1" text="Implements user authentication with JWT tokens" />
+<summary id="2" text="Validates input parameters and throws exceptions" />
+</summaries>
+        `;
+  }
+
+  /**
+   * 获取合并评分和总结的系统提示词
+   */
+  private getScoreAndSummarySystemPrompt(): string {
+    return `
+You are a senior code analysis expert. Analyze code snippets for relevance to user requirements and provide concise summaries.
+
+TASK: Evaluate each code snippet with a score from 0-10 (10=most relevant) and generate brief, accurate summaries describing what each code snippet does.
+
+SCORING CRITERIA:
+- Relevant functionality/methods: High score
+- Relevant configuration/constants: High score
+- Relevant keywords/variables: Medium score
+- Related comments/documentation: Medium score
+- Generic code/imports only: Low score
+- Files with only import statements: Very low score (0)
+- Empty classes or methods without implementation: Very low score (0)
+
+SUMMARY REQUIREMENTS:
+- Maximum 20 words per summary
+- Focus on the main functionality or purpose
+- Use technical terms appropriately
+- Be precise and specific
+- Avoid generic descriptions
+
+OUTPUT FORMAT:
+You MUST respond with ONLY this exact XML format:
+<scores>
+<score id="chunk_id" value="score_value" />
+<score id="chunk_id" value="score_value" />
+</scores>
+<summaries>
+<summary id="chunk_id" text="brief_description" />
+<summary id="chunk_id" text="brief_description" />
+</summaries>
+
+IMPORTANT RULES:
+1. Use the ID attribute to identify code chunks
+2. Include ALL code snippets in your response
+3. No additional text or explanations
+4. Ensure valid XML format
+
+Example:
+<scores>
+<score id="1" value="8" />
+<score id="2" value="6" />
+</scores>
+<summaries>
+<summary id="1" text="Caches data in memory" />
+<summary id="2" text="Fetches data from API" />
 </summaries>
         `;
   }
@@ -353,55 +417,6 @@ Example:
 <module_summaries>
 <module_summary name="user-service" text="Handles user authentication, authorization, and profile management with JWT tokens, role-based access control, and database persistence" chunks="15" />
 </module_summaries>
-        `;
-  }
-
-  /**
-   * 获取合并评分和总结的系统提示词
-   */
-  private getScoreAndSummarySystemPrompt(): string {
-    return `
-You are a senior code analysis expert. Analyze code snippets for relevance to user requirements AND provide concise summaries.
-
-TASK: For each code snippet, provide BOTH a relevance score (0-10) AND a brief summary.
-
-SCORING CRITERIA:
-- Relevant functionality/methods: High score (8-10)
-- Relevant configuration/constants: High score (7-9)
-- Relevant keywords/variables: Medium score (5-7)
-- Related comments/documentation: Medium score (4-6)
-- Generic code/imports only: Low score (1-3)
-- Files with only import statements: Very low score (0-1)
-- Empty classes or methods without implementation: Very low score (0-1)
-- Completely unrelated: Very low score (0-1)
-
-SUMMARY REQUIREMENTS:
-- Maximum 20 words per summary
-- Focus on the main functionality or purpose
-- Use technical terms appropriately
-- Be precise and specific
-- Avoid generic descriptions
-
-OUTPUT FORMAT:
-You MUST respond with ONLY this exact XML format:
-<score_summaries>
-<item file="file_path" line="start_line" score="score_value" summary="brief_description" />
-<item file="file_path" line="start_line" score="score_value" summary="brief_description" />
-</score_summaries>
-
-IMPORTANT RULES:
-1. Use forward slashes (/) in ALL file paths
-2. Include ALL code snippets in your response
-3. No additional text or explanations
-4. Ensure valid XML format
-5. Keep summaries under 20 words
-6. Score must be 0-10
-
-Example:
-<score_summaries>
-<item file="src/main/java/Example.java" line="10" score="8" summary="Implements user authentication with JWT tokens" />
-<item file="src/main/java/Other.java" line="25" score="3" summary="Generic utility class with helper methods" />
-</score_summaries>
         `;
   }
 
@@ -450,14 +465,10 @@ Example:
     // 检查缓存
     const cached = this.keywordCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      console.log(
-        `💾 缓存命中关键词: ${cached.keywords.join(", ")} (从"${userRequest}")`,
-      );
       return cached.keywords;
     }
 
     if (!this.llm) {
-      console.log("⚠️ LLM 不可用，使用基础关键词提取");
       const keywords = this.extractSmartKeywords(userRequest);
 
       // 缓存结果
@@ -587,9 +598,6 @@ Example:
       .slice(0, 10)
       .map(([word]) => word);
 
-    console.log(
-      `🔍 备选关键词提取: ${sortedKeywords.join(", ")} (从"${userRequest}")`,
-    );
     return sortedKeywords;
   }
 
@@ -843,15 +851,25 @@ Example:
     }
 
     for (const score of scores) {
-      if (
-        !score.file ||
-        typeof score.start_line !== "number" ||
-        typeof score.score !== "number"
-      ) {
-        throw new Error(
-          "每个评分对象必须包含 file (string), start_line (number), score (number)",
-        );
+      // 检查是否使用ID或者文件路径格式
+      if (score.id !== undefined) {
+        // ID格式验证
+        if (typeof score.id !== "number" || typeof score.score !== "number") {
+          throw new Error("每个评分对象必须包含 id (number), score (number)");
+        }
+      } else {
+        // 文件路径格式验证
+        if (
+          !score.file ||
+          typeof score.start_line !== "number" ||
+          typeof score.score !== "number"
+        ) {
+          throw new Error(
+            "每个评分对象必须包含 file (string), start_line (number), score (number)",
+          );
+        }
       }
+
       if (score.score < 0 || score.score > 10) {
         throw new Error("评分必须在 0-10 之间");
       }
@@ -875,14 +893,28 @@ Example:
     }
 
     for (const evaluation of evaluations) {
-      if (
-        !evaluation.file ||
-        typeof evaluation.start_line !== "number" ||
-        typeof evaluation.is_relevant !== "boolean"
-      ) {
-        throw new Error(
-          "每个评估对象必须包含 file (string), start_line (number), is_relevant (boolean)",
-        );
+      // 检查是否使用ID或者文件路径格式
+      if (evaluation.id !== undefined) {
+        // ID格式验证
+        if (
+          typeof evaluation.id !== "number" ||
+          typeof evaluation.is_relevant !== "boolean"
+        ) {
+          throw new Error(
+            "每个评估对象必须包含 id (number), is_relevant (boolean)",
+          );
+        }
+      } else {
+        // 文件路径格式验证
+        if (
+          !evaluation.file ||
+          typeof evaluation.start_line !== "number" ||
+          typeof evaluation.is_relevant !== "boolean"
+        ) {
+          throw new Error(
+            "每个评估对象必须包含 file (string), start_line (number), is_relevant (boolean)",
+          );
+        }
       }
     }
 
@@ -903,14 +935,23 @@ Example:
     }
 
     for (const summary of summaries) {
-      if (
-        !summary.file ||
-        typeof summary.start_line !== "number" ||
-        !summary.summary
-      ) {
-        throw new Error(
-          "每个总结对象必须包含 file (string), start_line (number), summary (string)",
-        );
+      // 检查是否使用ID或者文件路径格式
+      if (summary.id !== undefined) {
+        // ID格式验证
+        if (typeof summary.id !== "number" || !summary.summary) {
+          throw new Error("每个总结对象必须包含 id (number), summary (string)");
+        }
+      } else {
+        // 文件路径格式验证
+        if (
+          !summary.file ||
+          typeof summary.start_line !== "number" ||
+          !summary.summary
+        ) {
+          throw new Error(
+            "每个总结对象必须包含 file (string), start_line (number), summary (string)",
+          );
+        }
       }
     }
 
@@ -957,16 +998,32 @@ Example:
     }
 
     for (const item of items) {
-      if (
-        !item.file ||
-        typeof item.start_line !== "number" ||
-        typeof item.score !== "number" ||
-        !item.summary
-      ) {
-        throw new Error(
-          "每个项目必须包含 file (string), start_line (number), score (number), summary (string)",
-        );
+      // 检查是否使用ID或者文件路径格式
+      if (item.id !== undefined) {
+        // ID格式验证
+        if (
+          typeof item.id !== "number" ||
+          typeof item.score !== "number" ||
+          !item.summary
+        ) {
+          throw new Error(
+            "每个项目必须包含 id (number), score (number), summary (string)",
+          );
+        }
+      } else {
+        // 文件路径格式验证
+        if (
+          !item.file ||
+          typeof item.start_line !== "number" ||
+          typeof item.score !== "number" ||
+          !item.summary
+        ) {
+          throw new Error(
+            "每个项目必须包含 file (string), start_line (number), score (number), summary (string)",
+          );
+        }
       }
+
       if (item.score < 0 || item.score > 10) {
         throw new Error("评分必须在 0-10 之间");
       }
@@ -976,7 +1033,12 @@ Example:
     this.toolCallResults.scoreAndSummaries = items as ScoreAndSummary[];
 
     return "合并评分和总结结果已成功提交";
+    // 存储结果
+    this.toolCallResults.scoreAndSummaries = items as ScoreAndSummary[];
+
+    return "合并评分和总结结果已成功提交";
   };
+
   /**
    * 解析 XML 格式的评分结果
    */
@@ -985,58 +1047,91 @@ Example:
 
     // 多种 XML 格式模式
     const patterns = [
-      // 自闭合标签，任意属性顺序
+      // ID格式 (新格式) - 匹配chunk_数字格式的ID
+      /<score[^>]*?id\s*=\s*["']?chunk_(\d+)["']?[^>]*?value\s*=\s*["']?([\d.]+)["']?[^>]*?\/>/gi,
+      /<score[^>]*?id\s*=\s*["']?(\d+)["']?[^>]*?value\s*=\s*["']?([\d.]+)["']?[^>]*?\/>/gi,
+
+      // 自闭合标签，任意属性顺序 (旧格式)
       /<score[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?value\s*=\s*["']?([\d.]+)["']?[^>]*?\/>/gi,
       /<score[^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?value\s*=\s*["']?([\d.]+)["']?[^>]*?\/>/gi,
       /<score[^>]*?value\s*=\s*["']?([\d.]+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
 
-      // 开闭标签格式
+      // 开闭标签格式 (旧格式)
       /<score[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?value\s*=\s*["']?([\d.]+)["']?[^>]*?>\s*<\/score>/gi,
 
-      // 简化格式（只有必需属性）
+      // 简化格式（只有必需属性）(旧格式)
       /<score[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?value\s*=\s*["']?([\d.]+)["']?[^>]*?\/?>/gi,
     ];
 
     // 尝试每种模式
-    for (const pattern of patterns) {
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i];
       const matches = this.matchAllCompat(content, pattern);
 
       for (const match of matches) {
-        let file: string, startLine: number, score: number;
+        // 检查是否是ID格式
+        if (
+          pattern.source.includes("id\\s*=\\s*") &&
+          (pattern.source.includes("chunk_") || i === 1)
+        ) {
+          // ID格式
+          const idStr = match[1];
+          // 处理chunk_数字格式的ID
+          const id = pattern.source.includes("chunk_")
+            ? parseInt(idStr)
+            : parseInt(idStr);
+          const score = parseFloat(match[2]);
+          if (!isNaN(id) && !isNaN(score)) {
+            scores.push({
+              id: id,
+              file: "", // 通过ID查找
+              start_line: 0, // 通过ID查找
+              score: Math.max(0, Math.min(10, score)),
+            });
+          }
+        } else if (!pattern.source.includes("id\\s*=\\s*")) {
+          // 旧的路径格式
+          let file: string, startLine: number, score: number;
 
-        // 根据匹配组的顺序提取数据
-        if (pattern.source.includes("file.*?line.*?value")) {
-          // file, line, value 顺序
-          file = match[1];
-          startLine = parseInt(match[2]);
-          score = parseFloat(match[3]);
-        } else if (pattern.source.includes("line.*?file.*?value")) {
-          // line, file, value 顺序
-          startLine = parseInt(match[1]);
-          file = match[2];
-          score = parseFloat(match[3]);
-        } else if (pattern.source.includes("value.*?file.*?line")) {
-          // value, file, line 顺序
-          score = parseFloat(match[1]);
-          file = match[2];
-          startLine = parseInt(match[3]);
-        } else {
-          // 默认 file, line, value 顺序
-          file = match[1];
-          startLine = parseInt(match[2]);
-          score = parseFloat(match[3]);
-        }
+          // 根据匹配组的顺序提取数据
+          if (pattern.source.includes("file.*?line.*?value")) {
+            // file, line, value 顺序
+            file = match[1];
+            startLine = parseInt(match[2]);
+            score = parseFloat(match[3]);
+          } else if (pattern.source.includes("line.*?file.*?value")) {
+            // line, file, value 顺序
+            startLine = parseInt(match[1]);
+            file = match[2];
+            score = parseFloat(match[3]);
+          } else if (pattern.source.includes("value.*?file.*?line")) {
+            // value, file, line 顺序
+            score = parseFloat(match[1]);
+            file = match[2];
+            startLine = parseInt(match[3]);
+          } else {
+            // 默认 file, line, value 顺序
+            file = match[1];
+            startLine = parseInt(match[2]);
+            score = parseFloat(match[3]);
+          }
 
-        // 标准化文件路径
-        file = file.replace(/\\/g, "/");
+          // 标准化文件路径
+          file = file.replace(/\\/g, "/");
 
-        // 验证数据
-        if (file && file.includes(".") && !isNaN(startLine) && !isNaN(score)) {
-          scores.push({
-            file: file,
-            start_line: startLine,
-            score: Math.max(0, Math.min(10, score)),
-          });
+          // 验证数据
+          if (
+            file &&
+            file.includes(".") &&
+            !isNaN(startLine) &&
+            !isNaN(score)
+          ) {
+            scores.push({
+              file: file,
+              start_line: startLine,
+              score: Math.max(0, Math.min(10, score)),
+            });
+          }
         }
       }
 
@@ -1054,157 +1149,77 @@ Example:
       for (const element of scoreElements) {
         const scoreTag = element[0];
 
-        // 提取属性
-        const fileMatch = scoreTag.match(/file\s*=\s*["']([^"']*?)["']/i);
-        const lineMatch = scoreTag.match(/line\s*=\s*["']?(\d+)["']?/i);
-        const valueMatch = scoreTag.match(/value\s*=\s*["']?([\d.]+)["']?/i);
+        // 尝试提取ID (包括chunk_格式)
+        const idMatch =
+          scoreTag.match(/id\s*=\s*["']?chunk_(\d+)["']?/i) ||
+          scoreTag.match(/id\s*=\s*["']?(\d+)["']?/i);
+        if (idMatch) {
+          const id = parseInt(idMatch[1]);
+          const valueMatch = scoreTag.match(/value\s*=\s*["']?([\d.]+)["']?/i);
 
-        if (fileMatch && lineMatch && valueMatch) {
-          const file = fileMatch[1].replace(/\\/g, "/");
-          const startLine = parseInt(lineMatch[1]);
-          const score = parseFloat(valueMatch[1]);
+          if (valueMatch) {
+            const score = parseFloat(valueMatch[1]);
 
-          if (
-            file &&
-            file.includes(".") &&
-            !isNaN(startLine) &&
-            !isNaN(score)
-          ) {
-            scores.push({
-              file: file,
-              start_line: startLine,
-              score: Math.max(0, Math.min(10, score)),
-            });
+            if (!isNaN(id) && !isNaN(score)) {
+              scores.push({
+                id: id,
+                file: "", // 通过ID查找
+                start_line: 0, // 通过ID查找
+                score: Math.max(0, Math.min(10, score)),
+              });
+            }
+          }
+        } else {
+          // 提取属性（旧格式）
+          const fileMatch = scoreTag.match(/file\s*=\s*["']([^"']*?)["']/i);
+          const lineMatch = scoreTag.match(/line\s*=\s*["']?(\d+)["']?/i);
+          const valueMatch = scoreTag.match(/value\s*=\s*["']?([\d.]+)["']?/i);
+
+          if (fileMatch && lineMatch && valueMatch) {
+            const file = fileMatch[1].replace(/\\/g, "/");
+            const startLine = parseInt(lineMatch[1]);
+            const score = parseFloat(valueMatch[1]);
+
+            if (
+              file &&
+              file.includes(".") &&
+              !isNaN(startLine) &&
+              !isNaN(score)
+            ) {
+              scores.push({
+                file: file,
+                start_line: startLine,
+                score: Math.max(0, Math.min(10, score)),
+              });
+            }
           }
         }
       }
     }
-
     return scores;
   }
 
   /**
-   * 解析 XML 格式的过滤结果
-   */
-  private parseXmlFilter(content: string): SnippetFilterEvaluation[] {
-    const evaluations: SnippetFilterEvaluation[] = [];
-
-    // 多种 XML 过滤格式模式 - 支持任意属性顺序
-    const patterns = [
-      // file, line, reason, relevant 顺序（LLM 实际输出的顺序）
-      /<filter[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?\/>/gi,
-
-      // file, line, relevant, reason 顺序（标准顺序）
-      /<filter[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
-
-      // 开闭标签格式 - file, line, reason, relevant
-      /<filter[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?>\s*<\/filter>/gi,
-
-      // 开闭标签格式 - file, line, relevant, reason
-      /<filter[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?>\s*<\/filter>/gi,
-    ];
-
-    // 尝试每种模式
-    for (let i = 0; i < patterns.length; i++) {
-      const pattern = patterns[i];
-      const matches = this.matchAllCompat(content, pattern);
-
-      for (const match of matches) {
-        let file: string,
-          startLine: number,
-          isRelevant: boolean,
-          reason: string;
-
-        // 根据模式索引确定参数顺序
-        if (i === 0 || i === 2) {
-          // file, line, reason, relevant 顺序
-          file = match[1].replace(/\\/g, "/");
-          startLine = parseInt(match[2]);
-          reason = match[3] || "无理由";
-          isRelevant = match[4].toLowerCase() === "true";
-        } else {
-          // file, line, relevant, reason 顺序
-          file = match[1].replace(/\\/g, "/");
-          startLine = parseInt(match[2]);
-          isRelevant = match[3].toLowerCase() === "true";
-          reason = match[4] || "无理由";
-        }
-
-        if (file && file.includes(".") && !isNaN(startLine)) {
-          evaluations.push({
-            file: file,
-            start_line: startLine,
-            is_relevant: isRelevant,
-            reason: reason,
-          });
-        } else {
-          console.warn(`⚠️ 跳过无效的XML过滤: file=${file}, line=${startLine}`);
-        }
-      }
-
-      // 如果找到了结果，就不再尝试其他模式
-      if (evaluations.length > 0) {
-        break;
-      }
-    }
-
-    // 如果没有找到标准格式，尝试更宽松的解析
-    if (evaluations.length === 0) {
-      const loosePattern = /<filter[^>]*>/gi;
-      const filterElements = this.matchAllCompat(content, loosePattern);
-
-      for (const element of filterElements) {
-        const filterTag = element[0];
-
-        // 提取属性
-        const fileMatch = filterTag.match(/file\s*=\s*["']([^"']*?)["']/i);
-        const lineMatch = filterTag.match(/line\s*=\s*["']?(\d+)["']?/i);
-        const relevantMatch = filterTag.match(
-          /relevant\s*=\s*["']?(true|false)["']?/i,
-        );
-        const reasonMatch = filterTag.match(/reason\s*=\s*["']([^"']*?)["']/i);
-
-        if (fileMatch && lineMatch && relevantMatch) {
-          const file = fileMatch[1].replace(/\\/g, "/");
-          const startLine = parseInt(lineMatch[1]);
-          const isRelevant = relevantMatch[1].toLowerCase() === "true";
-          const reason = reasonMatch ? reasonMatch[1] : "无理由";
-
-          if (file && file.includes(".") && !isNaN(startLine)) {
-            evaluations.push({
-              file: file,
-              start_line: startLine,
-              is_relevant: isRelevant,
-              reason: reason,
-            });
-          }
-        }
-      }
-    }
-
-    if (evaluations.length === 0) {
-      console.error("❌ XML过滤解析失败，未找到任何有效的filter标签");
-      console.error("📄 完整响应内容:", content);
-    }
-
-    return evaluations;
-  }
-
-  /**
-   * 解析 XML 格式的代码总结结果
+   * 解析 XML 格式的总结结果
    */
   private parseXmlSummaries(content: string): CodeSummary[] {
     const summaries: CodeSummary[] = [];
 
-    // 多种 XML 总结格式模式
+    // 多种 XML 格式模式
     const patterns = [
-      // 自闭合标签，任意属性顺序
-      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
-      /<summary[^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
-      /<summary[^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+      // ID格式 (新格式)
+      /<summary[^>]*?id\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?\/>/gi,
 
-      // 开闭标签格式
-      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?>\s*<\/summary>/gi,
+      // 自闭合标签，任意属性顺序 (旧格式)
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?\/>/gi,
+      /<summary[^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?\/>/gi,
+      /<summary[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+
+      // 开闭标签格式 (旧格式)
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?>\s*<\/summary>/gi,
+
+      // 简化格式（只有必需属性）(旧格式)
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?\/?>/gi,
     ];
 
     // 尝试每种模式
@@ -1212,41 +1227,55 @@ Example:
       const matches = this.matchAllCompat(content, pattern);
 
       for (const match of matches) {
-        let file: string, startLine: number, summary: string;
+        // 检查是否是ID格式
+        if (pattern.source.includes("id\\s*=\\s*")) {
+          // ID格式
+          const id = parseInt(match[1]);
+          const summary = match[2];
 
-        // 根据匹配组的顺序提取数据
-        if (pattern.source.includes("file.*?line.*?text")) {
-          // file, line, text 顺序
-          file = match[1];
-          startLine = parseInt(match[2]);
-          summary = match[3];
-        } else if (pattern.source.includes("line.*?file.*?text")) {
-          // line, file, text 顺序
-          startLine = parseInt(match[1]);
-          file = match[2];
-          summary = match[3];
-        } else if (pattern.source.includes("text.*?file.*?line")) {
-          // text, file, line 顺序
-          summary = match[1];
-          file = match[2];
-          startLine = parseInt(match[3]);
+          if (!isNaN(id) && summary) {
+            summaries.push({
+              id: id,
+              file: "", // 通过ID查找
+              start_line: 0, // 通过ID查找
+              summary: summary.trim(),
+            });
+          }
         } else {
-          // 默认 file, line, text 顺序
-          file = match[1];
-          startLine = parseInt(match[2]);
-          summary = match[3];
-        }
+          // 旧的路径格式
+          let file: string, startLine: number, summary: string;
 
-        // 标准化文件路径
-        file = file.replace(/\\/g, "/");
+          // 根据匹配组的顺序提取数据
+          if (pattern.source.includes("file.*?line.*?text")) {
+            file = match[1];
+            startLine = parseInt(match[2]);
+            summary = match[3];
+          } else if (pattern.source.includes("line.*?file.*?text")) {
+            startLine = parseInt(match[1]);
+            file = match[2];
+            summary = match[3];
+          } else if (pattern.source.includes("text.*?file.*?line")) {
+            summary = match[1];
+            file = match[2];
+            startLine = parseInt(match[3]);
+          } else {
+            // 默认 file, line, text 顺序
+            file = match[1];
+            startLine = parseInt(match[2]);
+            summary = match[3];
+          }
 
-        // 验证数据
-        if (file && file.includes(".") && !isNaN(startLine) && summary) {
-          summaries.push({
-            file: file,
-            start_line: startLine,
-            summary: summary.trim(),
-          });
+          // 标准化文件路径
+          file = file.replace(/\\/g, "/");
+
+          // 验证数据
+          if (file && file.includes(".") && !isNaN(startLine) && summary) {
+            summaries.push({
+              file: file,
+              start_line: startLine,
+              summary: summary.trim(),
+            });
+          }
         }
       }
 
@@ -1257,6 +1286,203 @@ Example:
     }
 
     return summaries;
+  }
+  /**
+   * 解析 XML 格式的过滤结果
+   */
+  private parseXmlFilter(content: string): SnippetFilterEvaluation[] {
+    const evaluations: SnippetFilterEvaluation[] = [];
+    console.log("🔍 开始解析过滤XML，原始内容:", content.substring(0, 500));
+
+    // 多种 XML 格式模式
+    const patterns = [
+      // ID格式 (新格式) - 匹配chunk_数字格式的ID
+      /<filter[^>]*?id\s*=\s*["']?chunk_(\d+)["']?[^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+      /<filter[^>]*?id\s*=\s*["']?chunk_(\d+)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?\/>/gi,
+      
+      // ID格式 (新格式) - 匹配纯数字ID
+      /<filter[^>]*?id\s*=\s*["']?(\d+)["']?[^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+      /<filter[^>]*?id\s*=\s*["']?(\d+)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?\/>/gi,
+
+      // file, line, reason, relevant 顺序（LLM 实际输出的顺序）(旧格式)
+      /<filter[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?\/>/gi,
+
+      // file, line, relevant, reason 顺序（标准顺序）(旧格式)
+      /<filter[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+
+      // 开闭标签格式 - file, line, reason, relevant (旧格式)
+      /<filter[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?>\s*<\/filter>/gi,
+
+      // 开闭标签格式 - file, line, relevant, reason (旧格式)
+      /<filter[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?>\s*<\/filter>/gi,
+    ];
+
+    // 尝试每种模式
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i];
+      console.log(`🔍 尝试模式 ${i}: ${pattern}`);
+      const matches = this.matchAllCompat(content, pattern);
+
+      for (const match of matches) {
+        console.log(`🔧 匹配到内容:`, match);
+        // 检查是否是ID格式
+        if (pattern.source.includes("id\\s*=\\s*")) {
+          // ID格式
+          const idStr = match[1];
+          const id = parseInt(idStr);
+          let isRelevant: boolean, reason: string;
+
+          // 根据模式索引确定参数顺序
+          if (i === 0 || i === 2) {
+            // id, relevant, reason 顺序
+            isRelevant = match[2].toLowerCase() === "true";
+            reason = match[3] || "无理由";
+          } else {
+            // id, reason, relevant 顺序
+            reason = match[2] || "无理由";
+            isRelevant = match[3].toLowerCase() === "true";
+          }
+
+          if (!isNaN(id)) {
+            console.log(`🔧 解析ID格式: id=${id}, relevant=${isRelevant}, reason=${reason}`);
+            evaluations.push({
+              id: id,
+              file: "", // 通过ID查找
+              start_line: 0, // 通过ID查找
+              is_relevant: isRelevant,
+              reason: reason,
+            });
+          }
+        } else {
+          // 旧的路径格式
+          let file: string,
+            startLine: number,
+            isRelevant: boolean,
+            reason: string;
+
+          // 根据模式索引确定参数顺序
+          if (i === 4 || i === 6) {
+            // file, line, reason, relevant 顺序
+            file = match[1].replace(/\\/g, "/");
+            startLine = parseInt(match[2]);
+            reason = match[3] || "无理由";
+            isRelevant = match[4].toLowerCase() === "true";
+          } else {
+            // file, line, relevant, reason 顺序
+            file = match[1].replace(/\\/g, "/");
+            startLine = parseInt(match[2]);
+            isRelevant = match[3].toLowerCase() === "true";
+            reason = match[4] || "无理由";
+          }
+
+          console.log(`🔧 解析文件路径格式: file=${file}, line=${startLine}, relevant=${isRelevant}, reason=${reason}`);
+          
+          if (file && file.includes(".") && !isNaN(startLine)) {
+            evaluations.push({
+              file: file,
+              start_line: startLine,
+              is_relevant: isRelevant,
+              reason: reason,
+            });
+          } else {
+            console.warn(
+              `⚠️ 跳过无效的XML过滤: file=${file}, line=${startLine}`,
+            );
+          }
+        }
+      }
+
+      // 如果找到了结果，就不再尝试其他模式
+      if (evaluations.length > 0) {
+        console.log(`✅ 使用模式 ${i} 成功解析到 ${evaluations.length} 个过滤结果`);
+        break;
+      }
+    }
+
+    // 如果没有找到标准格式，尝试更宽松的解析
+    if (evaluations.length === 0) {
+      console.log("🔍 尝试使用宽松模式解析XML过滤结果");
+      const loosePattern = /<filter[^>]*>/gi;
+      const filterElements = this.matchAllCompat(content, loosePattern);
+
+      for (const element of filterElements) {
+        const filterTag = element[0];
+        console.log("🔧 解析filter标签:", filterTag);
+
+        // 尝试提取ID (包括chunk_格式)
+        const idMatch = filterTag.match(/id\s*=\s*["']?chunk_(\d+)["']?/i) || filterTag.match(/id\s*=\s*["']?(\d+)["']?/i);
+        if (idMatch) {
+          const id = parseInt(idMatch[1]);
+          const relevantMatch = filterTag.match(
+            /relevant\s*=\s*["']?(true|false)["']?/i,
+          );
+          const reasonMatch = filterTag.match(
+            /reason\s*=\s*["']([^"']*?)["']/i,
+          );
+
+          if (relevantMatch) {
+            const isRelevant = relevantMatch[1].toLowerCase() === "true";
+            const reason = reasonMatch ? reasonMatch[1] : "无理由";
+            console.log(`🔧 宽松解析ID格式: id=${id}, relevant=${isRelevant}, reason=${reason}`);
+
+            if (!isNaN(id)) {
+              evaluations.push({
+                id: id,
+                file: "", // 通过ID查找
+                start_line: 0, // 通过ID查找
+                is_relevant: isRelevant,
+                reason: reason,
+              });
+            }
+          }
+        } else {
+          // 提取属性（旧格式）
+          const fileMatch = filterTag.match(/file\s*=\s*["']([^"']*?)["']/i);
+          const lineMatch = filterTag.match(/line\s*=\s*["']?(\d+)["']?/i);
+          const relevantMatch = filterTag.match(
+            /relevant\s*=\s*["']?(true|false)["']?/i,
+          );
+          const reasonMatch = filterTag.match(
+            /reason\s*=\s*["']([^"']*?)["']/i,
+          );
+
+          if (fileMatch && lineMatch && relevantMatch) {
+            const file = fileMatch[1].replace(/\\/g, "/");
+            const startLine = parseInt(lineMatch[1]);
+            const isRelevant = relevantMatch[1].toLowerCase() === "true";
+            const reason = reasonMatch ? reasonMatch[1] : "无理由";
+            console.log(`🔧 宽松解析文件路径格式: file=${file}, line=${startLine}, relevant=${isRelevant}, reason=${reason}`);
+
+            if (file && file.includes(".") && !isNaN(startLine)) {
+              evaluations.push({
+                file: file,
+                start_line: startLine,
+                is_relevant: isRelevant,
+                reason: reason,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    if (evaluations.length === 0) {
+      console.error("❌ XML过滤解析失败，未找到任何有效的filter标签");
+      console.error("📄 完整响应内容:", content);
+      
+      // 尝试提取任何可能的XML标签作为调试信息
+      const allTags = content.match(/<[^>]+>/g);
+      if (allTags) {
+        console.log("🏷️ 响应中找到的所有标签:", allTags.filter(tag => !tag.startsWith("</")));
+      }
+    } else {
+      console.log(`✅ 最终解析结果: ${evaluations.length} 个过滤结果`);
+      if (evaluations.length > 0) {
+        console.log("📄 解析到的过滤结果:", evaluations);
+      }
+    }
+
+    return evaluations;
   }
 
   /**
@@ -1333,13 +1559,17 @@ Example:
 
     // 多种 XML 格式模式
     const patterns = [
-      // 自闭合标签，任意属性顺序
+      // ID格式 (新格式)
+      /<item[^>]*?id\s*=\s*["']?(\d+)["']?[^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+      /<item[^>]*?id\s*=\s*["']?(\d+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?\/>/gi,
+
+      // 自闭合标签，任意属性顺序 (旧格式)
       /<item[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
       /<item[^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
       /<item[^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
       /<item[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?\/>/gi,
 
-      // 开闭标签格式
+      // 开闭标签格式 (旧格式)
       /<item[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?score\s*=\s*["']?([\d.]+)["']?[^>]*?summary\s*=\s*["']([^"']*?)["'][^>]*?>\s*<\/item>/gi,
     ];
 
@@ -1348,58 +1578,88 @@ Example:
       const matches = this.matchAllCompat(content, pattern);
 
       for (const match of matches) {
-        let file: string, startLine: number, score: number, summary: string;
+        // 检查是否是ID格式
+        if (pattern.source.includes("id\\s*=\\s*")) {
+          // ID格式
+          const id = parseInt(match[1]);
+          let score: number, summary: string;
 
-        // 根据匹配组的顺序提取数据
-        if (pattern.source.includes("file.*?line.*?score.*?summary")) {
-          // file, line, score, summary 顺序
-          file = match[1];
-          startLine = parseInt(match[2]);
-          score = parseFloat(match[3]);
-          summary = match[4];
-        } else if (pattern.source.includes("line.*?file.*?score.*?summary")) {
-          // line, file, score, summary 顺序
-          startLine = parseInt(match[1]);
-          file = match[2];
-          score = parseFloat(match[3]);
-          summary = match[4];
-        } else if (pattern.source.includes("score.*?file.*?line.*?summary")) {
-          // score, file, line, summary 顺序
-          score = parseFloat(match[1]);
-          file = match[2];
-          startLine = parseInt(match[3]);
-          summary = match[4];
-        } else if (pattern.source.includes("summary.*?file.*?line.*?score")) {
-          // summary, file, line, score 顺序
-          summary = match[1];
-          file = match[2];
-          startLine = parseInt(match[3]);
-          score = parseFloat(match[4]);
+          // 根据匹配组的顺序提取数据
+          if (pattern.source.includes("id.*?score.*?summary")) {
+            // id, score, summary 顺序
+            score = parseFloat(match[2]);
+            summary = match[3];
+          } else {
+            // id, summary, score 顺序
+            summary = match[2];
+            score = parseFloat(match[3]);
+          }
+
+          // 验证数据
+          if (!isNaN(id) && !isNaN(score) && summary) {
+            results.push({
+              id: id,
+              file: "", // 通过ID查找
+              start_line: 0, // 通过ID查找
+              score: Math.max(0, Math.min(10, score)),
+              summary: summary.trim(),
+            });
+          }
         } else {
-          // 默认 file, line, score, summary 顺序
-          file = match[1];
-          startLine = parseInt(match[2]);
-          score = parseFloat(match[3]);
-          summary = match[4];
-        }
+          // 旧的路径格式
+          let file: string, startLine: number, score: number, summary: string;
 
-        // 标准化文件路径
-        file = file.replace(/\\/g, "/");
+          // 根据匹配组的顺序提取数据
+          if (pattern.source.includes("file.*?line.*?score.*?summary")) {
+            // file, line, score, summary 顺序
+            file = match[1];
+            startLine = parseInt(match[2]);
+            score = parseFloat(match[3]);
+            summary = match[4];
+          } else if (pattern.source.includes("line.*?file.*?score.*?summary")) {
+            // line, file, score, summary 顺序
+            startLine = parseInt(match[1]);
+            file = match[2];
+            score = parseFloat(match[3]);
+            summary = match[4];
+          } else if (pattern.source.includes("score.*?file.*?line.*?summary")) {
+            // score, file, line, summary 顺序
+            score = parseFloat(match[1]);
+            file = match[2];
+            startLine = parseInt(match[3]);
+            summary = match[4];
+          } else if (pattern.source.includes("summary.*?file.*?line.*?score")) {
+            // summary, file, line, score 顺序
+            summary = match[1];
+            file = match[2];
+            startLine = parseInt(match[3]);
+            score = parseFloat(match[4]);
+          } else {
+            // 默认 file, line, score, summary 顺序
+            file = match[1];
+            startLine = parseInt(match[2]);
+            score = parseFloat(match[3]);
+            summary = match[4];
+          }
 
-        // 验证数据
-        if (
-          file &&
-          file.includes(".") &&
-          !isNaN(startLine) &&
-          !isNaN(score) &&
-          summary
-        ) {
-          results.push({
-            file: file,
-            start_line: startLine,
-            score: Math.max(0, Math.min(10, score)),
-            summary: summary.trim(),
-          });
+          // 标准化文件路径
+          file = file.replace(/\\/g, "/");
+
+          // 验证数据
+          if (
+            file &&
+            file.includes(".") &&
+            !isNaN(startLine) &&
+            !isNaN(score) &&
+            summary
+          ) {
+            results.push({
+              file: file,
+              start_line: startLine,
+              score: Math.max(0, Math.min(10, score)),
+              summary: summary.trim(),
+            });
+          }
         }
       }
 
@@ -1543,10 +1803,14 @@ Example:
     // 使用智能预过滤策略
     const chunksToAnalyze = await this.smartPreFilter(codeChunks, userRequest);
 
-    const chunkDescriptions = chunksToAnalyze.map(
-      (chunk, index) =>
-        `【Code Chunk ${index + 1}】File: ${chunk.file_path}\nStart Line: ${chunk.start_line}\nContent:\n\`\`\`java\n${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}\n\`\`\``,
-    );
+    // 为代码块分配ID并建立索引
+    const chunkDescriptions = chunksToAnalyze.map((chunk) => {
+      // 为每个代码块分配唯一ID并存储在索引中
+      const id = this.nextChunkId++;
+      this.codeChunkIndex[id] = chunk;
+
+      return `【Code Chunk ${id}】File: ${chunk.file_path}\nStart Line: ${chunk.start_line}\nContent:\n\`\`\`java\n${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}\n\`\`\``;
+    });
 
     const userContent = `Requirement Analysis:\n${userRequest}\n\nCode Snippets:\n${chunkDescriptions.join("\n\n")}`;
 
@@ -1580,20 +1844,16 @@ Example:
                   items: {
                     type: "object",
                     properties: {
-                      file: {
-                        type: "string",
-                        description: "文件路径",
-                      },
-                      start_line: {
+                      id: {
                         type: "number",
-                        description: "代码片段起始行号",
+                        description: "代码块ID",
                       },
                       score: {
                         type: "number",
                         description: "相关性评分 (0-10)",
                       },
                     },
-                    required: ["file", "start_line", "score"],
+                    required: ["id", "score"],
                   },
                 },
               },
@@ -1667,20 +1927,44 @@ Example:
         } else {
           // 如果工具调用结果为空数组，返回默认评分
           console.warn("工具调用结果为空数组，返回默认评分");
-          return chunksToAnalyze.map((chunk) => ({
-            file: chunk.file_path,
-            start_line: chunk.start_line,
-            score: 5, // 默认中等评分
-          }));
+          return chunksToAnalyze.map((chunk, index) => {
+            // 查找chunk对应的ID
+            const id = Object.keys(this.codeChunkIndex).find((key) => {
+              const storedChunk = this.codeChunkIndex[parseInt(key)];
+              return (
+                storedChunk.file_path === chunk.file_path &&
+                storedChunk.start_line === chunk.start_line
+              );
+            });
+
+            return {
+              id: id ? parseInt(id) : undefined,
+              file: chunk.file_path,
+              start_line: chunk.start_line,
+              score: 5, // 默认中等评分
+            };
+          });
         }
       } else {
         // 如果 XML 解析失败，返回默认评分
         console.warn("无法获取 XML 评分结果，返回默认评分");
-        return chunksToAnalyze.map((chunk) => ({
-          file: chunk.file_path,
-          start_line: chunk.start_line,
-          score: 5, // 默认中等评分
-        }));
+        return chunksToAnalyze.map((chunk, index) => {
+          // 查找chunk对应的ID
+          const id = Object.keys(this.codeChunkIndex).find((key) => {
+            const storedChunk = this.codeChunkIndex[parseInt(key)];
+            return (
+              storedChunk.file_path === chunk.file_path &&
+              storedChunk.start_line === chunk.start_line
+            );
+          });
+
+          return {
+            id: id ? parseInt(id) : undefined,
+            file: chunk.file_path,
+            start_line: chunk.start_line,
+            score: 5, // 默认中等评分
+          };
+        });
       }
     } catch (error) {
       clearTimeout(timeoutId);
@@ -1694,11 +1978,23 @@ Example:
       }
 
       // 返回默认分数
-      return chunksToAnalyze.map((chunk) => ({
-        file: chunk.file_path,
-        start_line: chunk.start_line,
-        score: 0,
-      }));
+      return chunksToAnalyze.map((chunk) => {
+        // 查找chunk对应的ID
+        const id = Object.keys(this.codeChunkIndex).find((key) => {
+          const storedChunk = this.codeChunkIndex[parseInt(key)];
+          return (
+            storedChunk.file_path === chunk.file_path &&
+            storedChunk.start_line === chunk.start_line
+          );
+        });
+
+        return {
+          id: id ? parseInt(id) : undefined,
+          file: chunk.file_path,
+          start_line: chunk.start_line,
+          score: 0,
+        };
+      });
     }
   }
 
@@ -1712,8 +2008,6 @@ Example:
     basePath: string,
     topN: number = 3,
   ): Promise<ScoredChunk[]> {
-    console.log("🔍 启动高级备选检索策略...");
-
     const workspaceDirs = await this.ide.getWorkspaceDirs();
     const tags: BranchAndDir[] = workspaceDirs.map((dir) => ({
       directory: dir,
@@ -1737,7 +2031,6 @@ Example:
         0.8,
       );
       allResults.push(...ftsResults);
-      console.log(`📄 FTS 检索获得 ${ftsResults.length} 个片段`);
     } catch (error) {
       console.warn("FTS 检索失败:", error);
     }
@@ -1757,7 +2050,6 @@ Example:
           0.9,
         );
         allResults.push(...embeddingResults);
-        console.log(`🧠 向量检索获得 ${embeddingResults.length} 个片段`);
       } catch (error) {
         console.warn("向量检索失败:", error);
       }
@@ -1772,7 +2064,6 @@ Example:
         0.6,
       );
       allResults.push(...recentResults);
-      console.log(`⏰ 最近文件检索获得 ${recentResults.length} 个片段`);
     } catch (error) {
       console.warn("最近文件检索失败:", error);
     }
@@ -1787,7 +2078,6 @@ Example:
           Math.max(keywordN, topN - allResults.length),
         );
         allResults.push(...keywordResults);
-        console.log(`🔤 关键词检索获得 ${keywordResults.length} 个片段`);
       } catch (error) {
         console.warn("关键词检索失败:", error);
       }
@@ -1800,7 +2090,6 @@ Example:
       topN,
     );
 
-    console.log(`✅ 备选检索完成，返回 ${selectedResults.length} 个高质量片段`);
     return selectedResults;
   }
 
@@ -2684,9 +2973,6 @@ Example:
 
     if (highScoreSnippets.length > topN) {
       // 如果高分片段数量超过topN，保留所有高分片段
-      console.log(
-        `📈 发现 ${highScoreSnippets.length} 个高分片段(≥${highScoreThreshold})，超过topN(${topN})，保留所有高分片段`,
-      );
       return highScoreSnippets;
     } else if (highScoreSnippets.length === topN) {
       // 如果高分片段数量正好等于topN，直接返回
@@ -2699,13 +2985,6 @@ Example:
         .slice(0, remainingSlots);
 
       const result = [...highScoreSnippets, ...otherSnippets];
-
-      if (highScoreSnippets.length > 0) {
-        console.log(
-          `📊 保留 ${highScoreSnippets.length} 个高分片段 + ${otherSnippets.length} 个其他片段，共 ${result.length} 个`,
-        );
-      }
-
       return result;
     }
   }
@@ -2735,9 +3014,6 @@ Example:
 
     if (highScoreChunks.length > topN) {
       // 如果高分片段数量超过topN，保留所有高分片段
-      console.log(
-        `📈 发现 ${highScoreChunks.length} 个高分片段(≥${highScoreThreshold})，超过topN(${topN})，保留所有高分片段`,
-      );
       return highScoreChunks;
     } else if (highScoreChunks.length === topN) {
       // 如果高分片段数量正好等于topN，直接返回
@@ -2750,12 +3026,6 @@ Example:
         .slice(0, remainingSlots);
 
       const result = [...highScoreChunks, ...otherChunks];
-
-      if (highScoreChunks.length > 0) {
-        console.log(
-          `📊 保留 ${highScoreChunks.length} 个高分片段 + ${otherChunks.length} 个其他片段，共 ${result.length} 个`,
-        );
-      }
 
       return result;
     }
@@ -2782,10 +3052,31 @@ Example:
     }
 
     try {
-      // 构建代码片段描述
-      const snippetDescriptions = snippets.map(
-        (snippet, index) =>
-          `【代码片段 ${index + 1}】
+      // 构建代码片段描述，使用ID索引
+      const snippetDescriptions = snippets.map((snippet, index) => {
+        // 查找或创建snippet对应的ID
+        let id: number | undefined;
+        const existingId = Object.keys(this.codeChunkIndex).find((key) => {
+          const storedChunk = this.codeChunkIndex[parseInt(key)];
+          return (
+            storedChunk.file_path === snippet.file &&
+            storedChunk.start_line === snippet.start_line
+          );
+        });
+
+        if (existingId) {
+          id = parseInt(existingId);
+        } else {
+          // 创建新的ID
+          id = this.nextChunkId++;
+          this.codeChunkIndex[id] = {
+            file_path: snippet.file,
+            start_line: snippet.start_line,
+            chunk: snippet.code,
+          };
+        }
+
+        return `【代码片段 ${id}】
 文件: ${snippet.file}
 起始行: ${snippet.start_line}
 模块: ${snippet.module || "未知"}
@@ -2793,8 +3084,8 @@ Example:
 代码内容:
 \`\`\`java
 ${snippet.code.substring(0, 1000)}${snippet.code.length > 1000 ? "..." : ""}
-\`\`\``,
-      );
+\`\`\``;
+      });
 
       const userContent = `用户需求分析：
 ${userRequest}
@@ -2821,13 +3112,9 @@ ${snippetDescriptions.join("\n\n")}`;
                   items: {
                     type: "object",
                     properties: {
-                      file: {
-                        type: "string",
-                        description: "文件路径",
-                      },
-                      start_line: {
+                      id: {
                         type: "number",
-                        description: "代码片段起始行号",
+                        description: "代码块ID",
                       },
                       is_relevant: {
                         type: "boolean",
@@ -2838,7 +3125,7 @@ ${snippetDescriptions.join("\n\n")}`;
                         description: "相关性判断理由",
                       },
                     },
-                    required: ["file", "start_line", "is_relevant", "reason"],
+                    required: ["id", "is_relevant", "reason"],
                   },
                 },
               },
@@ -2902,6 +3189,10 @@ ${snippetDescriptions.join("\n\n")}`;
               : String(extractError),
           );
           console.error("📄 LLM原始响应内容:", content.substring(0, 1000));
+          // 添加详细的异常堆栈信息
+          if (extractError instanceof Error && extractError.stack) {
+            console.error("🔍 异常堆栈信息:", extractError.stack);
+          }
         }
       } else {
         console.error("❌ LLM响应内容不是字符串格式");
@@ -3073,7 +3364,6 @@ ${snippetDescriptions.join("\n\n")}`;
           normalizedBasePath,
           topN,
         );
-        console.log(`📋 备选方案获取到 ${fallbackSnippets.length} 个代码片段`);
         return fallbackSnippets;
       }
 
@@ -3101,18 +3391,12 @@ ${snippetDescriptions.join("\n\n")}`;
           normalizedBasePath,
           Math.min(topN, 5), // 备选方案返回较少的片段
         );
-        console.log(`📋 备选方案获取到 ${fallbackSnippets.length} 个代码片段`);
 
         // 为备选方案的代码片段生成总结并输出到日志
         this.generateAndLogSummaries(fallbackSnippets, userRequest);
 
         return fallbackSnippets;
       }
-
-      // 注意：代码总结已经在 processModuleChunks 中完成，这里不需要重复总结
-      console.log(
-        `✅ 代码分析完成，返回 ${filteredResults.length} 个相关代码片段`,
-      );
 
       return filteredResults;
     } catch (error) {
@@ -3182,9 +3466,6 @@ ${snippetDescriptions.join("\n\n")}`;
     }>[] = [];
 
     const totalBatches = Math.ceil(moduleChunks.length / batchSize);
-    console.log(
-      `📊 模块 ${moduleName}: ${moduleChunks.length} 个代码块，分 ${totalBatches} 批处理（每批 ${batchSize} 个）- Token优化生效`,
-    );
 
     for (let i = 0; i < moduleChunks.length; i += batchSize) {
       const batchIndex = Math.floor(i / batchSize) + 1;
@@ -3199,11 +3480,23 @@ ${snippetDescriptions.join("\n\n")}`;
             `模块 ${moduleName} 第 ${batchIndex} 批处理失败: ${error instanceof Error ? error.message : String(error)}`,
           );
           // 为失败的批次添加默认分数
-          const defaultScores = batch.map((chunk) => ({
-            file: chunk.file_path,
-            start_line: chunk.start_line,
-            score: 0,
-          }));
+          const defaultScores = batch.map((chunk) => {
+            // 查找chunk对应的ID
+            const id = Object.keys(this.codeChunkIndex).find((key) => {
+              const storedChunk = this.codeChunkIndex[parseInt(key)];
+              return (
+                storedChunk.file_path === chunk.file_path &&
+                storedChunk.start_line === chunk.start_line
+              );
+            });
+
+            return {
+              id: id ? parseInt(id) : undefined,
+              file: chunk.file_path,
+              start_line: chunk.start_line,
+              score: 0,
+            };
+          });
           return { batchIndex, scores: defaultScores, error: error as Error };
         }
       });
@@ -3241,123 +3534,136 @@ ${snippetDescriptions.join("\n\n")}`;
     const moduleResults: ScoredChunk[] = [];
 
     for (const chunk of selectedChunks) {
-      let matched = false;
-      for (const origChunk of moduleChunks) {
-        // 使用更宽松的路径匹配逻辑
-        if (
-          this.isPathMatch(
-            origChunk.file_path,
-            chunk.file,
-            origChunk.start_line,
-            chunk.start_line,
-          )
-        ) {
-          moduleResults.push({
-            file: chunk.file,
-            start_line: chunk.start_line,
-            score: chunk.score,
-            code: origChunk.chunk,
-            module: moduleName, // 添加模块信息
-          });
-          matched = true;
-          break;
-        }
-      }
-
-      if (!matched) {
-        console.warn(
-          `⚠️ 未找到匹配的原始代码块: ${chunk.file}:${chunk.start_line} (评分: ${chunk.score})`,
-        );
-
-        // 输出详细的调试信息
-        console.warn(`   LLM返回路径: ${chunk.file}`);
-        console.warn(`   可用的原始代码块路径示例:`);
-        moduleChunks.slice(0, 3).forEach((c, index) => {
-          console.warn(`     ${index + 1}. ${c.file_path}:${c.start_line}`);
+      // 使用ID查找原始代码块
+      if (chunk.id && this.codeChunkIndex[chunk.id]) {
+        const origChunk = this.codeChunkIndex[chunk.id];
+        moduleResults.push({
+          file: origChunk.file_path,
+          start_line: origChunk.start_line,
+          score: chunk.score,
+          code: origChunk.chunk,
+          module: moduleName, // 添加模块信息
         });
-
-        // 尝试找到最相似的路径 - 优先考虑同名文件
-        let bestMatch = null;
-        let bestSimilarity = 0;
-        let sameNameMatches: any[] = [];
-
-        // 首先查找同名文件
-        const chunkFileName = this.extractFileName(chunk.file);
+      } else {
+        // 如果没有ID或找不到对应的代码块，尝试使用旧的路径匹配方式
+        let matched = false;
         for (const origChunk of moduleChunks) {
-          const origFileName = this.extractFileName(origChunk.file_path);
-          if (origFileName === chunkFileName) {
-            sameNameMatches.push(origChunk);
+          // 使用更宽松的路径匹配逻辑
+          if (
+            this.isPathMatch(
+              origChunk.file_path,
+              chunk.file,
+              origChunk.start_line,
+              chunk.start_line,
+            )
+          ) {
+            moduleResults.push({
+              file: chunk.file,
+              start_line: chunk.start_line,
+              score: chunk.score,
+              code: origChunk.chunk,
+              module: moduleName, // 添加模块信息
+            });
+            matched = true;
+            break;
+          }
+        }
 
-            // 如果同名文件且行号匹配或接近，直接使用
-            if (
-              this.isLineNumberMatch(origChunk.start_line, chunk.start_line)
-            ) {
-              console.warn(
-                `🎯 找到同名文件且行号匹配: ${origChunk.file_path}:${origChunk.start_line} ≈ ${chunk.file}:${chunk.start_line}`,
+        if (!matched) {
+          console.warn(
+            `⚠️ 未找到匹配的原始代码块: ${chunk.file}:${chunk.start_line} (评分: ${chunk.score})`,
+          );
+
+          // 输出详细的调试信息
+          console.warn(`   LLM返回路径: ${chunk.file}`);
+          console.warn(`   可用的原始代码块路径示例:`);
+          moduleChunks.slice(0, 3).forEach((c, index) => {
+            console.warn(`     ${index + 1}. ${c.file_path}:${c.start_line}`);
+          });
+
+          // 尝试找到最相似的路径 - 优先考虑同名文件
+          let bestMatch = null;
+          let bestSimilarity = 0;
+          let sameNameMatches: any[] = [];
+
+          // 首先查找同名文件
+          const chunkFileName = this.extractFileName(chunk.file);
+          for (const origChunk of moduleChunks) {
+            const origFileName = this.extractFileName(origChunk.file_path);
+            if (origFileName === chunkFileName) {
+              sameNameMatches.push(origChunk);
+
+              // 如果同名文件且行号匹配或接近，直接使用
+              if (
+                this.isLineNumberMatch(origChunk.start_line, chunk.start_line)
+              ) {
+                console.warn(
+                  `🎯 找到同名文件且行号匹配: ${origChunk.file_path}:${origChunk.start_line} ≈ ${chunk.file}:${chunk.start_line}`,
+                );
+                bestMatch = origChunk;
+                bestSimilarity = 1.0;
+                break;
+              }
+            }
+          }
+
+          // 如果没有找到行号匹配的同名文件，从候选中选择最佳匹配
+          if (bestSimilarity < 1.0) {
+            const candidateChunks =
+              sameNameMatches.length > 0
+                ? sameNameMatches
+                : moduleChunks.slice(0, 20);
+
+            for (const origChunk of candidateChunks) {
+              const origParts = origChunk.file_path
+                .replace(/\\/g, "/")
+                .split("/")
+                .filter((p: string) => p.length > 0);
+              const chunkParts = chunk.file
+                .replace(/\\/g, "/")
+                .split("/")
+                .filter((p: string) => p.length > 0);
+
+              const similarity = this.calculatePathSimilarity(
+                origParts,
+                chunkParts,
               );
-              bestMatch = origChunk;
-              bestSimilarity = 1.0;
-              break;
+              if (similarity > bestSimilarity) {
+                bestSimilarity = similarity;
+                bestMatch = origChunk;
+              }
             }
           }
-        }
 
-        // 如果没有找到行号匹配的同名文件，从候选中选择最佳匹配
-        if (bestSimilarity < 1.0) {
-          const candidateChunks =
-            sameNameMatches.length > 0
-              ? sameNameMatches
-              : moduleChunks.slice(0, 20);
-
-          for (const origChunk of candidateChunks) {
-            const origParts = origChunk.file_path
-              .replace(/\\/g, "/")
-              .split("/")
-              .filter((p: string) => p.length > 0);
-            const chunkParts = chunk.file
-              .replace(/\\/g, "/")
-              .split("/")
-              .filter((p: string) => p.length > 0);
-
-            const similarity = this.calculatePathSimilarity(
-              origParts,
-              chunkParts,
+          if (bestMatch && bestSimilarity > 0.1) {
+            const isSameName = sameNameMatches.length > 0;
+            console.warn(
+              `   最相似路径 (${(bestSimilarity * 100).toFixed(1)}%${isSameName ? ", 同名文件" : ""}): ${bestMatch.file_path}:${bestMatch.start_line}`,
             );
-            if (similarity > bestSimilarity) {
-              bestSimilarity = similarity;
-              bestMatch = origChunk;
+
+            if (sameNameMatches.length > 1) {
+              console.warn(`   找到 ${sameNameMatches.length} 个同名文件候选`);
             }
+
+            // 分析为什么没有匹配
+            const origInfo = this.extractPathInfo(
+              bestMatch.file_path.replace(/\\/g, "/").split("/"),
+            );
+            const chunkInfo = this.extractPathInfo(
+              chunk.file.replace(/\\/g, "/").split("/"),
+            );
+
+            console.warn(`   路径分析:`);
+            console.warn(
+              `     原始项目: ${origInfo.projectName || "N/A"}, 包路径: ${origInfo.packagePath || "N/A"}, 文件: ${origInfo.fileName || "N/A"}`,
+            );
+            console.warn(
+              `     LLM项目: ${chunkInfo.projectName || "N/A"}, 包路径: ${chunkInfo.packagePath || "N/A"}, 文件: ${chunkInfo.fileName || "N/A"}`,
+            );
+            console.warn(
+              `     行号匹配: ${bestMatch.start_line === chunk.start_line ? "✅" : "❌"} (${bestMatch.start_line} vs ${chunk.start_line})`,
+            );
           }
-        }
-
-        if (bestMatch && bestSimilarity > 0.1) {
-          const isSameName = sameNameMatches.length > 0;
-          console.warn(
-            `   最相似路径 (${(bestSimilarity * 100).toFixed(1)}%${isSameName ? ", 同名文件" : ""}): ${bestMatch.file_path}:${bestMatch.start_line}`,
-          );
-
-          if (sameNameMatches.length > 1) {
-            console.warn(`   找到 ${sameNameMatches.length} 个同名文件候选`);
-          }
-
-          // 分析为什么没有匹配
-          const origInfo = this.extractPathInfo(
-            bestMatch.file_path.replace(/\\/g, "/").split("/"),
-          );
-          const chunkInfo = this.extractPathInfo(
-            chunk.file.replace(/\\/g, "/").split("/"),
-          );
-
-          console.warn(`   路径分析:`);
-          console.warn(
-            `     原始项目: ${origInfo.projectName || "N/A"}, 包路径: ${origInfo.packagePath || "N/A"}, 文件: ${origInfo.fileName || "N/A"}`,
-          );
-          console.warn(
-            `     LLM项目: ${chunkInfo.projectName || "N/A"}, 包路径: ${chunkInfo.packagePath || "N/A"}, 文件: ${chunkInfo.fileName || "N/A"}`,
-          );
-          console.warn(
-            `     行号匹配: ${bestMatch.start_line === chunk.start_line ? "✅" : "❌"} (${bestMatch.start_line} vs ${chunk.start_line})`,
-          );
         }
       }
     }
@@ -3378,10 +3684,6 @@ ${snippetDescriptions.join("\n\n")}`;
     // 异步执行，不阻塞主流程
     Promise.resolve().then(async () => {
       try {
-        console.log(
-          `📚 模块 ${moduleName} 读取了 ${codeChunks.length} 个代码块，开始生成总结...`,
-        );
-
         // 将 CodeChunk 转换为 ScoredChunk 格式以便复用现有的总结方法
         const scoredChunks: ScoredChunk[] = codeChunks.map((chunk) => ({
           file: chunk.file_path,
@@ -3398,10 +3700,6 @@ ${snippetDescriptions.join("\n\n")}`;
         const moduleChunks = new Map<string, ScoredChunk[]>();
         moduleChunks.set(moduleName, scoredChunks);
         await this.logModuleSummaries(moduleChunks);
-
-        console.log(
-          `✅ 模块 ${moduleName} 的所有代码块总结完成 (${codeChunks.length} 个代码块)`,
-        );
       } catch (error) {
         console.warn(
           `⚠️ 模块 ${moduleName} 代码块总结生成失败:`,
@@ -3421,8 +3719,6 @@ ${snippetDescriptions.join("\n\n")}`;
     }
 
     try {
-      console.log("🔍 开始生成代码片段总结...");
-
       // 构建代码片段描述
       const chunkDescriptions = codeChunks.map(
         (chunk, index) =>
@@ -3488,17 +3784,6 @@ ${chunkDescriptions.join("\n\n")}`;
       const codeSummaries = this.toolCallResults.codeSummaries;
       if (codeSummaries && Array.isArray(codeSummaries)) {
         const summaries = codeSummaries as CodeSummary[];
-        if (summaries.length > 0) {
-          console.log("📄 代码片段总结:");
-          summaries.forEach((summary, index) => {
-            console.log(
-              `  ${index + 1}. ${summary.file}:${summary.start_line}`,
-            );
-            console.log(`     总结: ${summary.summary}`);
-          });
-        } else {
-          console.warn("⚠️ 代码总结结果为空");
-        }
       } else {
         console.warn("⚠️ 无法获取代码总结结果");
       }
@@ -3520,9 +3805,6 @@ ${chunkDescriptions.join("\n\n")}`;
     if (!this.llm || moduleChunks.size === 0) {
       return;
     }
-
-    console.log("📊 开始生成模块总结...");
-
     const moduleEntries = Array.from(moduleChunks.entries());
     for (const [moduleName, chunks] of moduleEntries) {
       try {
@@ -3597,27 +3879,14 @@ ${chunkDescriptions.join("\n")}
         if (moduleResults && Array.isArray(moduleResults)) {
           const summaries = moduleResults as ModuleSummary[];
           if (summaries.length > 0) {
-            console.log(`🏗️ 模块 ${moduleName} 总结:`);
-            summaries.forEach((summary) => {
-              console.log(`   总结: ${summary.summary}`);
-              console.log(`   片段数: ${summary.chunk_count}`);
-            });
-          } else {
-            console.log(
-              `🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`,
-            );
+            summaries.forEach((summary) => {});
           }
-        } else {
-          console.log(
-            `🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`,
-          );
         }
       } catch (error) {
         console.warn(
           `⚠️ 生成模块 ${moduleName} 总结过程出错:`,
           error instanceof Error ? error.message : String(error),
         );
-        console.log(`🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`);
       }
     }
   }
@@ -3639,8 +3908,6 @@ ${chunkDescriptions.join("\n")}
     // 异步执行，不阻塞主流程
     Promise.resolve().then(async () => {
       try {
-        console.log(`📋 备选方案：为 ${chunks.length} 个代码片段生成总结...`);
-
         // 生成代码片段总结并输出到日志
         await this.logCodeSummaries(chunks);
 
@@ -3656,10 +3923,6 @@ ${chunkDescriptions.join("\n")}
 
         // 生成模块总结并输出到日志
         await this.logModuleSummaries(moduleChunks);
-
-        console.log(
-          `✅ 备选方案总结生成完成: ${chunks.length} 个代码片段, ${moduleChunks.size} 个模块`,
-        );
       } catch (error) {
         console.warn(
           "⚠️ 备选方案总结生成过程出错:",
