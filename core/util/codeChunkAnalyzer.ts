@@ -161,7 +161,7 @@ export class CodeSnippetAnalyzer {
     protected llm?: ILLM,
     maxChunkSize: number = 800,
     maxConcurrency: number = 4,
-    enableSummaries: boolean = false, // 默认关闭总结功能以节省token
+    enableSummaries: boolean = true, // 默认关闭总结功能以节省token
   ) {
     this.maxChunkSize = maxChunkSize;
     this.enableSummaries = enableSummaries;
@@ -721,6 +721,7 @@ Example:
   ): Promise<CodeChunk[]> {
     // 优先使用 LLM 辅助关键词提取
     const keywords = await this.extractLLMKeywords(userRequest);
+
     if (keywords.length === 0) {
       const result = codeChunks.slice(0, Math.min(30, codeChunks.length));
       return result;
@@ -743,6 +744,7 @@ Example:
 
     // 使用Map存储匹配结果，避免重复计算
     const chunkScores = new Map<string, { chunk: CodeChunk; score: number }>();
+    let matchedChunksCount = 0;
 
     codeChunks.forEach((chunk) => {
       const key = `${chunk.file_path}:${chunk.start_line}`;
@@ -783,6 +785,7 @@ Example:
 
       if (score > 0) {
         chunkScores.set(key, { chunk, score });
+        matchedChunksCount++;
       }
     });
 
@@ -1207,26 +1210,34 @@ Example:
 
     // 多种 XML 格式模式
     const patterns = [
-      // ID格式 (新格式)
-      /<summary[^>]*?id\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?\/>/gi,
+      // ID格式 (新格式) - 支持chunk_数字格式
+      /<summary[^>]*?id\s*=\s*["'](?:chunk_)?(\d+)["'][^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?\/>/gi,
+      /<summary[^>]*?id\s*=\s*["'](?:chunk_)?(\d+)["'][^>]*?text\s*=\s*["']([^"']*)["'][^>]*?\/>/gi,
 
       // 自闭合标签，任意属性顺序 (旧格式)
-      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?\/>/gi,
-      /<summary[^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?\/>/gi,
-      /<summary[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?\/>/gi,
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*)["'][^>]*?\/>/gi,
+      /<summary[^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?\/>/gi,
+      /<summary[^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*)["'][^>]*?\/>/gi,
+      /<summary[^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+      /<summary[^>]*?text\s*=\s*["']([^"']*)["'][^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
 
       // 开闭标签格式 (旧格式)
-      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?>\s*<\/summary>/gi,
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?>\s*<\/summary>/gi,
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*)["'][^>]*?>\s*<\/summary>/gi,
 
       // 简化格式（只有必需属性）(旧格式)
-      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*?)["']?[^>]*?\/?>/gi,
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?\/?>/gi,
+      /<summary[^>]*?file\s*=\s*["']([^"']*?)["'][^>]*?line\s*=\s*["']?(\d+)["']?[^>]*?text\s*=\s*["']([^"']*)["'][^>]*?\/?>/gi,
     ];
 
     // 尝试每种模式
-    for (const pattern of patterns) {
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i];
       const matches = this.matchAllCompat(content, pattern);
 
-      for (const match of matches) {
+      for (let j = 0; j < matches.length; j++) {
+        const match = matches[j];
         // 检查是否是ID格式
         if (pattern.source.includes("id\\s*=\\s*")) {
           // ID格式
@@ -1285,6 +1296,46 @@ Example:
       }
     }
 
+    // 如果没有找到标准格式，尝试更宽松的解析
+    if (summaries.length === 0) {
+      const loosePattern =
+        /<summary\s+((?:[^>]|\\\>)*?)text\s*=\s*["']((?:[^"']|\\')*)["']((?:[^>]|\\\>)*)\/>/gi;
+      const summaryElements = this.matchAllCompat(content, loosePattern);
+
+      for (const match of summaryElements) {
+        const attributes = match[1] + match[3]; // 合并前后属性
+        const text = match[2];
+
+        // 尝试提取ID或文件路径和行号
+        // 支持chunk_数字格式的ID
+        const idMatch = attributes.match(/id\s*=\s*["'](?:chunk_)?(\d+)["']/i);
+        const fileMatch = attributes.match(/file\s*=\s*["']([^"']*)["']/i);
+        const lineMatch = attributes.match(/line\s*=\s*["']?(\d+)["']?/i);
+
+        if (idMatch) {
+          const id = parseInt(idMatch[1]);
+          if (!isNaN(id)) {
+            summaries.push({
+              id: id,
+              file: "",
+              start_line: 0,
+              summary: text.trim(),
+            });
+          }
+        } else if (fileMatch && lineMatch) {
+          const file = fileMatch[1].replace(/\\/g, "/");
+          const startLine = parseInt(lineMatch[1]);
+          if (file.includes(".") && !isNaN(startLine)) {
+            summaries.push({
+              file: file,
+              start_line: startLine,
+              summary: text.trim(),
+            });
+          }
+        }
+      }
+    }
+
     return summaries;
   }
   /**
@@ -1292,14 +1343,12 @@ Example:
    */
   private parseXmlFilter(content: string): SnippetFilterEvaluation[] {
     const evaluations: SnippetFilterEvaluation[] = [];
-    console.log("🔍 开始解析过滤XML，原始内容:", content.substring(0, 500));
-
     // 多种 XML 格式模式
     const patterns = [
       // ID格式 (新格式) - 匹配chunk_数字格式的ID
       /<filter[^>]*?id\s*=\s*["']?chunk_(\d+)["']?[^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
       /<filter[^>]*?id\s*=\s*["']?chunk_(\d+)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?\/>/gi,
-      
+
       // ID格式 (新格式) - 匹配纯数字ID
       /<filter[^>]*?id\s*=\s*["']?(\d+)["']?[^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
       /<filter[^>]*?id\s*=\s*["']?(\d+)["']?[^>]*?reason\s*=\s*["']([^"']*?)["'][^>]*?relevant\s*=\s*["']?(true|false)["']?[^>]*?\/>/gi,
@@ -1320,11 +1369,9 @@ Example:
     // 尝试每种模式
     for (let i = 0; i < patterns.length; i++) {
       const pattern = patterns[i];
-      console.log(`🔍 尝试模式 ${i}: ${pattern}`);
       const matches = this.matchAllCompat(content, pattern);
 
       for (const match of matches) {
-        console.log(`🔧 匹配到内容:`, match);
         // 检查是否是ID格式
         if (pattern.source.includes("id\\s*=\\s*")) {
           // ID格式
@@ -1344,7 +1391,6 @@ Example:
           }
 
           if (!isNaN(id)) {
-            console.log(`🔧 解析ID格式: id=${id}, relevant=${isRelevant}, reason=${reason}`);
             evaluations.push({
               id: id,
               file: "", // 通过ID查找
@@ -1375,8 +1421,6 @@ Example:
             reason = match[4] || "无理由";
           }
 
-          console.log(`🔧 解析文件路径格式: file=${file}, line=${startLine}, relevant=${isRelevant}, reason=${reason}`);
-          
           if (file && file.includes(".") && !isNaN(startLine)) {
             evaluations.push({
               file: file,
@@ -1394,23 +1438,22 @@ Example:
 
       // 如果找到了结果，就不再尝试其他模式
       if (evaluations.length > 0) {
-        console.log(`✅ 使用模式 ${i} 成功解析到 ${evaluations.length} 个过滤结果`);
         break;
       }
     }
 
     // 如果没有找到标准格式，尝试更宽松的解析
     if (evaluations.length === 0) {
-      console.log("🔍 尝试使用宽松模式解析XML过滤结果");
       const loosePattern = /<filter[^>]*>/gi;
       const filterElements = this.matchAllCompat(content, loosePattern);
 
       for (const element of filterElements) {
         const filterTag = element[0];
-        console.log("🔧 解析filter标签:", filterTag);
 
         // 尝试提取ID (包括chunk_格式)
-        const idMatch = filterTag.match(/id\s*=\s*["']?chunk_(\d+)["']?/i) || filterTag.match(/id\s*=\s*["']?(\d+)["']?/i);
+        const idMatch =
+          filterTag.match(/id\s*=\s*["']?chunk_(\d+)["']?/i) ||
+          filterTag.match(/id\s*=\s*["']?(\d+)["']?/i);
         if (idMatch) {
           const id = parseInt(idMatch[1]);
           const relevantMatch = filterTag.match(
@@ -1423,7 +1466,6 @@ Example:
           if (relevantMatch) {
             const isRelevant = relevantMatch[1].toLowerCase() === "true";
             const reason = reasonMatch ? reasonMatch[1] : "无理由";
-            console.log(`🔧 宽松解析ID格式: id=${id}, relevant=${isRelevant}, reason=${reason}`);
 
             if (!isNaN(id)) {
               evaluations.push({
@@ -1451,7 +1493,6 @@ Example:
             const startLine = parseInt(lineMatch[1]);
             const isRelevant = relevantMatch[1].toLowerCase() === "true";
             const reason = reasonMatch ? reasonMatch[1] : "无理由";
-            console.log(`🔧 宽松解析文件路径格式: file=${file}, line=${startLine}, relevant=${isRelevant}, reason=${reason}`);
 
             if (file && file.includes(".") && !isNaN(startLine)) {
               evaluations.push({
@@ -1469,19 +1510,7 @@ Example:
     if (evaluations.length === 0) {
       console.error("❌ XML过滤解析失败，未找到任何有效的filter标签");
       console.error("📄 完整响应内容:", content);
-      
-      // 尝试提取任何可能的XML标签作为调试信息
-      const allTags = content.match(/<[^>]+>/g);
-      if (allTags) {
-        console.log("🏷️ 响应中找到的所有标签:", allTags.filter(tag => !tag.startsWith("</")));
-      }
-    } else {
-      console.log(`✅ 最终解析结果: ${evaluations.length} 个过滤结果`);
-      if (evaluations.length > 0) {
-        console.log("📄 解析到的过滤结果:", evaluations);
-      }
     }
-
     return evaluations;
   }
 
@@ -1493,20 +1522,26 @@ Example:
 
     // 多种 XML 模块总结格式模式
     const patterns = [
-      // 自闭合标签，任意属性顺序
-      /<module_summary[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
-      /<module_summary[^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
-      /<module_summary[^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?\/>/gi,
+      // 自闭合标签，任意属性顺序 - 支持包含特殊字符的文本
+      /<module_summary[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+      /<module_summary[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+      /<module_summary[^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+      /<module_summary[^>]*?text\s*=\s*["']([^"']*)["'][^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?\/>/gi,
+      /<module_summary[^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?\/>/gi,
+      /<module_summary[^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*)["'][^>]*?\/>/gi,
 
-      // 开闭标签格式
-      /<module_summary[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*?)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?>\s*<\/module_summary>/gi,
+      // 开闭标签格式 - 支持包含特殊字符的文本
+      /<module_summary[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']((?:[^"']|\\')*)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?>\s*<\/module_summary>/gi,
+      /<module_summary[^>]*?name\s*=\s*["']([^"']*?)["'][^>]*?text\s*=\s*["']([^"']*)["'][^>]*?chunks\s*=\s*["']?(\d+)["']?[^>]*?>\s*<\/module_summary>/gi,
     ];
 
     // 尝试每种模式
-    for (const pattern of patterns) {
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i];
       const matches = this.matchAllCompat(content, pattern);
+      for (let j = 0; j < matches.length; j++) {
+        const match = matches[j];
 
-      for (const match of matches) {
         let module: string, summary: string, chunkCount: number;
 
         // 根据匹配组的顺序提取数据
@@ -1545,6 +1580,34 @@ Example:
       // 如果找到了结果，就不再尝试其他模式
       if (summaries.length > 0) {
         break;
+      }
+    }
+
+    // 如果没有找到标准格式，尝试更宽松的解析
+    if (summaries.length === 0) {
+      const loosePattern =
+        /<module_summary\s+((?:[^>]|\\\>)*?)text\s*=\s*["']((?:[^"']|\\')*)["']((?:[^>]|\\\>)*)\/>/gi;
+      const moduleElements = this.matchAllCompat(content, loosePattern);
+
+      for (const match of moduleElements) {
+        const attributes = match[1] + match[3]; // 合并前后属性
+        const text = match[2];
+
+        // 尝试提取name和chunks
+        const nameMatch = attributes.match(/name\s*=\s*["']([^"']*)["']/i);
+        const chunksMatch = attributes.match(/chunks\s*=\s*["']?(\d+)["']?/i);
+
+        if (nameMatch && chunksMatch) {
+          const module = nameMatch[1];
+          const chunkCount = parseInt(chunksMatch[1]);
+          if (!isNaN(chunkCount)) {
+            summaries.push({
+              module: module.trim(),
+              summary: text.trim(),
+              chunk_count: chunkCount,
+            });
+          }
+        }
       }
     }
 
@@ -1601,49 +1664,38 @@ Example:
               id: id,
               file: "", // 通过ID查找
               start_line: 0, // 通过ID查找
-              score: Math.max(0, Math.min(10, score)),
-              summary: summary.trim(),
+              score: score,
+              summary: summary,
             });
           }
         } else {
-          // 旧的路径格式
-          let file: string, startLine: number, score: number, summary: string;
+          // 旧格式
+          const file = match[1].replace(/\\/g, "/");
+          const startLine = parseInt(match[2]);
+          let score: number, summary: string;
 
           // 根据匹配组的顺序提取数据
           if (pattern.source.includes("file.*?line.*?score.*?summary")) {
             // file, line, score, summary 顺序
-            file = match[1];
-            startLine = parseInt(match[2]);
             score = parseFloat(match[3]);
             summary = match[4];
           } else if (pattern.source.includes("line.*?file.*?score.*?summary")) {
             // line, file, score, summary 顺序
-            startLine = parseInt(match[1]);
-            file = match[2];
             score = parseFloat(match[3]);
             summary = match[4];
           } else if (pattern.source.includes("score.*?file.*?line.*?summary")) {
             // score, file, line, summary 顺序
             score = parseFloat(match[1]);
-            file = match[2];
-            startLine = parseInt(match[3]);
             summary = match[4];
           } else if (pattern.source.includes("summary.*?file.*?line.*?score")) {
             // summary, file, line, score 顺序
             summary = match[1];
-            file = match[2];
-            startLine = parseInt(match[3]);
             score = parseFloat(match[4]);
           } else {
             // 默认 file, line, score, summary 顺序
-            file = match[1];
-            startLine = parseInt(match[2]);
             score = parseFloat(match[3]);
             summary = match[4];
           }
-
-          // 标准化文件路径
-          file = file.replace(/\\/g, "/");
 
           // 验证数据
           if (
@@ -1654,21 +1706,21 @@ Example:
             summary
           ) {
             results.push({
+              id: 0,
               file: file,
               start_line: startLine,
-              score: Math.max(0, Math.min(10, score)),
-              summary: summary.trim(),
+              score: score,
+              summary: summary,
             });
           }
         }
       }
-
-      // 如果找到了结果，就不再尝试其他模式
-      if (results.length > 0) {
-        break;
-      }
     }
 
+    if (results.length === 0) {
+      console.error("❌ XML评分和总结解析失败，未找到任何有效的item标签");
+      console.error("📄 完整响应内容:", content);
+    }
     return results;
   }
 
@@ -1676,6 +1728,8 @@ Example:
    * 从 LLM 响应中提取 XML 格式的参数
    */
   private extractToolCallArgs(content: string, functionName: string): any {
+    // 添加日志输出LLM返回的具体内容
+
     // 使用 XML 格式解析
     try {
       if (functionName === "submitCodeRelevanceScores") {
@@ -1760,7 +1814,14 @@ Example:
         currentChunk.push(line);
         const chunkText = currentChunk.join("\n");
 
-        if (chunkText.length >= this.maxChunkSize && !inBlock) {
+        // 检查是否需要分割代码块
+        // 条件1：达到最大字符数且不在代码块内
+        // 条件2：强制分割（即使在代码块内）- 当大小超过两倍maxChunkSize时
+        const shouldSplit =
+          (chunkText.length >= this.maxChunkSize && !inBlock) ||
+          chunkText.length >= this.maxChunkSize * 2;
+
+        if (shouldSplit) {
           chunks.push({
             file_path: filePath,
             start_line: startLine,
@@ -1768,7 +1829,8 @@ Example:
           });
           startLine = currentLine + 1;
           currentChunk = [];
-          braceCount = 0;
+          braceCount = 0; // 重置大括号计数
+          inBlock = false; // 重置代码块状态
         }
       }
 
@@ -2338,7 +2400,7 @@ Example:
           !origBaseName.includes(chunkBaseName) &&
           !chunkBaseName.includes(origBaseName)
         ) {
-          // 检查是否是常见的命名变体
+          // 检查是否是常见命名变体
           if (!this.isFileNameVariant(origBaseName, chunkBaseName)) {
             return false;
           }
@@ -2709,7 +2771,7 @@ Example:
     const origParts = orig.split("/").filter((p: string) => p.length > 0);
     const chunkParts = chunk.split("/").filter((p: string) => p.length > 0);
 
-    // 移除常见的包前缀
+    // 移除常见包前缀
     const origFiltered = origParts.filter(
       (p: string) => !["com", "org", "net"].includes(p),
     );
@@ -2758,7 +2820,7 @@ Example:
     // 一个包含另一个
     if (orig.includes(chunk) || chunk.includes(orig)) return true;
 
-    // 检查是否是常见的变体
+    // 检查是否是常见变体
     const variants = [
       ["entity", "entities"],
       ["dto", "dtos"],
@@ -3457,6 +3519,27 @@ ${snippetDescriptions.join("\n\n")}`;
     // 为所有读取的代码块生成总结并输出到日志
     this.logAllCodeChunks(moduleName, moduleChunks);
 
+    // 使用智能预过滤策略
+    const chunksToAnalyze = await this.smartPreFilter(
+      moduleChunks,
+      userRequest,
+    );
+
+    chunksToAnalyze.forEach((chunk, index) => {
+      const lines = chunk.chunk.split("\n");
+      const endLine = chunk.start_line + lines.length - 1;
+      const charCount = chunk.chunk.length;
+    });
+
+    // 为代码块分配ID并建立索引
+    const chunkDescriptions = chunksToAnalyze.map((chunk, index) => {
+      // 为每个代码块分配唯一ID并存储在索引中
+      const id = this.nextChunkId++;
+      this.codeChunkIndex[id] = chunk;
+
+      return `【Code Chunk ${id}】File: ${chunk.file_path}\nStart Line: ${chunk.start_line}\nContent:\n\`\`\`java\n${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}\n\`\`\``;
+    });
+
     // 对该模块的代码块进行批处理评分
     const moduleScores: RelevanceScore[] = [];
     const batchTasks: Promise<{
@@ -3684,6 +3767,10 @@ ${snippetDescriptions.join("\n\n")}`;
     // 异步执行，不阻塞主流程
     Promise.resolve().then(async () => {
       try {
+        console.log(
+          `📚 模块 ${moduleName} 读取了 ${codeChunks.length} 个代码块，开始生成总结...`,
+        );
+
         // 将 CodeChunk 转换为 ScoredChunk 格式以便复用现有的总结方法
         const scoredChunks: ScoredChunk[] = codeChunks.map((chunk) => ({
           file: chunk.file_path,
@@ -3719,74 +3806,106 @@ ${snippetDescriptions.join("\n\n")}`;
     }
 
     try {
-      // 构建代码片段描述
-      const chunkDescriptions = codeChunks.map(
-        (chunk, index) =>
-          `【代码片段 ${index + 1}】
+      // 设置批处理大小
+      const batchSize = 10; // 每批处理10个代码块
+      const totalBatches = Math.ceil(codeChunks.length / batchSize);
+      
+      console.log(`🔍 开始生成代码片段总结，共${codeChunks.length}个代码块，分${totalBatches}批处理...`);
+
+      // 分批处理代码块总结
+      for (let i = 0; i < codeChunks.length; i += batchSize) {
+        const batchIndex = Math.floor(i / batchSize) + 1;
+        const batch = codeChunks.slice(i, i + batchSize);
+        
+        console.log(`   处理第${batchIndex}/${totalBatches}批，包含${batch.length}个代码块...`);
+
+        // 构建代码片段描述
+        const chunkDescriptions = batch.map(
+          (chunk, index) =>
+            `【代码片段 ${i + index + 1}】
 文件: ${chunk.file}
 起始行: ${chunk.start_line}
 代码内容:
 \`\`\`java
 ${chunk.code.substring(0, 800)}${chunk.code.length > 800 ? "..." : ""}
 \`\`\``,
-      );
+        );
 
-      const userContent = `请为以下代码片段生成简短总结：
+        const userContent = `请为以下代码片段生成简短总结：
 
 ${chunkDescriptions.join("\n\n")}`;
 
-      // 重置之前的结果
-      this.toolCallResults.codeSummaries = undefined;
+        // 重置之前的结果
+        this.toolCallResults.codeSummaries = undefined;
 
-      // 创建带超时的 AbortController
-      const abortController = new AbortController();
-      const timeoutId = setTimeout(() => {
-        abortController.abort();
-      }, 30000); // 30秒超时
+        // 创建带超时的 AbortController
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => {
+          abortController.abort();
+        }, 30000); // 30秒超时
 
-      const messages: ChatMessage[] = [
-        {
-          role: "system",
-          content: this.summarySystemPrompt,
-        },
-        { role: "user", content: userContent },
-      ];
+        const messages: ChatMessage[] = [
+          {
+            role: "system",
+            content: this.summarySystemPrompt,
+          },
+          { role: "user", content: userContent },
+        ];
 
-      const response = await this.llm.chat(messages, abortController.signal, {
-        temperature: 0.0,
-        maxTokens: 4096,
-      });
+        const response = await this.llm.chat(messages, abortController.signal, {
+          temperature: 0.0,
+          maxTokens: 4096,
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      // 处理LLM响应内容
-      const content = response.content;
-      if (typeof content === "string") {
-        try {
-          const args = this.extractToolCallArgs(content, "submitCodeSummaries");
+        // 处理LLM响应内容
+        const content = response.content;
+        if (typeof content === "string") {
+          try {
+            const args = this.extractToolCallArgs(content, "submitCodeSummaries");
 
-          if (args.summaries && Array.isArray(args.summaries)) {
-            this.submitCodeSummaries(args.summaries);
-          } else {
-            console.warn("⚠️ 工具调用参数中缺少 summaries 数组");
+            if (args.summaries && Array.isArray(args.summaries)) {
+              this.submitCodeSummaries(args.summaries);
+            } else {
+              console.warn("⚠️ 工具调用参数中缺少 summaries 数组");
+            }
+          } catch (extractError) {
+            console.error(
+              "❌ 从内容中提取代码总结失败:",
+              extractError instanceof Error
+                ? extractError.message
+                : String(extractError),
+            );
           }
-        } catch (extractError) {
-          console.error(
-            "❌ 从内容中提取代码总结失败:",
-            extractError instanceof Error
-              ? extractError.message
-              : String(extractError),
-          );
+        }
+
+        // 检查是否有工具调用结果并输出到日志
+        const codeSummaries = this.toolCallResults.codeSummaries;
+        if (codeSummaries && Array.isArray(codeSummaries)) {
+          const summaries = codeSummaries as CodeSummary[];
+          if (summaries.length > 0) {
+            console.log(`📄 第${batchIndex}批代码片段总结:`);
+            summaries.forEach((summary, index) => {
+              console.log(
+                `  ${i + index + 1}. ${summary.file}:${summary.start_line}`,
+              );
+              console.log(`     总结: ${summary.summary}`);
+            });
+          } else {
+            console.warn(`⚠️ 第${batchIndex}批代码总结结果为空`);
+          }
+        } else {
+          console.warn(`⚠️ 无法获取第${batchIndex}批代码总结结果`);
+        }
+        
+        // 添加小延迟避免过于频繁的请求
+        if (batchIndex < totalBatches) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
-
-      // 检查是否有工具调用结果并输出到日志
-      const codeSummaries = this.toolCallResults.codeSummaries;
-      if (codeSummaries && Array.isArray(codeSummaries)) {
-        const summaries = codeSummaries as CodeSummary[];
-      } else {
-        console.warn("⚠️ 无法获取代码总结结果");
-      }
+      
+      console.log(`✅ 代码片段总结生成完成，共处理${codeChunks.length}个代码块`);
     } catch (error) {
       console.warn(
         "⚠️ 生成代码总结过程出错:",
@@ -3805,88 +3924,218 @@ ${chunkDescriptions.join("\n\n")}`;
     if (!this.llm || moduleChunks.size === 0) {
       return;
     }
+
+    console.log("📊 开始生成模块总结...");
+
     const moduleEntries = Array.from(moduleChunks.entries());
     for (const [moduleName, chunks] of moduleEntries) {
       try {
-        // 构建模块的代码描述（基于代码内容而不是总结）
-        const chunkDescriptions = chunks
-          .slice(0, 5) // 只取前5个代码片段避免内容过长
-          .map((chunk, index) => {
+        // 设置批处理大小
+        const batchSize = 20; // 每批处理20个代码块
+        const totalBatches = Math.ceil(chunks.length / batchSize);
+        const allSummaries: ModuleSummary[] = [];
+
+        console.log(`   模块 ${moduleName} 包含 ${chunks.length} 个代码块，分 ${totalBatches} 批处理`);
+
+        // 分批处理代码块总结
+        for (let i = 0; i < chunks.length; i += batchSize) {
+          const batchIndex = Math.floor(i / batchSize) + 1;
+          const batch = chunks.slice(i, i + batchSize);
+          
+          console.log(`     处理第${batchIndex}/${totalBatches}批，包含${batch.length}个代码块...`);
+
+          // 构建模块的代码描述（基于代码内容而不是总结）
+          const chunkDescriptions = batch.map((chunk, index) => {
             const codePreview = chunk.code
               .substring(0, 200)
               .replace(/\n/g, " ");
-            return `${index + 1}. ${chunk.file}:${chunk.start_line} - ${codePreview}${chunk.code.length > 200 ? "..." : ""}`;
+            return `${i + index + 1}. ${chunk.file}:${chunk.start_line} - ${codePreview}${chunk.code.length > 200 ? "..." : ""}`;
           });
 
-        const userContent = `模块名称: ${moduleName}
+          const userContent = `模块名称: ${moduleName}
 代码片段总数: ${chunks.length}
 
-主要代码片段:
+当前批处理信息:
+批处理索引: ${batchIndex}/${totalBatches}
+当前批处理代码片段数: ${batch.length}
+
+代码片段:
 ${chunkDescriptions.join("\n")}
 
 请为此模块生成一个综合性的总结。`;
 
-        // 重置之前的结果
-        this.toolCallResults.moduleSummaries = undefined;
+          // 重置之前的结果
+          this.toolCallResults.moduleSummaries = undefined;
 
-        // 创建带超时的 AbortController
-        const abortController = new AbortController();
-        const timeoutId = setTimeout(() => {
-          abortController.abort();
-        }, 25000); // 25秒超时
+          // 创建带超时的 AbortController
+          const abortController = new AbortController();
+          const timeoutId = setTimeout(() => {
+            abortController.abort();
+          }, 25000); // 25秒超时
 
-        const messages: ChatMessage[] = [
-          {
-            role: "system",
-            content: this.moduleSummarySystemPrompt,
-          },
-          { role: "user", content: userContent },
-        ];
+          const messages: ChatMessage[] = [
+            {
+              role: "system",
+              content: this.moduleSummarySystemPrompt,
+            },
+            { role: "user", content: userContent },
+          ];
 
-        const response = await this.llm.chat(messages, abortController.signal, {
-          temperature: 0.0,
-          maxTokens: 2048,
-        });
+          const response = await this.llm.chat(messages, abortController.signal, {
+            temperature: 0.0,
+            maxTokens: 2048,
+          });
 
-        clearTimeout(timeoutId);
+          clearTimeout(timeoutId);
 
-        // 处理LLM响应内容
-        const content = response.content;
-        if (typeof content === "string") {
-          try {
-            const args = this.extractToolCallArgs(
-              content,
-              "submitModuleSummaries",
-            );
+          // 处理LLM响应内容
+          const content = response.content;
+          if (typeof content === "string") {
+            try {
+              const args = this.extractToolCallArgs(
+                content,
+                "submitModuleSummaries",
+              );
 
-            if (args.summaries && Array.isArray(args.summaries)) {
-              this.submitModuleSummaries(args.summaries);
-            } else {
-              console.warn("⚠️ 工具调用参数中缺少 summaries 数组");
+              if (args.summaries && Array.isArray(args.summaries)) {
+                this.submitModuleSummaries(args.summaries);
+                
+                // 收集所有批次的总结
+                const moduleResults = this.toolCallResults.moduleSummaries;
+                if (moduleResults !== undefined && Array.isArray(moduleResults)) {
+                  allSummaries.push(...(moduleResults as ModuleSummary[]));
+                }
+              } else {
+                console.warn("⚠️ 工具调用参数中缺少 summaries 数组");
+              }
+            } catch (extractError) {
+              console.error(
+                "❌ 从内容中提取模块总结失败:",
+                extractError instanceof Error
+                  ? extractError.message
+                  : String(extractError),
+              );
             }
-          } catch (extractError) {
-            console.error(
-              "❌ 从内容中提取模块总结失败:",
-              extractError instanceof Error
-                ? extractError.message
-                : String(extractError),
-            );
+          }
+          
+          // 添加小延迟避免过于频繁的请求
+          if (batchIndex < totalBatches) {
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
         }
 
-        // 检查是否有工具调用结果并输出到日志
-        const moduleResults = this.toolCallResults.moduleSummaries;
-        if (moduleResults && Array.isArray(moduleResults)) {
-          const summaries = moduleResults as ModuleSummary[];
-          if (summaries.length > 0) {
-            summaries.forEach((summary) => {});
+        // 使用LLM汇总所有批次的总结生成最终的模块总结
+        if (allSummaries.length > 0) {
+          console.log(`🏗️ 模块 ${moduleName} 批次处理完成，正在生成综合总结...`);
+          
+          // 构建所有批次总结的描述
+          const batchSummariesDescription = allSummaries.map((summary, index) => 
+            `总结 ${index + 1}: ${summary.summary} (涉及${summary.chunk_count}个代码片段)`
+          ).join('\n');
+          
+          const finalSummaryUserContent = `模块名称: ${moduleName}
+代码片段总数: ${chunks.length}
+批次总结数量: ${allSummaries.length}
+
+各批次总结:
+${batchSummariesDescription}
+
+请基于以上所有批次的总结，生成一个综合性的模块总结。`;
+
+          // 重置之前的结果
+          this.toolCallResults.moduleSummaries = undefined;
+
+          // 创建带超时的 AbortController
+          const finalAbortController = new AbortController();
+          const finalTimeoutId = setTimeout(() => {
+            finalAbortController.abort();
+          }, 25000); // 25秒超时
+
+          const finalMessages: ChatMessage[] = [
+            {
+              role: "system",
+              content: this.moduleSummarySystemPrompt,
+            },
+            { role: "user", content: finalSummaryUserContent },
+          ];
+
+          const finalResponse = await this.llm.chat(finalMessages, finalAbortController.signal, {
+            temperature: 0.0,
+            maxTokens: 2048,
+          });
+
+          clearTimeout(finalTimeoutId);
+
+          // 处理LLM响应内容
+          const finalContent = finalResponse.content;
+          if (typeof finalContent === "string") {
+            try {
+              const finalArgs = this.extractToolCallArgs(
+                finalContent,
+                "submitModuleSummaries",
+              );
+
+              if (finalArgs.summaries && Array.isArray(finalArgs.summaries)) {
+                this.submitModuleSummaries(finalArgs.summaries);
+                
+                // 输出最终的模块总结
+                const finalModuleResults = this.toolCallResults.moduleSummaries;
+                if (finalModuleResults !== undefined && Array.isArray(finalModuleResults)) {
+                  console.log(`🏗️ 模块 ${moduleName} 综合总结:`);
+                  (finalModuleResults as ModuleSummary[]).forEach((summary) => {
+                    console.log(`   总结: ${summary.summary}`);
+                    console.log(`   片段数: ${summary.chunk_count}`);
+                  });
+                } else {
+                  // 如果无法获取最终总结，则输出所有批次的总结
+                  console.log(`🏗️ 模块 ${moduleName} 批次总结:`);
+                  allSummaries.forEach((summary) => {
+                    console.log(`   总结: ${summary.summary}`);
+                    console.log(`   片段数: ${summary.chunk_count}`);
+                  });
+                }
+              } else {
+                console.warn("⚠️ 工具调用参数中缺少 summaries 数组");
+                // 如果无法获取最终总结，则输出所有批次的总结
+                console.log(`🏗️ 模块 ${moduleName} 批次总结:`);
+                allSummaries.forEach((summary) => {
+                  console.log(`   总结: ${summary.summary}`);
+                  console.log(`   片段数: ${summary.chunk_count}`);
+                });
+              }
+            } catch (extractError) {
+              console.error(
+                "❌ 从内容中提取模块总结失败:",
+                extractError instanceof Error
+                  ? extractError.message
+                  : String(extractError),
+              );
+              // 如果提取失败，则输出所有批次的总结
+              console.log(`🏗️ 模块 ${moduleName} 批次总结:`);
+              allSummaries.forEach((summary) => {
+                console.log(`   总结: ${summary.summary}`);
+                console.log(`   片段数: ${summary.chunk_count}`);
+              });
+            }
+          } else {
+            // 如果无法获取最终总结，则输出所有批次的总结
+            console.log(`🏗️ 模块 ${moduleName} 批次总结:`);
+            allSummaries.forEach((summary) => {
+              console.log(`   总结: ${summary.summary}`);
+              console.log(`   片段数: ${summary.chunk_count}`);
+            });
           }
+        } else {
+          console.log(
+            `🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`,
+          );
         }
       } catch (error) {
         console.warn(
           `⚠️ 生成模块 ${moduleName} 总结过程出错:`,
           error instanceof Error ? error.message : String(error),
         );
+        console.log(`🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`);
       }
     }
   }
