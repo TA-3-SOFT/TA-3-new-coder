@@ -3809,15 +3809,19 @@ ${snippetDescriptions.join("\n\n")}`;
       // 设置批处理大小
       const batchSize = 10; // 每批处理10个代码块
       const totalBatches = Math.ceil(codeChunks.length / batchSize);
-      
-      console.log(`🔍 开始生成代码片段总结，共${codeChunks.length}个代码块，分${totalBatches}批处理...`);
+
+      console.log(
+        `🔍 开始生成代码片段总结，共${codeChunks.length}个代码块，分${totalBatches}批处理...`,
+      );
 
       // 分批处理代码块总结
       for (let i = 0; i < codeChunks.length; i += batchSize) {
         const batchIndex = Math.floor(i / batchSize) + 1;
         const batch = codeChunks.slice(i, i + batchSize);
-        
-        console.log(`   处理第${batchIndex}/${totalBatches}批，包含${batch.length}个代码块...`);
+
+        console.log(
+          `   处理第${batchIndex}/${totalBatches}批，包含${batch.length}个代码块...`,
+        );
 
         // 构建代码片段描述
         const chunkDescriptions = batch.map(
@@ -3863,7 +3867,10 @@ ${chunkDescriptions.join("\n\n")}`;
         const content = response.content;
         if (typeof content === "string") {
           try {
-            const args = this.extractToolCallArgs(content, "submitCodeSummaries");
+            const args = this.extractToolCallArgs(
+              content,
+              "submitCodeSummaries",
+            );
 
             if (args.summaries && Array.isArray(args.summaries)) {
               this.submitCodeSummaries(args.summaries);
@@ -3898,14 +3905,16 @@ ${chunkDescriptions.join("\n\n")}`;
         } else {
           console.warn(`⚠️ 无法获取第${batchIndex}批代码总结结果`);
         }
-        
+
         // 添加小延迟避免过于频繁的请求
         if (batchIndex < totalBatches) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
-      
-      console.log(`✅ 代码片段总结生成完成，共处理${codeChunks.length}个代码块`);
+
+      console.log(
+        `✅ 代码片段总结生成完成，共处理${codeChunks.length}个代码块`,
+      );
     } catch (error) {
       console.warn(
         "⚠️ 生成代码总结过程出错:",
@@ -3914,6 +3923,10 @@ ${chunkDescriptions.join("\n\n")}`;
     }
   }
 
+  /**
+   * 为模块生成总结并输出到日志
+   * @param moduleChunks 按模块分组的代码片段
+   */
   /**
    * 为模块生成总结并输出到日志
    * @param moduleChunks 按模块分组的代码片段
@@ -3927,6 +3940,9 @@ ${chunkDescriptions.join("\n\n")}`;
 
     console.log("📊 开始生成模块总结...");
 
+    // 存储所有模块的总结
+    const allModulesSummaries: { moduleName: string; summary: string }[] = [];
+
     const moduleEntries = Array.from(moduleChunks.entries());
     for (const [moduleName, chunks] of moduleEntries) {
       try {
@@ -3935,14 +3951,18 @@ ${chunkDescriptions.join("\n\n")}`;
         const totalBatches = Math.ceil(chunks.length / batchSize);
         const allSummaries: ModuleSummary[] = [];
 
-        console.log(`   模块 ${moduleName} 包含 ${chunks.length} 个代码块，分 ${totalBatches} 批处理`);
+        console.log(
+          `   模块 ${moduleName} 包含 ${chunks.length} 个代码块，分 ${totalBatches} 批处理`,
+        );
 
         // 分批处理代码块总结
         for (let i = 0; i < chunks.length; i += batchSize) {
           const batchIndex = Math.floor(i / batchSize) + 1;
           const batch = chunks.slice(i, i + batchSize);
-          
-          console.log(`     处理第${batchIndex}/${totalBatches}批，包含${batch.length}个代码块...`);
+
+          console.log(
+            `     处理第${batchIndex}/${totalBatches}批，包含${batch.length}个代码块...`,
+          );
 
           // 构建模块的代码描述（基于代码内容而不是总结）
           const chunkDescriptions = batch.map((chunk, index) => {
@@ -3981,10 +4001,14 @@ ${chunkDescriptions.join("\n")}
             { role: "user", content: userContent },
           ];
 
-          const response = await this.llm.chat(messages, abortController.signal, {
-            temperature: 0.0,
-            maxTokens: 2048,
-          });
+          const response = await this.llm.chat(
+            messages,
+            abortController.signal,
+            {
+              temperature: 0.0,
+              maxTokens: 2048,
+            },
+          );
 
           clearTimeout(timeoutId);
 
@@ -3999,10 +4023,13 @@ ${chunkDescriptions.join("\n")}
 
               if (args.summaries && Array.isArray(args.summaries)) {
                 this.submitModuleSummaries(args.summaries);
-                
+
                 // 收集所有批次的总结
                 const moduleResults = this.toolCallResults.moduleSummaries;
-                if (moduleResults !== undefined && Array.isArray(moduleResults)) {
+                if (
+                  moduleResults !== undefined &&
+                  Array.isArray(moduleResults)
+                ) {
                   allSummaries.push(...(moduleResults as ModuleSummary[]));
                 }
               } else {
@@ -4017,22 +4044,28 @@ ${chunkDescriptions.join("\n")}
               );
             }
           }
-          
+
           // 添加小延迟避免过于频繁的请求
           if (batchIndex < totalBatches) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, 100));
           }
         }
 
         // 使用LLM汇总所有批次的总结生成最终的模块总结
+        let finalSummary = "";
         if (allSummaries.length > 0) {
-          console.log(`🏗️ 模块 ${moduleName} 批次处理完成，正在生成综合总结...`);
-          
+          console.log(
+            `🏗️ 模块 ${moduleName} 批次处理完成，正在生成综合总结...`,
+          );
+
           // 构建所有批次总结的描述
-          const batchSummariesDescription = allSummaries.map((summary, index) => 
-            `总结 ${index + 1}: ${summary.summary} (涉及${summary.chunk_count}个代码片段)`
-          ).join('\n');
-          
+          const batchSummariesDescription = allSummaries
+            .map(
+              (summary, index) =>
+                `总结 ${index + 1}: ${summary.summary} (涉及${summary.chunk_count}个代码片段)`,
+            )
+            .join("\n");
+
           const finalSummaryUserContent = `模块名称: ${moduleName}
 代码片段总数: ${chunks.length}
 批次总结数量: ${allSummaries.length}
@@ -4059,10 +4092,14 @@ ${batchSummariesDescription}
             { role: "user", content: finalSummaryUserContent },
           ];
 
-          const finalResponse = await this.llm.chat(finalMessages, finalAbortController.signal, {
-            temperature: 0.0,
-            maxTokens: 2048,
-          });
+          const finalResponse = await this.llm.chat(
+            finalMessages,
+            finalAbortController.signal,
+            {
+              temperature: 0.0,
+              maxTokens: 2048,
+            },
+          );
 
           clearTimeout(finalTimeoutId);
 
@@ -4077,14 +4114,18 @@ ${batchSummariesDescription}
 
               if (finalArgs.summaries && Array.isArray(finalArgs.summaries)) {
                 this.submitModuleSummaries(finalArgs.summaries);
-                
+
                 // 输出最终的模块总结
                 const finalModuleResults = this.toolCallResults.moduleSummaries;
-                if (finalModuleResults !== undefined && Array.isArray(finalModuleResults)) {
+                if (
+                  finalModuleResults !== undefined &&
+                  Array.isArray(finalModuleResults)
+                ) {
                   console.log(`🏗️ 模块 ${moduleName} 综合总结:`);
                   (finalModuleResults as ModuleSummary[]).forEach((summary) => {
                     console.log(`   总结: ${summary.summary}`);
                     console.log(`   片段数: ${summary.chunk_count}`);
+                    finalSummary = summary.summary;
                   });
                 } else {
                   // 如果无法获取最终总结，则输出所有批次的总结
@@ -4092,6 +4133,10 @@ ${batchSummariesDescription}
                   allSummaries.forEach((summary) => {
                     console.log(`   总结: ${summary.summary}`);
                     console.log(`   片段数: ${summary.chunk_count}`);
+                    // 使用第一个总结作为最终总结
+                    if (!finalSummary) {
+                      finalSummary = summary.summary;
+                    }
                   });
                 }
               } else {
@@ -4101,6 +4146,10 @@ ${batchSummariesDescription}
                 allSummaries.forEach((summary) => {
                   console.log(`   总结: ${summary.summary}`);
                   console.log(`   片段数: ${summary.chunk_count}`);
+                  // 使用第一个总结作为最终总结
+                  if (!finalSummary) {
+                    finalSummary = summary.summary;
+                  }
                 });
               }
             } catch (extractError) {
@@ -4115,6 +4164,10 @@ ${batchSummariesDescription}
               allSummaries.forEach((summary) => {
                 console.log(`   总结: ${summary.summary}`);
                 console.log(`   片段数: ${summary.chunk_count}`);
+                // 使用第一个总结作为最终总结
+                if (!finalSummary) {
+                  finalSummary = summary.summary;
+                }
               });
             }
           } else {
@@ -4123,7 +4176,16 @@ ${batchSummariesDescription}
             allSummaries.forEach((summary) => {
               console.log(`   总结: ${summary.summary}`);
               console.log(`   片段数: ${summary.chunk_count}`);
+              // 使用第一个总结作为最终总结
+              if (!finalSummary) {
+                finalSummary = summary.summary;
+              }
             });
+          }
+
+          // 存储模块总结用于后续统一处理
+          if (finalSummary) {
+            allModulesSummaries.push({ moduleName, summary: finalSummary });
           }
         } else {
           console.log(
@@ -4137,6 +4199,156 @@ ${batchSummariesDescription}
         );
         console.log(`🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`);
       }
+    }
+
+    // 处理所有模块的总结
+    if (allModulesSummaries.length > 0) {
+      await this.processAllModulesSummaries(allModulesSummaries);
+    }
+  }
+
+  /**
+   * 处理所有模块的总结，结合已有内容生成更全面的总结
+   * @param modulesSummaries 所有模块的总结
+   */
+  private async processAllModulesSummaries(
+    modulesSummaries: { moduleName: string; summary: string }[]
+  ): Promise<void> {
+    try {
+      console.log("🔄 开始处理所有模块总结...");
+
+      // 检查LLM是否可用
+      if (!this.llm) {
+        console.warn("LLM不可用，无法处理所有模块总结");
+        return;
+      }
+
+      // 获取工作区目录
+      const workspaceDirs = await this.ide.getWorkspaceDirs();
+      if (workspaceDirs.length === 0) {
+        console.warn("未找到工作区目录，无法读取 new-coder.md");
+        return;
+      }
+
+      const rootDir = workspaceDirs[0];
+      const newCoderPath = path.join(
+        localPathOrUriToPath(rootDir),
+        "new-coder.md",
+      );
+      const newCoderUri = `file://${newCoderPath.replace(/\\/g, "/")}`;
+
+      // 读取已有的 new-coder.md 内容
+      let existingContent = "";
+      if (await this.ide.fileExists(newCoderUri)) {
+        existingContent = await this.ide.readFile(newCoderUri);
+      }
+
+      // 构建所有模块总结的描述
+      const modulesSummariesDescription = modulesSummaries.map(({ moduleName, summary }) => 
+        `### ${moduleName}\n${summary}\n`
+      ).join('\n');
+
+      const userContent = `项目中已有的 new-coder.md 内容:
+${existingContent || "无"}
+
+基于代码分析新生成的模块总结:
+${modulesSummariesDescription}
+
+请结合已有的内容和新生成的模块总结，生成一个完整的架构分析部分。
+要求:
+1. 保留已有内容中有价值的信息
+2. 补充新生成的模块总结
+3. 确保内容结构清晰，模块组织合理
+4. 输出格式应符合 Markdown 规范`;
+
+      // 创建带超时的 AbortController
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, 30000); // 30秒超时
+
+      const messages: ChatMessage[] = [
+        {
+          role: "system",
+          content: `你是一个技术文档专家，擅长整理和优化项目架构文档。
+请结合已有的文档内容和新生成的模块总结，生成一个完整的架构分析部分。
+输出应该只包含架构分析部分的内容，不要包含其他部分。`,
+        },
+        { role: "user", content: userContent },
+      ];
+
+      const response = await this.llm.chat(messages, abortController.signal, {
+        temperature: 0.0,
+        maxTokens: 4096,
+      });
+
+      clearTimeout(timeoutId);
+
+      const content = response.content;
+      if (typeof content === "string") {
+        // 更新 new-coder.md 文件
+        await this.updateNewCoderMdCompletely(existingContent, content);
+        
+        console.log("✅ 所有模块总结处理完成并更新到 new-coder.md");
+      }
+    } catch (error) {
+      console.warn(
+        "⚠️ 处理所有模块总结失败:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  /**
+   * 完整更新 new-coder.md 文件
+   * @param existingContent 原有内容
+   * @param newArchitectureContent 新的架构分析内容
+   */
+  private async updateNewCoderMdCompletely(
+    existingContent: string,
+    newArchitectureContent: string,
+  ): Promise<void> {
+    try {
+      // 获取工作区目录
+      const workspaceDirs = await this.ide.getWorkspaceDirs();
+      if (workspaceDirs.length === 0) {
+        console.warn("未找到工作区目录，无法更新 new-coder.md");
+        return;
+      }
+
+      const rootDir = workspaceDirs[0];
+      const newCoderPath = path.join(
+        localPathOrUriToPath(rootDir),
+        "new-coder.md",
+      );
+      const newCoderUri = `file://${newCoderPath.replace(/\\/g, "/")}`;
+
+      let updatedContent = existingContent;
+
+      // 查找架构分析部分
+      const architectureSectionRegex =
+        /##\s*🏗️\s*架构分析\s*([\s\S]*?)(?=##|$)/i;
+      const architectureMatch = updatedContent.match(architectureSectionRegex);
+
+      if (architectureMatch) {
+        // 架构分析部分存在，替换内容
+        updatedContent = updatedContent.replace(
+          architectureSectionRegex,
+          `## 🏗️ 架构分析\n${newArchitectureContent}\n`,
+        );
+      } else {
+        // 架构分析部分不存在，添加新的架构分析部分
+        updatedContent += `\n\n## 🏗️ 架构分析\n${newArchitectureContent}\n`;
+      }
+
+      // 写入更新后的内容
+      await this.ide.writeFile(newCoderUri, updatedContent);
+      console.log("✅ 已更新 new-coder.md 中的架构分析部分");
+    } catch (error) {
+      console.warn(
+        "⚠️ 更新 new-coder.md 文件失败:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
