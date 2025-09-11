@@ -11,7 +11,7 @@ export function findToolCall(
   chatHistory: RootState["session"]["history"],
   toolCallId: string,
 ): ToolCallState | undefined {
-  return chatHistory.find(
+  return chatHistory.findLast(
     (item) => item.toolCallState?.toolCallId === toolCallId,
   )?.toolCallState;
 }
