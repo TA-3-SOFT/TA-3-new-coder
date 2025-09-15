@@ -44,8 +44,8 @@ let WORKFLOW_STEPS: Array<{
 - 如果用户没有按模版编写，并且是涉及多个模块的复杂需求，需分解复杂需求为子需求，子需求是可以抛开其它子需求独立运行的模块，不要将需求拆的太细。
 - 在此过程中不使用任何外部工具。
 
-## 当前项目已有记忆
-${projectMemory}
+${projectMemory ? `## 当前项目已有记忆
+${projectMemory}` : ''}
 
 ## 需求模板
 
@@ -124,7 +124,7 @@ ${requirementFinal}
 ${requirementFinal}
 ---
 
-你是一名资深软件开发设计工程师，基于上面的详细需求以及用户给出的代码分析结果制定详细的实施计划。要求：
+你是一名资深软件开发设计工程师，基于上面的详细需求以及用户给出的代码 analysis结果制定详细的实施计划。要求：
 1. 能实现所有需求的开发任务列表
 2. 每个任务的具体实施步骤、相关文件修改的详细计划
 3. 只管设计工作，不要完成代码编写这类开发工作
@@ -282,21 +282,29 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
             : String(formattedMemory);
         console.log("转换为字符串后的记忆:", memoryString);
 
-        // 如果有实际内容，使用它；否则使用默认提示
-        if (
-          memoryString &&
-          memoryString.trim() &&
-          memoryString !== "工具调用结果格式化失败"
-        ) {
+        // 如果有实际有效内容，使用它；否则设置为null以在提示词中完全省略
+        // 检查各种无效或无用的情况
+        const isInvalidMemory = 
+          !memoryString ||
+          !memoryString.trim() ||
+          memoryString === "工具调用结果格式化失败" ||
+          memoryString === "暂无相关项目记忆，这是一个新的项目分析。" ||
+          memoryString.includes("LanceDB 操作时发生错误") ||
+          memoryString.includes("错误") ||
+          memoryString.includes("Error") ||
+          memoryString.includes("error") ||
+          memoryString.trim().length < 10; // 过短的内容很可能没有实际价值
+
+        if (!isInvalidMemory) {
           projectMemory = memoryString;
           console.log("使用实际记忆内容，长度:", projectMemory.length);
         } else {
-          projectMemory = "暂无相关项目记忆，这是一个新的项目分析。";
-          console.log("使用默认记忆提示");
+          projectMemory = null;
+          console.log("无有效项目记忆，将省略提示词中的记忆部分");
         }
       } catch (error) {
         console.error("获取项目记忆时出错:", error);
-        projectMemory = "获取项目记忆时出现错误，将基于当前输入进行分析。";
+        projectMemory = null;
       }
       promptPreamble = `用户需求：`;
     }
