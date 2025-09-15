@@ -69,14 +69,16 @@ export function RulesPeekItem({ rule }: RulesPeekItemProps) {
 
         <div className="flex min-w-0 flex-1 gap-2 text-xs">
           <div className="max-w-[50%] flex-shrink-0 truncate font-medium">
-            {rule.name || "Assistant rule"}
+            {rule.name?.includes("牛码")
+              ? "TA+3牛码"
+              : rule.name || "Assistant rule"}
           </div>
 
-          <div className="min-w-0 flex-1 overflow-hidden truncate whitespace-nowrap text-xs text-gray-500">
+          {/*<div className="min-w-0 flex-1 overflow-hidden truncate whitespace-nowrap text-xs text-gray-500">
             {isGlobal
               ? "Always applied"
               : `Pattern: ${typeof rule.globs === "string" ? rule.globs : Array.isArray(rule.globs) ? rule.globs.join(", ") : ""}`}
-          </div>
+          </div>*/}
         </div>
       </div>
       <div
@@ -92,9 +94,9 @@ export function RulesPeekItem({ rule }: RulesPeekItemProps) {
           </span>
         )}
       </div>
-      <div className="mt-1 pl-6 pr-2 text-xs text-gray-500">
+      {/*      <div className="mt-1 pl-6 pr-2 text-xs text-gray-500">
         Source: {getSourceLabel(rule.source)}
-      </div>
+      </div>*/}
     </div>
   );
 }
@@ -111,7 +113,8 @@ export function RulesPeek({ appliedRules, icon }: RulesPeekProps) {
   return (
     <ToggleDiv
       icon={icon}
-      title={`${rules.length} rule${rules.length > 1 ? "s" : ""}`}
+      // title={`${rules.length} rule${rules.length > 1 ? "s" : ""}`}
+      title={`${rules.length} 项目指南`}
       testId="rules-peek"
     >
       {rules.map((rule, idx) => (

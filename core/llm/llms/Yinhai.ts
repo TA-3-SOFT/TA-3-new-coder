@@ -7,7 +7,7 @@ class Yinhai extends OpenAI {
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "http://192.168.20.91:5090/",
     maxEmbeddingBatchSize: 100,
-    maxEmbeddingChunkSize: 2048,
+    maxEmbeddingChunkSize: 1000,
   };
   maxStopWords: number | undefined = 16;
 
@@ -52,7 +52,7 @@ class Yinhai extends OpenAI {
       body: JSON.stringify({
         input: chunks,
         model: this.model,
-        dimensions: 768,
+        dimensions: 1024,
         ...this.extraBodyProperties(),
       }),
       headers: {

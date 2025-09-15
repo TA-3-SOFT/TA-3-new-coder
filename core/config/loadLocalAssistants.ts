@@ -129,7 +129,7 @@ export async function getNewCoderMdFile(
       const exists = await ide.fileExists(newCoderMdPath);
       if (exists) {
         const content = await ide.readFile(newCoderMdPath);
-        return [{ path: newCoderMdPath, content }];
+        return [{ path: decodeURI(newCoderMdPath), content }];
       }
     } catch (e) {
       // Continue to next directory if there's an error reading this one

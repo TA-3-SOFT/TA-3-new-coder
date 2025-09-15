@@ -649,7 +649,7 @@ export class Core {
           if (isLocalAssistantFile(uri)) {
             localAssistantCreated = true;
           }
-          if (uri.endsWith("TA+3牛码.md")) {
+          if (decodeURI(uri).endsWith("TA+3牛码.md")) {
             await this.configHandler.reloadConfig();
           }
         }
@@ -664,7 +664,7 @@ export class Core {
         walkDirCache.invalidate();
         void refreshIfNotIgnored(data.uris);
         for (const uri of data.uris) {
-          if (uri.endsWith("TA+3牛码.md")) {
+          if (decodeURI(uri).endsWith("TA+3牛码.md")) {
             await this.configHandler.reloadConfig();
           }
         }
@@ -923,7 +923,7 @@ export class Core {
           uri.endsWith(".prompt") ||
           uri.endsWith(SYSTEM_PROMPT_DOT_FILE) ||
           (uri.includes(".continue") && uri.endsWith(".yaml")) ||
-          uri.endsWith("TA+3牛码.md")
+          decodeURI(uri).endsWith("TA+3牛码.md")
         ) {
           await this.configHandler.reloadConfig();
         } else if (
