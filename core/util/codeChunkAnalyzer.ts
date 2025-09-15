@@ -3927,10 +3927,6 @@ ${chunkDescriptions.join("\n\n")}`;
    * 为模块生成总结并输出到日志
    * @param moduleChunks 按模块分组的代码片段
    */
-  /**
-   * 为模块生成总结并输出到日志
-   * @param moduleChunks 按模块分组的代码片段
-   */
   private async logModuleSummaries(
     moduleChunks: Map<string, ScoredChunk[]>,
   ): Promise<void> {
@@ -3944,7 +3940,10 @@ ${chunkDescriptions.join("\n\n")}`;
     const allModulesSummaries: { moduleName: string; summary: string }[] = [];
 
     const moduleEntries = Array.from(moduleChunks.entries());
+
+    // 串行处理每个模块，确保一个模块处理完成后再处理下一个模块
     for (const [moduleName, chunks] of moduleEntries) {
+      console.log(`▶️ 开始处理模块: ${moduleName}`);
       try {
         // 设置批处理大小
         const batchSize = 20; // 每批处理20个代码块
@@ -4192,6 +4191,18 @@ ${batchSummariesDescription}
             `🏗️ 模块 ${moduleName}: 包含 ${chunks.length} 个代码片段`,
           );
         }
+
+        console.log(`✅ 模块 ${moduleName} 处理完成`);
+
+        // 在处理完一个模块后添加延迟，确保模块间处理有序
+        if (
+          moduleEntries.indexOf([moduleName, chunks]) <
+          moduleEntries.length - 1
+        ) {
+          // 如果不是最后一个模块，添加延迟
+          console.log(`⏳ 等待片刻后开始处理下一个模块...`);
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
       } catch (error) {
         console.warn(
           `⚠️ 生成模块 ${moduleName} 总结过程出错:`,
@@ -4205,6 +4216,8 @@ ${batchSummariesDescription}
     if (allModulesSummaries.length > 0) {
       await this.processAllModulesSummaries(allModulesSummaries);
     }
+
+    console.log("📊 所有模块总结生成完成");
   }
 
   /**
