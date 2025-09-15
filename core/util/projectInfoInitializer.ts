@@ -34,7 +34,7 @@ export class ProjectInfoInitializer {
   ) {}
 
   /**
-   * 初始化项目信息，生成 new-coder.md 文件
+   * 初始化项目信息，生成 TA+3牛码.md 文件
    */
   async initializeProjectInfo(): Promise<void> {
     try {
@@ -54,10 +54,10 @@ export class ProjectInfoInitializer {
 
       const markdownContent = this.generateMarkdown(projectInfo);
 
-      // 生成 new-coder.md 文件
+      // 生成 TA+3牛码.md 文件
       const newCoderPath = path.join(
         localPathOrUriToPath(rootDir),
-        "new-coder.md",
+        "TA+3牛码.md",
       );
       const newCoderUri = `file://${newCoderPath.replace(/\\/g, "/")}`;
 
@@ -398,7 +398,8 @@ export class ProjectInfoInitializer {
 1. 使用 builtin_ls 查看项目整体结构
 2. 使用 builtin_read_file 读取关键配置文件
 3. 使用 builtin_file_glob_search 搜索文档文件（如*.md, *.txt等）
-4. 结合获取的信息进行专业分析
+4. 如果已有Ta+3牛码.md文件，先阅读已有的文件内容
+5. 结合获取的信息进行专业分析
 
 获取足够信息后，请提供以下分析：
 
@@ -406,22 +407,22 @@ export class ProjectInfoInitializer {
 [对项目的整体概述和定位分析]
 
 ## 架构分析
-[树状展示项目结构，分析各个模块用处]
+[树状展示项目结构，分析各个模块用处，项目结构展示到模块级别即可。模块用处不用单独列举，在树状图中填写]
 
 ## 技术栈分析
 [对使用的技术栈、框架、工具的深入分析]
 
 ## 代码风格与标准
-[结合文档内容和技术栈信息，分析项目的代码风格规范和标准]
+[结合文档内容和技术栈信息，分析项目的代码风格规范和标准。可以选取部分你觉得重要的代码文件阅读，总结代码共性提取代码风格。可以通过目录名文件名分析命名规则]
 
-请确保分析内容专业、实用，并针对具体的技术栈和项目特点给出建议。在开始分析前，你必须先使用工具获取项目信息。`;
+请确保分析内容专业、实用。在开始分析前，你必须先使用工具获取项目信息。`;
 
       // 调用 LLM 进行分析，提供工具支持
       let messages: ChatMessage[] = [
         {
           role: "system",
           content:
-            "你是一个资深的软件架构师和技术专家，擅长分析项目结构、技术栈和开发模式。请基于提供的项目信息，给出专业、详细且实用的分析和建议。你可以使用提供的工具来获取更多项目信息。",
+            "你是一个资深的软件架构师和技术专家，擅长分析项目结构、技术栈和开发模式。请基于提供的项目信息，给出专业、详细且实用的分析。你可以使用提供的工具来获取更多项目信息。",
         },
         {
           role: "user",

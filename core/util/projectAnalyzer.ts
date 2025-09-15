@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { IDE, ILLM, ChatMessage } from "../index.js";
 import { localPathToUri, localPathOrUriToPath } from "./pathToUri.js";
+import { getNewCoderMdFile } from "../config/loadLocalAssistants.js";
 
 // 按照原始Python代码的接口定义
 export interface ModuleInfo {
@@ -96,12 +97,6 @@ export class ProjectAnalyzer {
       );
 
       let cleanedContent = content.trim();
-
-      // 移除可能的 markdown 代码块标记
-      const beforeMarkdownClean = cleanedContent.length;
-      cleanedContent = cleanedContent
-        .replace(/```xml\s*/g, "")
-        .replace(/```\s*$/g, "");
 
       // 确保有根标签
       if (!cleanedContent.includes("<response>")) {
@@ -996,11 +991,22 @@ ${modules.map((module, index) => `${index + 1}. ${module.name}: ${module.descrip
       throw new Error("LLM not available for module recommendation");
     }
 
+    // 尝试加载TA+3牛码.md文件内容
+    let newCoderMdContent = "";
+    try {
+      const newCoderFiles = await getNewCoderMdFile(this.ide);
+      if (newCoderFiles.length > 0) {
+        newCoderMdContent = newCoderFiles[0].content;
+      }
+    } catch (error) {
+      console.warn("Failed to load TA+3牛码.md:", error);
+    }
+
     try {
       const messages: ChatMessage[] = [
         {
           role: "system",
-          content: `You are an expert in software architecture and module analysis. Given a user requirement and a list of numbered leaf modules (modules with no submodules) with their descriptions, determine which module(s) are most relevant for implementing or modifying code to meet the requirement.
+          content: `${newCoderMdContent ? `**Important Project Information from TA+3牛码.md:**\n${newCoderMdContent}\n\n` : ""}You are an expert in software architecture and module analysis. Given a user requirement and a list of numbered leaf modules (modules with no submodules) with their descriptions, determine which module(s) are most relevant for implementing or modifying code to meet the requirement.
 
 **Instructions:**
 - Analyze the requirement and match it to the module descriptions.
@@ -1106,7 +1112,7 @@ Return your response in the following XML format:
 
     // 清空并重建文件路径映射
     this.filePathMap.clear();
-    const files = fileList.split('\n').filter(file => file.trim());
+    const files = fileList.split("\n").filter((file) => file.trim());
     files.forEach((file, index) => {
       this.filePathMap.set(index + 1, file.trim());
     });
@@ -1127,11 +1133,22 @@ ${files.map((file, index) => `${index + 1}. ${file}`).join("\n")}
       throw new Error("LLM not available for file analysis");
     }
 
+    // 尝试加载TA+3牛码.md文件内容
+    let newCoderMdContent = "";
+    try {
+      const newCoderFiles = await getNewCoderMdFile(this.ide);
+      if (newCoderFiles.length > 0) {
+        newCoderMdContent = newCoderFiles[0].content;
+      }
+    } catch (error) {
+      console.warn("Failed to load TA+3牛码.md:", error);
+    }
+
     try {
       const messages: ChatMessage[] = [
         {
           role: "system",
-          content: `You are a software architecture and file analysis expert. Based on user requirements and the numbered list of files within the module, determine which files are most relevant to implementing or modifying code to meet the requirements.
+          content: `${newCoderMdContent ? `**Important Project Information from TA+3牛码.md:**\n${newCoderMdContent}\n\n` : ""}You are a software architecture and file analysis expert. Based on user requirements and the numbered list of files within the module, determine which files are most relevant to implementing or modifying code to meet the requirements.
 
 **Instructions:**
 - Analyze requirements and match them with filenames and their paths.

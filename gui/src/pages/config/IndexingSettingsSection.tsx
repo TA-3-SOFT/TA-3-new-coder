@@ -94,7 +94,7 @@ export function IndexingSettingsSection() {
                 <li>📖 整合 README 和配置文件信息</li>
               </ul>
               <p className="mt-2">
-                生成的 <code>new-coder.md</code>{" "}
+                生成的 <code>TA+3牛码.md</code>{" "}
                 文件将包含完整的项目分析报告，帮助新开发者快速理解项目
               </p>
             </>

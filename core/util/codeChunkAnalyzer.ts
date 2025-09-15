@@ -4212,7 +4212,7 @@ ${batchSummariesDescription}
    * @param modulesSummaries 所有模块的总结
    */
   private async processAllModulesSummaries(
-    modulesSummaries: { moduleName: string; summary: string }[]
+    modulesSummaries: { moduleName: string; summary: string }[],
   ): Promise<void> {
     try {
       console.log("🔄 开始处理所有模块总结...");
@@ -4226,29 +4226,29 @@ ${batchSummariesDescription}
       // 获取工作区目录
       const workspaceDirs = await this.ide.getWorkspaceDirs();
       if (workspaceDirs.length === 0) {
-        console.warn("未找到工作区目录，无法读取 new-coder.md");
+        console.warn("未找到工作区目录，无法读取 TA+3牛码.md");
         return;
       }
 
       const rootDir = workspaceDirs[0];
       const newCoderPath = path.join(
         localPathOrUriToPath(rootDir),
-        "new-coder.md",
+        "TA+3牛码.md",
       );
       const newCoderUri = `file://${newCoderPath.replace(/\\/g, "/")}`;
 
-      // 读取已有的 new-coder.md 内容
+      // 读取已有的 TA+3牛码.md 内容
       let existingContent = "";
       if (await this.ide.fileExists(newCoderUri)) {
         existingContent = await this.ide.readFile(newCoderUri);
       }
 
       // 构建所有模块总结的描述
-      const modulesSummariesDescription = modulesSummaries.map(({ moduleName, summary }) => 
-        `### ${moduleName}\n${summary}\n`
-      ).join('\n');
+      const modulesSummariesDescription = modulesSummaries
+        .map(({ moduleName, summary }) => `### ${moduleName}\n${summary}\n`)
+        .join("\n");
 
-      const userContent = `项目中已有的 new-coder.md 内容:
+      const userContent = `项目中已有的 TA+3牛码.md 内容:
 ${existingContent || "无"}
 
 基于代码分析新生成的模块总结:
@@ -4286,10 +4286,10 @@ ${modulesSummariesDescription}
 
       const content = response.content;
       if (typeof content === "string") {
-        // 更新 new-coder.md 文件
+        // 更新 TA+3牛码.md 文件
         await this.updateNewCoderMdCompletely(existingContent, content);
-        
-        console.log("✅ 所有模块总结处理完成并更新到 new-coder.md");
+
+        console.log("✅ 所有模块总结处理完成并更新到 TA+3牛码.md");
       }
     } catch (error) {
       console.warn(
@@ -4300,7 +4300,7 @@ ${modulesSummariesDescription}
   }
 
   /**
-   * 完整更新 new-coder.md 文件
+   * 完整更新 TA+3牛码.md 文件
    * @param existingContent 原有内容
    * @param newArchitectureContent 新的架构分析内容
    */
@@ -4312,14 +4312,14 @@ ${modulesSummariesDescription}
       // 获取工作区目录
       const workspaceDirs = await this.ide.getWorkspaceDirs();
       if (workspaceDirs.length === 0) {
-        console.warn("未找到工作区目录，无法更新 new-coder.md");
+        console.warn("未找到工作区目录，无法更新 TA+3牛码.md");
         return;
       }
 
       const rootDir = workspaceDirs[0];
       const newCoderPath = path.join(
         localPathOrUriToPath(rootDir),
-        "new-coder.md",
+        "TA+3牛码.md",
       );
       const newCoderUri = `file://${newCoderPath.replace(/\\/g, "/")}`;
 
@@ -4343,10 +4343,10 @@ ${modulesSummariesDescription}
 
       // 写入更新后的内容
       await this.ide.writeFile(newCoderUri, updatedContent);
-      console.log("✅ 已更新 new-coder.md 中的架构分析部分");
+      console.log("✅ 已更新 TA+3牛码.md 中的架构分析部分");
     } catch (error) {
       console.warn(
-        "⚠️ 更新 new-coder.md 文件失败:",
+        "⚠️ 更新 TA+3牛码.md 文件失败:",
         error instanceof Error ? error.message : String(error),
       );
     }

@@ -115,7 +115,7 @@ export async function getAllDotContinueDefinitionFiles(
 }
 
 /**
- * This method searches only in workspace directories for new-coder.md file
+ * This method searches only in workspace directories for TA+3牛码.md file
  * Returns the first found file or null if not found
  */
 export async function getNewCoderMdFile(
@@ -125,7 +125,7 @@ export async function getNewCoderMdFile(
 
   for (const dir of workspaceDirs) {
     try {
-      const newCoderMdPath = joinPathsToUri(dir, "new-coder.md");
+      const newCoderMdPath = joinPathsToUri(dir, "TA+3牛码.md");
       const exists = await ide.fileExists(newCoderMdPath);
       if (exists) {
         const content = await ide.readFile(newCoderMdPath);
@@ -134,7 +134,7 @@ export async function getNewCoderMdFile(
     } catch (e) {
       // Continue to next directory if there's an error reading this one
       console.error(
-        `Failed to read new-coder.md from workspace ${dir}: ${e instanceof Error ? e.message : e}`,
+        `Failed to read TA+3牛码.md from workspace ${dir}: ${e instanceof Error ? e.message : e}`,
       );
     }
   }

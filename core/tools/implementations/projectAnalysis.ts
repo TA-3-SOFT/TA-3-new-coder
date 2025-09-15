@@ -54,18 +54,35 @@ export const projectAnalysisImpl: ToolImpl = async (args, extras) => {
           rootDir,
         );
 
+        // 过滤掉没有推荐文件的模块
+        const filteredRecommendation = {
+          ...recommendation,
+          recommended_files: recommendation.recommended_files.filter(
+            (fileRec) => fileRec.files && fileRec.files.length > 0
+          ),
+        };
+
+        // 同步更新推荐模块列表，只保留有推荐文件的模块
+        filteredRecommendation.recommended_modules = filteredRecommendation.recommended_files.map(
+          (fileRec) => fileRec.module
+        );
+
         content += `### 📋 推荐结果总览\n`;
-        content += `- **推荐模块数量**: ${recommendation.recommended_modules.length}\n`;
-        content += `- **推荐模块**: ${recommendation.recommended_modules.join(", ")}\n`;
+        content += `- **推荐模块数量**: ${filteredRecommendation.recommended_modules.length}\n`;
+        content += `- **推荐模块**: ${filteredRecommendation.recommended_modules.join(", ")}\n`;
 
         // 完整版文件推荐
         content += `### 📁 详细文件推荐\n`;
-        for (const fileRec of recommendation.recommended_files) {
-          content += `#### 🔹 模块: \`${fileRec.module}\`\n`;
-          content += `**推荐文件列表**:\n`;
-          for (const file of fileRec.files) {
-            content += `- \`${file}\`\n`;
+        if (filteredRecommendation.recommended_files.length > 0) {
+          for (const fileRec of filteredRecommendation.recommended_files) {
+            content += `#### 🔹 模块: \`${fileRec.module}\`\n`;
+            content += `**推荐文件列表**:\n`;
+            for (const file of fileRec.files) {
+              content += `- \`${file}\`\n`;
+            }
           }
+        } else {
+          content += `根据您的需求，未找到相关模块和文件的推荐。\n`;
         }
       } catch (error) {
         content += `❌ 推荐分析失败: ${error}\n\n`;

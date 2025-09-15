@@ -649,7 +649,7 @@ export class Core {
           if (isLocalAssistantFile(uri)) {
             localAssistantCreated = true;
           }
-          if (uri.endsWith("new-coder.md")) {
+          if (uri.endsWith("TA+3牛码.md")) {
             await this.configHandler.reloadConfig();
           }
         }
@@ -664,7 +664,7 @@ export class Core {
         walkDirCache.invalidate();
         void refreshIfNotIgnored(data.uris);
         for (const uri of data.uris) {
-          if (uri.endsWith("new-coder.md")) {
+          if (uri.endsWith("TA+3牛码.md")) {
             await this.configHandler.reloadConfig();
           }
         }
@@ -819,8 +819,8 @@ export class Core {
 
         // 显示成功提示
         const successMessage = chatModel
-          ? "项目信息已成功生成到 new-coder.md 文件 (包含 AI 深度分析)"
-          : "项目信息已成功生成到 new-coder.md 文件";
+          ? "项目信息已成功生成到 TA+3牛码.md 文件 (包含 AI 深度分析)"
+          : "项目信息已成功生成到 TA+3牛码.md 文件";
 
         await this.ide.showToast("info", successMessage);
       } catch (error) {
@@ -923,7 +923,7 @@ export class Core {
           uri.endsWith(".prompt") ||
           uri.endsWith(SYSTEM_PROMPT_DOT_FILE) ||
           (uri.includes(".continue") && uri.endsWith(".yaml")) ||
-          uri.endsWith("new-coder.md")
+          uri.endsWith("TA+3牛码.md")
         ) {
           await this.configHandler.reloadConfig();
         } else if (
