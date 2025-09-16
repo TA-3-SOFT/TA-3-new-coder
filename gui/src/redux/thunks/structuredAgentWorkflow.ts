@@ -44,8 +44,12 @@ let WORKFLOW_STEPS: Array<{
 - 如果用户没有按模版编写，并且是涉及多个模块的复杂需求，需分解复杂需求为子需求，子需求是可以抛开其它子需求独立运行的模块，不要将需求拆的太细。
 - 在此过程中不使用任何外部工具。
 
-${projectMemory ? `## 当前项目已有记忆
-${projectMemory}` : ''}
+${
+  projectMemory
+    ? `## 当前项目已有记忆
+${projectMemory}`
+    : ""
+}
 
 ## 需求模板
 
@@ -93,6 +97,33 @@ ${requirementFinal}
 你是一名资深软件设计工程师，基于上面的详细需求，了解项目结构相关知识。要求：
 1. 使用project_analysis工具来分析当前Maven项目的结构，禁止传递任何参数给该工具（都使用默认的）。
 2. 调用project_analysis工具后，直接把project_analysis工具的返回结果作为您的回答，不要添加任何其它内容。
+
+## 返回格式
+Maven项目分析报告
+🎯 基于需求的推荐分析
+📋 推荐结果总览
+推荐模块数量: n
+推荐模块: xxxxxx\\xxxxxx\\xx1,xxxxxx\\xxxxxx\\xx2,xxxxxx\\xxxxxx\\xx3
+
+📁 详细文件推荐
+🔹 模块: xxxxxx\\xxxxxx\\xx1
+推荐文件列表:
+
+xxxxxx\\xxxx\\xxxx\\xxxx
+xxx\\xxxxxx\\xxxx\\xx
+
+🔹 模块: xxxxxx\\xxxxxx\\xx2
+推荐文件列表:
+
+xxxxxx\\xxxx\\xxxx\\xxxx
+xxx\\xxxxxx\\xxxx\\xx
+
+🔹 模块: xxxxxx\\xxxxxx\\xx3
+推荐文件列表:
+
+xxxxxx\\xxxx\\xxxx\\xxxx
+xxx\\xxxxxx\\xxxx\\xx
+
 
 注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。`,
     needsConfirmation: true,
@@ -271,9 +302,6 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
 
         // 处理返回结果，将其转换为字符串格式
         const formattedMemory = formatToolCallResult(result);
-        console.log("格式化后的项目记忆:", formattedMemory);
-        console.log("格式化后的项目记忆类型:", typeof formattedMemory);
-        console.log("格式化后的项目记忆长度:", formattedMemory?.length);
 
         // 确保 formattedMemory 是字符串类型
         const memoryString =
@@ -284,7 +312,7 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
 
         // 如果有实际有效内容，使用它；否则设置为null以在提示词中完全省略
         // 检查各种无效或无用的情况
-        const isInvalidMemory = 
+        const isInvalidMemory =
           !memoryString ||
           !memoryString.trim() ||
           memoryString === "工具调用结果格式化失败" ||
