@@ -74,6 +74,7 @@ export class Core {
   private docsService: DocsService;
   private globalContext = new GlobalContext();
   llmLogger = new LLMLogger();
+  private configReloadTimer: NodeJS.Timeout | null = null;
 
   private readonly indexingPauseToken = new PauseToken(
     this.globalContext.get("indexingPaused") === true,
@@ -232,6 +233,9 @@ export class Core {
     );
 
     this.registerMessageHandlers(ideSettingsPromise);
+
+    // 启动定时刷新配置，每24小时执行一次
+    this.startConfigReloadTimer();
   }
 
   /* eslint-disable max-lines-per-function */
@@ -1229,5 +1233,61 @@ export class Core {
     void this.messenger.request("indexProgress", updateToSend);
     this.codebaseIndexingState = updateToSend;
     void this.sendIndexingErrorTelemetry(updateToSend);
+  }
+
+  /**
+   * 执行 refreshProfiles 的逻辑
+   */
+  private async refreshProfilesHandler() {
+    const sessionInfo = await this.messenger.request(
+      "getControlPlaneSessionInfo",
+      {
+        silent: true,
+        useOnboarding: false,
+      },
+    );
+    if (sessionInfo) {
+      await this.configHandler.updateControlPlaneSessionInfo(sessionInfo);
+    }
+
+    await this.configHandler.refreshAll();
+  }
+
+  /**
+   * 启动配置重载定时器，每1小时执行一次
+   */
+  private startConfigReloadTimer() {
+    // 1小时 = 1 * 60 * 60 * 1000 毫秒
+    const ONE_HOURS = 1 * 60 * 60 * 1000;
+
+    this.configReloadTimer = setInterval(async () => {
+      try {
+        console.log("定时刷新配置开始...");
+        await this.refreshProfilesHandler();
+        console.log("定时刷新配置完成");
+      } catch (error) {
+        console.error("定时刷新配置失败:", error);
+      }
+    }, ONE_HOURS);
+
+    console.log("配置定时刷新已启动，将每1小时执行一次");
+  }
+
+  /**
+   * 停止配置重载定时器
+   */
+  private stopConfigReloadTimer() {
+    if (this.configReloadTimer) {
+      clearInterval(this.configReloadTimer);
+      this.configReloadTimer = null;
+      console.log("配置定时刷新已停止");
+    }
+  }
+
+  /**
+   * 清理资源
+   */
+  dispose() {
+    this.stopConfigReloadTimer();
   }
 }
