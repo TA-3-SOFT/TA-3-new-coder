@@ -178,7 +178,7 @@ export function constructMessages(
   // 如果有动态系统消息，将其合并到系统消息中
   if (dynamicSystemMessage && dynamicSystemMessage.trim()) {
     systemMessage = systemMessage.trim()
-      ? `${systemMessage}\n\n${dynamicSystemMessage}`
+      ? `${dynamicSystemMessage}\n\n${systemMessage}`
       : dynamicSystemMessage;
     // systemMessage = dynamicSystemMessage;
   }

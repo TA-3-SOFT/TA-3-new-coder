@@ -96,34 +96,7 @@ ${requirementFinal}
 
 你是一名资深软件设计工程师，基于上面的详细需求，了解项目结构相关知识。要求：
 1. 使用project_analysis工具来分析当前Maven项目的结构，禁止传递任何参数给该工具（都使用默认的）。
-2. 调用project_analysis工具后，直接把project_analysis工具的返回结果作为您的回答，不要添加任何其它内容。
-
-## 返回格式
-Maven项目分析报告
-🎯 基于需求的推荐分析
-📋 推荐结果总览
-推荐模块数量: n
-推荐模块: xxxxxx\\xxxxxx\\xx1,xxxxxx\\xxxxxx\\xx2,xxxxxx\\xxxxxx\\xx3
-
-📁 详细文件推荐
-🔹 模块: xxxxxx\\xxxxxx\\xx1
-推荐文件列表:
-
-xxxxxx\\xxxx\\xxxx\\xxxx
-xxx\\xxxxxx\\xxxx\\xx
-
-🔹 模块: xxxxxx\\xxxxxx\\xx2
-推荐文件列表:
-
-xxxxxx\\xxxx\\xxxx\\xxxx
-xxx\\xxxxxx\\xxxx\\xx
-
-🔹 模块: xxxxxx\\xxxxxx\\xx3
-推荐文件列表:
-
-xxxxxx\\xxxx\\xxxx\\xxxx
-xxx\\xxxxxx\\xxxx\\xx
-
+2. 调用project_analysis工具后，直接把project_analysis工具的返回结果作为回答。
 
 注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。`,
     needsConfirmation: true,
