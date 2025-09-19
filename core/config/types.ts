@@ -803,6 +803,7 @@ declare global {
     | "database"
     | "code"
     | "docs"
+    | "knowledge"
     | "gitlab-mr"
     | "os"
     | "currentFile"

@@ -921,6 +921,7 @@ export type ContextProviderName =
   | "database"
   | "code"
   | "docs"
+  | "knowledge"
   | "gitlab-mr"
   | "os"
   | "currentFile"

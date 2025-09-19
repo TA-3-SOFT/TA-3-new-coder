@@ -35,6 +35,7 @@ export const NAMED_ICONS: { [key: string]: any } = {
   problems: ExclamationTriangleIcon,
   folder: FolderIcon,
   docs: BookOpenIcon,
+  knowledge: BookOpenIcon,
   web: GlobeAltIcon,
   clipboard: PaperClipIcon,
   database: CircleStackIcon,

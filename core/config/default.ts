@@ -5,6 +5,7 @@ export const defaultContextProvidersVsCode: NonNullable<
 >[number][] = [
   { provider: "code" },
   { provider: "docs" },
+  { provider: "knowledge" },
   { provider: "diff" },
   { provider: "terminal" },
   { provider: "problems" },
@@ -15,6 +16,7 @@ export const defaultContextProvidersVsCode: NonNullable<
 export const defaultContextProvidersJetBrains: NonNullable<
   ConfigYaml["context"]
 >[number][] = [
+  { provider: "knowledge" },
   { provider: "diff" },
   { provider: "folder" },
   { provider: "codebase" },

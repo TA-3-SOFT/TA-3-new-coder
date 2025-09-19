@@ -1,6 +1,6 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.yinhai.TA+3AI</id>
+    <id>com.yinhai.TA3AiPlugin</id>
     <name>TA+3 New Coder</name>
     <vendor url="http://172.20.23.216/">技术研发部-AI开发技术组</vendor>
     <change-notes>

@@ -2,6 +2,7 @@ import { useLump } from "../LumpContext";
 import { ContextSection } from "./ContextSection";
 import DocsSection from "./docs/DocsSection";
 import { ErrorSection } from "./errors/ErrorSection";
+import KnowledgeSection from "./knowledge/KnowledgeSection";
 import MCPSection from "./mcp/MCPSection";
 import { ModelsSection } from "./ModelsSection";
 import { PromptsSection } from "./PromptsSection";
@@ -21,6 +22,8 @@ export function SelectedSection() {
       return <RulesSection />;
     case "docs":
       return <DocsSection />;
+    case "knowledge":
+      return <KnowledgeSection />;
     case "prompts":
       return <PromptsSection />;
     case "context":

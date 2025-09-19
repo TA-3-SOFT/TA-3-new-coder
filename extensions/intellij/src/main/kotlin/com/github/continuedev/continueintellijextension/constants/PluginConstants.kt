@@ -7,5 +7,5 @@ object ContinueConstants {
     /**
      * The unique identifier for the Continue plugin.
      */
-    const val PLUGIN_ID = "com.yinhai.TA+3AI"
+    const val PLUGIN_ID = "com.yinhai.TA3AiPlugin"
 }
