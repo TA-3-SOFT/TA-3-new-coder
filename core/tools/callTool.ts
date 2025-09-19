@@ -13,6 +13,7 @@ import { getProjectMemoryImpl } from "./implementations/getProjectMemory";
 import { grepSearchImpl } from "./implementations/grepSearch";
 import { lsToolImpl } from "./implementations/lsTool";
 import { projectAnalysisImpl } from "./implementations/projectAnalysis";
+import { ragKnowledgeQueryImpl } from "./implementations/ragKnowledgeQuery";
 import { readCurrentlyOpenFileImpl } from "./implementations/readCurrentlyOpenFile";
 import { readFileImpl } from "./implementations/readFile";
 import { readFileRangeImpl } from "./implementations/readFileRange";
@@ -178,6 +179,8 @@ async function callBuiltInTool(
       return await getProjectMemoryImpl(args, extras);
     case BuiltInToolNames.GenerateProjectMemory:
       return await generateProjectMemoryImpl(args, extras);
+    case BuiltInToolNames.RagKnowledgeQuery:
+      return await ragKnowledgeQueryImpl(args, extras);
     default:
       throw new Error(`Tool "${functionName}" not found`);
   }

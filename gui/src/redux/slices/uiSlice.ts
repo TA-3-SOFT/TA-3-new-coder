@@ -61,6 +61,7 @@ export const uiSlice = createSlice({
       [BuiltInToolNames.AgentDevelopment]: "allowedWithoutPermission",
       [BuiltInToolNames.GenerateProjectMemory]: "allowedWithoutPermission",
       [BuiltInToolNames.GetProjectMemory]: "allowedWithoutPermission",
+      [BuiltInToolNames.RagKnowledgeQuery]: "allowedWithoutPermission",
       // [BuiltInToolNames.CodeVectorAnalysis]: "allowedWithoutPermission",
       [BuiltInToolNames.CreateRuleBlock]: "allowedWithPermission",
       [BuiltInToolNames.RequestRule]: "disabled",

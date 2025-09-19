@@ -18,6 +18,7 @@ export enum BuiltInToolNames {
   AgentDevelopment = "agent_development",
   GetProjectMemory = "get_project_memory",
   GenerateProjectMemory = "generate_project_memory",
+  RagKnowledgeQuery = "rag_knowledge_query",
 
   // excluded from allTools for now
   ViewRepoMap = "builtin_view_repo_map",

@@ -778,8 +778,14 @@ export class Core {
         this.messenger.send("toolCallPartialOutput", params);
       };
 
+      // 添加selectedOrgId到config对象中，以便在工具中访问
+      const configWithOrgInfo = {
+        ...config,
+        selectedOrgId: this.configHandler.currentOrg?.id || null,
+      };
+
       return await callTool(tool, toolCall.function.arguments, {
-        config,
+        config: configWithOrgInfo,
         ide: this.ide,
         llm: config.selectedModelByRole.chat,
         fetch: (url, init) =>

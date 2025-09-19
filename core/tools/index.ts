@@ -11,6 +11,7 @@ import { globSearchTool } from "./definitions/globSearch";
 import { grepSearchTool } from "./definitions/grepSearch";
 import { lsTool } from "./definitions/lsTool";
 import { projectAnalysisTool } from "./definitions/projectAnalysis";
+import { ragKnowledgeQueryTool } from "./definitions/ragKnowledgeQuery";
 import { readCurrentlyOpenFileTool } from "./definitions/readCurrentlyOpenFile";
 import { readFileTool } from "./definitions/readFile";
 import { readFileRangeTool } from "./definitions/readFileRange";
@@ -35,6 +36,7 @@ export const baseToolDefinitions = [
   codeChunkAnalysisTool,
   // codeVectorAnalysisTool,
   agentDevelopmentTool,
+  ragKnowledgeQueryTool,
   getProjectMemoryTool,
   generateProjectMemoryTool,
   createRuleBlock,
