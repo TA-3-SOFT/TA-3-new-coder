@@ -54,6 +54,7 @@ export const PROVIDER_TOOL_SUPPORT: Record<string, (model: string) => boolean> =
         model.toLowerCase().startsWith("openai") ||
         model.toLowerCase().startsWith("anthropic") ||
         model.toLowerCase().includes("gemini") ||
+        model.toLowerCase().includes("grok") ||
         model.toLowerCase().startsWith("o3")
       ) {
         return true;

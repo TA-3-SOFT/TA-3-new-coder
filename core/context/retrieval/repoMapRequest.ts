@@ -10,6 +10,7 @@ const SUPPORTED_MODEL_TITLE_FAMILIES = [
   "llama3.1",
   "llama3.2",
   "gemini-1.5",
+  "gemini-2.5",
   "gpt-4",
 ];
 
@@ -39,7 +40,8 @@ export async function requestFilesFromRepoMap(
   input: string,
   filterDirUri?: string,
 ): Promise<Chunk[]> {
-  const llm = getModelByRole(config, "repoMapFileSelection") ?? defaultLlm;
+  // const llm = getModelByRole(config, "repoMapFileSelection") ?? defaultLlm;
+  const llm = config.modelsByRole.longcontext[0] ?? defaultLlm;
 
   // Only supported for Claude models right now
   if (!isSupportedModel(config, llm.title)) {
