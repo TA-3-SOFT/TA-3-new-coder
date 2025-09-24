@@ -33,6 +33,7 @@ import {
 import { getSymbolsForManyFiles } from "./util/treeSitter";
 import { TTS } from "./util/tts";
 import { ProjectInfoInitializer } from "./util/projectInfoInitializer";
+import { getKnowledgeApiServiceWithAuth } from "./util/knowledgeApiService";
 
 import {
   ContextItemWithId,
@@ -841,6 +842,46 @@ export class Core {
           "error",
           `项目信息初始化失败: ${errorMessage}`,
         );
+        throw error;
+      }
+    });
+
+    // Knowledge API handlers
+    on("knowledge/listDocuments", async (msg) => {
+      try {
+        // 使用单例的知识库API服务，设置当前的认证客户端
+        const knowledgeApiService = getKnowledgeApiServiceWithAuth(
+          this.configHandler.controlPlaneClient
+        );
+        return await knowledgeApiService.listDocuments(msg.data);
+      } catch (error) {
+        console.error("Failed to list documents:", error);
+        throw error;
+      }
+    });
+
+    on("knowledge/viewDocument", async (msg) => {
+      try {
+        // 使用单例的知识库API服务，设置当前的认证客户端
+        const knowledgeApiService = getKnowledgeApiServiceWithAuth(
+          this.configHandler.controlPlaneClient
+        );
+        return await knowledgeApiService.viewDocument(msg.data);
+      } catch (error) {
+        console.error("Failed to view document:", error);
+        throw error;
+      }
+    });
+
+    on("knowledge/searchKnowledge", async (msg) => {
+      try {
+        // 使用单例的知识库API服务，设置当前的认证客户端
+        const knowledgeApiService = getKnowledgeApiServiceWithAuth(
+          this.configHandler.controlPlaneClient
+        );
+        return await knowledgeApiService.searchKnowledge(msg.data);
+      } catch (error) {
+        console.error("Failed to search knowledge:", error);
         throw error;
       }
     });

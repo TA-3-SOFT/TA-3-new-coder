@@ -1,5 +1,8 @@
 // 知识库API服务
 
+import { useContext } from "react";
+import { IIdeMessenger, IdeMessengerContext } from "../context/IdeMessenger";
+
 export interface KnowledgeDocument {
   id: string;
   documentId?: string;
@@ -68,35 +71,7 @@ export interface SearchKnowledgeParams {
 }
 
 class KnowledgeApiService {
-  private baseUrl = "http://192.168.20.195:8081/lowcodeback";
-
-  private async makeRequest<T>(
-    endpoint: string,
-    params: any,
-  ): Promise<KnowledgeApiResponse<T>> {
-    const formData = new URLSearchParams();
-
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
-      }
-    });
-
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: formData.toString(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data as KnowledgeApiResponse<T>;
-  }
+  constructor(private ideMessenger: IIdeMessenger) {}
 
   /**
    * 获取应用下所有文档列表
@@ -105,14 +80,14 @@ class KnowledgeApiService {
     params: ListDocumentsParams,
   ): Promise<KnowledgeDocument[]> {
     try {
-      const response = await this.makeRequest<{
-        documents: KnowledgeDocument[];
-      }>("/api/knowledge/external/document/listAll", params);
-
-      if (response.serviceSuccess && response.code === 200) {
-        return response.data.documents || [];
+      const result = await this.ideMessenger.request(
+        "knowledge/listDocuments",
+        params,
+      );
+      if (result.status === "success") {
+        return result.content;
       } else {
-        throw new Error(response.errors?.join(", ") || "获取文档列表失败");
+        throw new Error("查询知识库列表失败");
       }
     } catch (error) {
       console.error("Failed to list documents:", error);
@@ -127,14 +102,14 @@ class KnowledgeApiService {
     params: ViewDocumentParams,
   ): Promise<KnowledgeDocumentDetail> {
     try {
-      const response = await this.makeRequest<{
-        documentDetail: KnowledgeDocumentDetail;
-      }>("/api/knowledge/external/document/view", params);
-
-      if (response.serviceSuccess && response.code === 200) {
-        return response.data.documentDetail;
+      const result = await this.ideMessenger.request(
+        "knowledge/viewDocument",
+        params,
+      );
+      if (result.status === "success") {
+        return result.content;
       } else {
-        throw new Error(response.errors?.join(", ") || "获取文档详情失败");
+        throw new Error("获取知识库详情失败");
       }
     } catch (error) {
       console.error("Failed to view document:", error);
@@ -156,14 +131,14 @@ class KnowledgeApiService {
         useRerank: params.useRerank !== false, // 默认为true
       };
 
-      const response = await this.makeRequest<{
-        searchResults: KnowledgeSearchResult[];
-      }>("/api/knowledge/external/search/semantic", searchParams);
-
-      if (response.serviceSuccess && response.code === 200) {
-        return response.data.searchResults || [];
+      const result = await this.ideMessenger.request(
+        "knowledge/searchKnowledge",
+        searchParams,
+      );
+      if (result.status === "success") {
+        return result.content;
       } else {
-        throw new Error(response.errors?.join(", ") || "搜索失败");
+        throw new Error("检索知识库失败");
       }
     } catch (error) {
       console.error("Failed to search knowledge:", error);
@@ -172,8 +147,9 @@ class KnowledgeApiService {
   }
 }
 
-// 导出单例实例
-export const knowledgeApi = new KnowledgeApiService();
-
-// 导出类型和服务
-export default KnowledgeApiService;
+// 创建知识库API服务实例的工厂函数
+// React Hook 用于在组件中使用知识库API服务
+export function useKnowledgeApi(): KnowledgeApiService {
+  const ideMessenger = useContext(IdeMessengerContext);
+  return new KnowledgeApiService(ideMessenger);
+}

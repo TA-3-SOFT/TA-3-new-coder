@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { IdeMessengerContext } from "../../../../../context/IdeMessenger";
 import {
-  knowledgeApi,
+  useKnowledgeApi,
   KnowledgeDocumentDetail,
 } from "../../../../../services/knowledgeApi";
 import { fontSize } from "../../../../../util";
@@ -24,6 +24,7 @@ function KnowledgeDocumentDialog({
   closeDialog,
 }: KnowledgeDocumentDialogProps) {
   const ideMessenger = useContext(IdeMessengerContext);
+  const knowledgeApi = useKnowledgeApi(); // 使用新的hook获取API服务
   const [document, setDocument] = useState<KnowledgeDocumentDetail | null>(
     null,
   );

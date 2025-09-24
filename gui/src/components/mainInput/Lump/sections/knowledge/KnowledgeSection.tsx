@@ -1,15 +1,13 @@
-import { BookOpenIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useMemo, useState, useEffect, useContext } from "react";
-import { useAuth } from "../../../../../context/Auth";
 import { useAppSelector, useAppDispatch } from "../../../../../redux/hooks";
-import { IdeMessengerContext } from "../../../../../context/IdeMessenger";
 import {
   setDialogMessage,
   setShowDialog,
 } from "../../../../../redux/slices/uiSlice";
 
 import {
-  knowledgeApi,
+  useKnowledgeApi,
   KnowledgeDocument,
 } from "../../../../../services/knowledgeApi";
 import { fontSize } from "../../../../../util";
@@ -79,6 +77,7 @@ function KnowledgeSection() {
     (state) => state.profiles.selectedOrganizationId,
   );
   const dispatch = useAppDispatch();
+  const knowledgeApi = useKnowledgeApi(); // 使用新的hook获取API服务
 
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [loading, setLoading] = useState(false);

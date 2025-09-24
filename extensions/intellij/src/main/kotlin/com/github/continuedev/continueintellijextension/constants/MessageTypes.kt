@@ -132,6 +132,8 @@ class MessageTypes {
             "process/markAsBackgrounded",
             "process/isBackgrounded",
             "project/initializeInfo",
+            "knowledge/listDocuments",
+            "knowledge/viewDocument",
         )
     }
 }

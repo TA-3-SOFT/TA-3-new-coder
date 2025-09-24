@@ -12,6 +12,7 @@ const SUPPORTED_MODEL_TITLE_FAMILIES = [
   "gemini-1.5",
   "gemini-2.5",
   "gpt-4",
+  "grok 4",
 ];
 
 function isSupportedModel(
@@ -41,12 +42,12 @@ export async function requestFilesFromRepoMap(
   filterDirUri?: string,
 ): Promise<Chunk[]> {
   // const llm = getModelByRole(config, "repoMapFileSelection") ?? defaultLlm;
-  const llm = config.modelsByRole.longcontext[0] ?? defaultLlm;
+  const llm = config?.selectedModelByRole?.longcontext ?? defaultLlm;
 
   // Only supported for Claude models right now
-  if (!isSupportedModel(config, llm.title)) {
-    return [];
-  }
+  // if (!isSupportedModel(config, llm.title)) {
+  //   return [];
+  // }
 
   try {
     const repoMap = await generateRepoMap(llm, ide, {

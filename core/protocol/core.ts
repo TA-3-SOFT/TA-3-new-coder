@@ -8,6 +8,14 @@ import {
 import { AutocompleteInput } from "../autocomplete/util/types";
 import { SharedConfigSchema } from "../config/sharedConfig";
 import { GlobalContextModelSelections } from "../util/GlobalContext";
+import {
+  KnowledgeDocument,
+  KnowledgeDocumentDetail,
+  KnowledgeSearchResult,
+  ListDocumentsParams,
+  ViewDocumentParams,
+  SearchKnowledgeParams,
+} from "../util/knowledgeApiService";
 
 import {
   BrowserSerializedContinueConfig,
@@ -210,4 +218,9 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   "process/isBackgrounded": [{ toolCallId: string }, boolean];
   "mdm/setLicenseKey": [{ licenseKey: string }, boolean];
   "project/initializeInfo": [undefined, void];
+
+  // Knowledge API
+  "knowledge/listDocuments": [ListDocumentsParams, KnowledgeDocument[]];
+  "knowledge/viewDocument": [ViewDocumentParams, KnowledgeDocumentDetail];
+  "knowledge/searchKnowledge": [SearchKnowledgeParams, KnowledgeSearchResult[]];
 };
