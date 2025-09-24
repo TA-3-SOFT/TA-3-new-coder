@@ -115,14 +115,7 @@ export class KnowledgeApiService {
         headers = await this.controlPlaneClient.setAuthHeader(headers);
       } catch (error) {
         console.warn("Failed to get auth token, using fallback:", error);
-        // 如果获取token失败，使用默认的硬编码token作为fallback
-        headers.Authorization =
-          "0479067b45cdbea636a9b4c081b412f2271e674b1c329a63f0e860d6279e39608c98a615f22c294e370205ae7bfd776e844442fcc876e0e62611f69810ac6c6c26aec51717a1996447309fe310ac756c271e575e71d41bdcb76baa552a74d61d40b084381976a9f1ffe6b7";
       }
-    } else {
-      // 如果没有提供controlPlaneClient，使用默认的硬编码token
-      headers.Authorization =
-        "0479067b45cdbea636a9b4c081b412f2271e674b1c329a63f0e860d6279e39608c98a615f22c294e370205ae7bfd776e844442fcc876e0e62611f69810ac6c6c26aec51717a1996447309fe310ac756c271e575e71d41bdcb76baa552a74d61d40b084381976a9f1ffe6b7";
     }
 
     const response = await fetchwithRequestOptions(
