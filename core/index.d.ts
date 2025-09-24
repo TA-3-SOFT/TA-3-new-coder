@@ -1019,7 +1019,10 @@ export interface ToolExtras {
     toolCallId: string;
     contextItems: ContextItem[];
   }) => void;
-  config: ContinueConfig;
+  config: ContinueConfig & {
+    controlPlaneClient?: any;
+    selectedOrgId?: string | null;
+  };
   // 额外的上下文数据，用于传递不通过参数传递的信息
   contextData?: Record<string, any>;
 }
@@ -1132,6 +1135,11 @@ export interface JSONEmbedOptions {
 
   // VertexAI and Watsonx Options
   projectId?: string;
+
+  // IBM watsonx Options
+  deploymentId?: string;
+
+  env?: Record<string, string | number | boolean>;
 }
 
 export interface EmbeddingsProviderDescription extends JSONEmbedOptions {

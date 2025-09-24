@@ -42,7 +42,8 @@ let WORKFLOW_STEPS: Array<{
 - 如果用户对于需求有提示，要保留提示到你生成的子需求中。
 - 需求理解和整理必须精确不能想当然。
 - 如果用户没有按模版编写，并且是涉及多个模块的复杂需求，需分解复杂需求为子需求，子需求是可以抛开其它子需求独立运行的模块，不要将需求拆的太细。
-- 在此过程中不使用任何外部工具。
+- 在此过程中可以使用rag_knowledge_query工具来查询相关知识，帮助更好地理解需求背景。项目可能对于一些字段有自己的命名规则，所以需要调工具获取相关知识。
+- rag_knowledge_query工具是一个向量检索工具，调用时尽量使用关键词检索，多次调用
 
 ${
   projectMemory
@@ -53,7 +54,7 @@ ${projectMemory}`
 
 ## 需求模板
 
-如果有子需求，每个“子需求”按以下格式整理：
+如果有子需求，每个"子需求"按以下格式整理：
 <requirement_analysis>
 <requirement_sub>
 # **子需求 1**
@@ -84,7 +85,7 @@ ${projectMemory}`
 
 注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。`,
     needsConfirmation: true,
-    allowedTools: [], // 需求拆分步骤不使用任何工具
+    allowedTools: [BuiltInToolNames.RagKnowledgeQuery], // 需求拆分步骤添加ragKnowledgeQuery工具
   },
   {
     step: "project-understanding",
@@ -95,7 +96,7 @@ ${requirementFinal}
 ---
 
 你是一名资深软件设计工程师，基于上面的详细需求，了解项目结构相关知识。要求：
-1. 使用project_analysis工具来分析当前Maven项目的结构，禁止传递任何参数给该工具（都使用默认的）。
+1. 使用project_analysis工具来分析当前Maven项目的结构，禁止传递任何参数给该 工具（都使用默认的）。
 2. 调用project_analysis工具后，直接把project_analysis工具的返回结果作为回答。
 
 注意：每次回答要输出完整内容，就算是经过用户反馈后的多轮对话，不要只输出补充的部分，必须要输出调整后的完整内容。`,

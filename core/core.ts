@@ -783,6 +783,7 @@ export class Core {
       const configWithOrgInfo = {
         ...config,
         selectedOrgId: this.configHandler.currentOrg?.id || null,
+        controlPlaneClient: this.configHandler.controlPlaneClient,
       };
 
       return await callTool(tool, toolCall.function.arguments, {
@@ -851,7 +852,7 @@ export class Core {
       try {
         // 使用单例的知识库API服务，设置当前的认证客户端
         const knowledgeApiService = getKnowledgeApiServiceWithAuth(
-          this.configHandler.controlPlaneClient
+          this.configHandler.controlPlaneClient,
         );
         return await knowledgeApiService.listDocuments(msg.data);
       } catch (error) {
@@ -864,7 +865,7 @@ export class Core {
       try {
         // 使用单例的知识库API服务，设置当前的认证客户端
         const knowledgeApiService = getKnowledgeApiServiceWithAuth(
-          this.configHandler.controlPlaneClient
+          this.configHandler.controlPlaneClient,
         );
         return await knowledgeApiService.viewDocument(msg.data);
       } catch (error) {
@@ -877,7 +878,7 @@ export class Core {
       try {
         // 使用单例的知识库API服务，设置当前的认证客户端
         const knowledgeApiService = getKnowledgeApiServiceWithAuth(
-          this.configHandler.controlPlaneClient
+          this.configHandler.controlPlaneClient,
         );
         return await knowledgeApiService.searchKnowledge(msg.data);
       } catch (error) {
