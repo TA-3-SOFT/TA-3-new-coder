@@ -4,8 +4,6 @@ import {
   getKnowledgeApiServiceWithAuth,
 } from "../../util/knowledgeApiService";
 
-let knowledgeApi: KnowledgeApiService | null = null;
-
 interface RagQueryResult {
   content: string;
   source: string;
@@ -41,7 +39,8 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
   try {
     // 尝试从extras中获取组织信息
     // orgId = extras.config.selectedOrgId;
-    orgId = "1cb76ad6656c415d87616b5a421668f1";
+    // orgId = "1cb76ad6656c415d87616b5a421668f1";
+    orgId = "40FC1A880000456184F8E98396A1645F";
   } catch (orgError) {
     console.warn("⚠️ [RAG查询] 无法获取组织信息:", orgError);
   }
@@ -67,14 +66,8 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
         {
           name: "RAG知识库查询结果",
           description: `查询: ${query} (0 个结果)`,
-          content: `# RAG知识库查询结果
-
-**查询内容:** ${query}
-
-## 查询结果
-
+          content: `# 查询结果
 未找到任何知识库文档。
-
 `,
         },
       ];
@@ -86,7 +79,6 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
         id: index + 1,
         fileName: doc.fileName,
         summary: doc.fileSummary || "无摘要",
-        fileType: doc.fileType || "未知类型",
       };
     });
 
@@ -99,7 +91,14 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
 `;
 
     documentSummaries.forEach((doc) => {
-      prompt += `${doc.id}. ${doc.fileName} (${doc.fileType})\n   摘要: ${doc.summary}\n\n`;
+      // 转义文件名和摘要中的特殊字符
+      const escapedFileName = doc.fileName
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, "\\n");
+      const escapedSummary = (doc.summary || "无摘要")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, "\\n");
+      prompt += `${doc.id}. ${escapedFileName}\n   摘要: ${escapedSummary}\n\n`;
     });
 
     prompt += `请只返回编号，用逗号分隔，例如: "1,3,5"。如果不相关，请返回"无"。`;
@@ -176,11 +175,7 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
         {
           name: "RAG知识库查询结果",
           description: `查询: ${query} (0 个结果)`,
-          content: `# RAG知识库查询结果
-
-**查询内容:** ${query}
-
-## 查询结果
+          content: `# 查询结果
 
 未找到与查询相关的内容。
 
@@ -376,13 +371,17 @@ async function processDocumentWithLLM(
   content: string,
   llm: any,
 ): Promise<string> {
+  // 对query和content进行转义处理，避免特殊字符导致JSON解析错误
+  const escapedQuery = query.replace(/"/g, '\\"').replace(/\n/g, "\\n");
+  const escapedContent = content.replace(/"/g, '\\"').replace(/\n/g, "\\n");
+
   const prompt = `根据以下查询请求：
 
-"${query}"
+"${escapedQuery}"
 
 请分析并总结以下文档内容，提取与查询最相关的信息：
 
-${content}
+${escapedContent}
 
 请提供简洁明了的总结，重点突出与查询相关的内容：`;
 
@@ -399,16 +398,27 @@ ${content}
     if (typeof response.content === "string") {
       return response.content.trim();
     } else if (Array.isArray(response.content)) {
-      return response.content
-        .filter((part: any) => part.type === "text")
-        .map((part: any) => part.text)
-        .join("")
-        .trim();
+      // 尝试处理可能的JSON解析错误
+      try {
+        return response.content
+          .filter((part: any) => part.type === "text")
+          .map((part: any) => part.text)
+          .join("")
+          .trim();
+      } catch (parseError) {
+        console.warn("⚠️ [RAG查询] 解析LLM响应数组时出错:", parseError);
+        // 返回原始响应内容的字符串表示
+        return JSON.stringify(response.content);
+      }
     }
 
     return "无法处理文档内容";
   } catch (error) {
     console.error("❌ [RAG查询] LLM处理文档时出错:", error);
+    // 提供更详细的错误信息
+    if (error instanceof Error && error.message.includes("JSON")) {
+      return `处理文档时JSON解析出错: 可能是LLM返回了格式不正确的响应`;
+    }
     return `处理文档时出错: ${error instanceof Error ? error.message : String(error)}`;
   }
 }
@@ -421,13 +431,19 @@ async function processDocumentChunkWithLLM(
   chunk: DocumentChunk,
   llm: any,
 ): Promise<string> {
+  // 对query和content进行转义处理，避免特殊字符导致JSON解析错误
+  const escapedQuery = query.replace(/"/g, '\\"').replace(/\n/g, "\\n");
+  const escapedContent = chunk.content
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n");
+
   const prompt = `根据以下查询请求：
 
-"${query}"
+"${escapedQuery}"
 
 请分析以下文档片段，提取与查询最相关的信息。这是第${chunk.index + 1}/${chunk.total}个片段：
 
-${chunk.content}
+${escapedContent}
 
 请提供简洁明了的总结，重点突出与查询相关的内容：`;
 
@@ -444,11 +460,18 @@ ${chunk.content}
     if (typeof response.content === "string") {
       return response.content.trim();
     } else if (Array.isArray(response.content)) {
-      return response.content
-        .filter((part: any) => part.type === "text")
-        .map((part: any) => part.text)
-        .join("")
-        .trim();
+      // 尝试处理可能的JSON解析错误
+      try {
+        return response.content
+          .filter((part: any) => part.type === "text")
+          .map((part: any) => part.text)
+          .join("")
+          .trim();
+      } catch (parseError) {
+        console.warn("⚠️ [RAG查询] 解析LLM响应数组时出错:", parseError);
+        // 返回原始响应内容的字符串表示
+        return JSON.stringify(response.content);
+      }
     }
 
     return "无法处理文档片段";
@@ -457,34 +480,12 @@ ${chunk.content}
       `❌ [RAG查询] LLM处理文档片段 ${chunk.index + 1}/${chunk.total} 时出错:`,
       error,
     );
+    // 提供更详细的错误信息
+    if (error instanceof Error && error.message.includes("JSON")) {
+      return `处理文档片段时JSON解析出错: 可能是LLM返回了格式不正确的响应`;
+    }
     return `处理文档片段时出错: ${error instanceof Error ? error.message : String(error)}`;
   }
-}
-
-/**
- * 解析流式响应文本
- */
-function parseStreamResponse(responseText: string): RagApiResponse {
-  const lines = responseText.split("\n").filter((line) => line.trim());
-  let answer = "";
-  const results: RagQueryResult[] = [];
-
-  for (const line of lines) {
-    try {
-      const data = JSON.parse(line);
-      if (data.answer) {
-        answer += data.answer;
-      }
-      if (data.results && Array.isArray(data.results)) {
-        results.push(...data.results);
-      }
-    } catch {
-      // 忽略无法解析的行
-      continue;
-    }
-  }
-
-  return { answer, results };
 }
 
 /**
@@ -534,63 +535,6 @@ ${answer.trim()}
     {
       name: "RAG知识库查询结果",
       description: `查询: ${query} (${results.length} 个结果)}`,
-      content,
-    },
-  ];
-}
-
-/**
- * 格式化文档列表
- */
-function formatDocumentList(documents: any[]) {
-  let content = `# 知识库文档列表\n\n`;
-
-  if (documents.length > 0) {
-    content += `| 文件名 | 文件类型 | 文件大小 | 上传时间 | ID |\n`;
-    content += `|--------|---------|---------|---------|----|\n`;
-
-    documents.forEach((doc: any) => {
-      content += `| ${doc.fileName || ""} | ${doc.fileType || ""} | ${doc.fileSize || 0} | ${doc.uploadTime || doc.createTime || ""} | ${doc.id} |\n`;
-    });
-  } else {
-    content += "暂无文档\n";
-  }
-
-  return [
-    {
-      name: "知识库文档列表",
-      description: `获取到 ${documents.length} 个文档`,
-      content,
-    },
-  ];
-}
-
-/**
- * 格式化文档详情
- */
-function formatDocumentDetail(document: any) {
-  let content = `# 文档详情\n\n`;
-  content += `**文件名:** ${document.fileName}\n\n`;
-  content += `**文件类型:** ${document.fileType || "未知"}\n\n`;
-  content += `**文件大小:** ${document.fileSize} 字节\n\n`;
-  content += `**上传时间:** ${document.uploadTime || document.createTime}\n\n`;
-  content += `**文档ID:** ${document.id}\n\n`;
-
-  if (document.folderName) {
-    content += `**文件夹:** ${document.folderName}\n\n`;
-  }
-
-  if (document.fileSummary) {
-    content += `**摘要:** ${document.fileSummary}\n\n`;
-  }
-
-  content += `## 文档内容\n\n`;
-  content += `${document.content}\n\n`;
-
-  return [
-    {
-      name: `文档: ${document.fileName}`,
-      description: `查看文档 "${document.fileName}" 的详细内容`,
       content,
     },
   ];
