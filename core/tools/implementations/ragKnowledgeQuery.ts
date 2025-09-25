@@ -39,8 +39,8 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
   try {
     // 尝试从extras中获取组织信息
     // orgId = extras.config.selectedOrgId;
-    // orgId = "1cb76ad6656c415d87616b5a421668f1";
-    orgId = "40FC1A880000456184F8E98396A1645F";
+    orgId = "1cb76ad6656c415d87616b5a421668f1";
+    // orgId = "40FC1A880000456184F8E98396A1645F";
   } catch (orgError) {
     console.warn("⚠️ [RAG查询] 无法获取组织信息:", orgError);
   }
@@ -160,13 +160,15 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
           Math.min(3, allDocuments.length),
         );
       }
-    } else {
-      // 如果LLM返回"无"或空，选择前3个文档
-      selectedDocuments = allDocuments.slice(
-        0,
-        Math.min(3, allDocuments.length),
-      );
     }
+    // 如果LLM返回"无"或空，不选择任何文档
+    // else {
+    //   // 如果LLM返回"无"或空，选择前3个文档
+    //   selectedDocuments = allDocuments.slice(
+    //     0,
+    //     Math.min(3, allDocuments.length),
+    //   );
+    // }
 
     console.log(`✅ [RAG查询] 选中 ${selectedDocuments.length} 个文档`);
 
@@ -185,106 +187,100 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
     }
 
     // 第二步：获取选中文档的详细内容
-    const detailedDocuments = await Promise.all(
-      selectedDocuments.map(async (doc) => {
-        try {
-          const viewParams = {
-            appId: orgId,
-            documentId: doc.id,
-          };
-          return await knowledgeApi.viewDocument(viewParams);
-        } catch (error) {
-          console.warn(
-            `⚠️ [RAG查询] 获取文档 ${doc.fileName} 详情时出错:`,
-            error,
-          );
-          return null;
-        }
-      }),
-    );
+    const detailedDocuments = [];
+    for (const doc of selectedDocuments) {
+      try {
+        const viewParams = {
+          appId: orgId,
+          documentId: doc.id,
+        };
+        const detailedDoc = await knowledgeApi.viewDocument(viewParams);
+        detailedDocuments.push(detailedDoc);
+      } catch (error) {
+        console.warn(
+          `⚠️ [RAG查询] 获取文档 ${doc.fileName} 详情时出错:`,
+          error,
+        );
+        detailedDocuments.push(null);
+      }
+    }
 
     // 过滤掉获取失败的文档
     const validDocuments = detailedDocuments.filter((doc) => doc !== null);
 
     // 处理文档内容，如果文档过大则进行切割并交给LLM处理
-    const processedResults = await Promise.all(
-      validDocuments.map(async (doc) => {
-        // 检查文档大小，如果超过阈值则进行切割
-        const CHUNK_SIZE = 8000; // 每个片段最大8000字符
-        const content = doc!.content;
+    const processedResults = [];
+    for (const doc of validDocuments) {
+      // 检查文档大小，如果超过阈值则进行切割
+      const CHUNK_SIZE = 8000; // 每个片段最大8000字符
+      const content = doc!.content;
 
-        if (content.length <= CHUNK_SIZE) {
-          // 文档较小，直接处理
-          const summary = await processDocumentWithLLM(
+      if (content.length <= CHUNK_SIZE) {
+        // 文档较小，直接处理
+        const summary = await processDocumentWithLLM(query, content, llmToUse);
+        processedResults.push({
+          content: summary,
+          source: doc!.fileName || "未知来源",
+          metadata: {
+            fileId: doc!.fileId,
+            fileType: doc!.fileType,
+            fileSize: doc!.fileSize,
+            createTime: doc!.createTime,
+            categoryId: doc!.categoryId,
+            categoryName: doc!.categoryName,
+          },
+        });
+      } else {
+        // 文档较大，需要切割处理
+        console.log(
+          `🔍 [RAG查询] 文档 ${doc!.fileName} 较大 (${content.length} 字符)，需要切割处理`,
+        );
+
+        // 切割文档
+        const chunks = splitDocumentIntoChunks(
+          content,
+          CHUNK_SIZE,
+          doc!.fileName,
+        );
+
+        // 分别处理每个片段
+        const chunkSummaries = [];
+        for (const chunk of chunks) {
+          const summary = await processDocumentChunkWithLLM(
             query,
-            content,
+            chunk,
             llmToUse,
           );
-          return {
-            content: summary,
-            source: doc!.fileName || "未知来源",
-            metadata: {
-              fileId: doc!.fileId,
-              fileType: doc!.fileType,
-              fileSize: doc!.fileSize,
-              createTime: doc!.createTime,
-              categoryId: doc!.categoryId,
-              categoryName: doc!.categoryName,
-            },
-          };
-        } else {
-          // 文档较大，需要切割处理
-          console.log(
-            `🔍 [RAG查询] 文档 ${doc!.fileName} 较大 (${content.length} 字符)，需要切割处理`,
-          );
-
-          // 切割文档
-          const chunks = splitDocumentIntoChunks(
-            content,
-            CHUNK_SIZE,
-            doc!.fileName,
-          );
-
-          // 分别处理每个片段
-          const chunkSummaries = await Promise.all(
-            chunks.map(async (chunk) => {
-              const summary = await processDocumentChunkWithLLM(
-                query,
-                chunk,
-                llmToUse,
-              );
-              return summary;
-            }),
-          );
-
-          // 合并所有片段的总结
-          const combinedSummary = chunkSummaries.join("\n\n");
-
-          // 如果合并后的内容仍然很长，再次总结
-          let finalSummary = combinedSummary;
-          if (combinedSummary.length > CHUNK_SIZE) {
-            finalSummary = await processDocumentWithLLM(
-              query,
-              combinedSummary,
-              llmToUse,
-            );
-          }
-
-          return {
-            content: finalSummary,
-            source: doc!.fileName || "未知来源",
-            metadata: {
-              fileId: doc!.fileId,
-              fileType: doc!.fileType,
-              fileSize: doc!.fileSize,
-              createTime: doc!.createTime,
-              categoryId: doc!.categoryId,
-              categoryName: doc!.categoryName,
-            },
-          };
+          chunkSummaries.push(summary);
         }
-      }),
-    );
+
+        // 合并所有片段的总结
+        const combinedSummary = chunkSummaries.join("\n\n");
+
+        // 如果合并后的内容仍然很长，再次总结
+        let finalSummary = combinedSummary;
+        if (combinedSummary.length > CHUNK_SIZE) {
+          finalSummary = await processDocumentWithLLM(
+            query,
+            combinedSummary,
+            llmToUse,
+          );
+        }
+
+        processedResults.push({
+          content: finalSummary,
+          source: doc!.fileName || "未知来源",
+          metadata: {
+            fileId: doc!.fileId,
+            fileType: doc!.fileType,
+            fileSize: doc!.fileSize,
+            createTime: doc!.createTime,
+            categoryId: doc!.categoryId,
+            categoryName: doc!.categoryName,
+          },
+        });
+      }
+    }
 
     console.log(`✅ [RAG查询] 处理完成 ${processedResults.length} 个文档`);
 
