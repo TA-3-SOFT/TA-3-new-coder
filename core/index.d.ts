@@ -175,7 +175,10 @@ export interface ContextProviderDescription {
 export type FetchFunction = (url: string | URL, init?: any) => Promise<any>;
 
 export interface ContextProviderExtras {
-  config: ContinueConfig;
+  config: ContinueConfig & {
+    controlPlaneClient?: any;
+    selectedOrgId?: string | null;
+  };
   fullInput: string;
   embeddingsProvider: ILLM | null;
   reranker: ILLM | null;

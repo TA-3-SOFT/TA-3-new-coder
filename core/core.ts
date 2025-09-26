@@ -1106,8 +1106,14 @@ export class Core {
         itemId: uuidv4(),
       };
 
+      const configWithOrgInfo = {
+        ...config,
+        selectedOrgId: this.configHandler.currentOrg?.id || null,
+        controlPlaneClient: this.configHandler.controlPlaneClient,
+      };
+
       const items = await provider.getContextItems(query, {
-        config,
+        config: configWithOrgInfo,
         llm,
         embeddingsProvider: config.selectedModelByRole.embed,
         fullInput,

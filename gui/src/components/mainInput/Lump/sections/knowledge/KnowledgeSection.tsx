@@ -1,14 +1,14 @@
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { useMemo, useState, useEffect, useContext } from "react";
-import { useAppSelector, useAppDispatch } from "../../../../../redux/hooks";
+import { useEffect, useMemo, useState } from "react";
+import { useAppDispatch, useAppSelector } from "../../../../../redux/hooks";
 import {
   setDialogMessage,
   setShowDialog,
 } from "../../../../../redux/slices/uiSlice";
 
 import {
-  useKnowledgeApi,
   KnowledgeDocument,
+  useKnowledgeApi,
 } from "../../../../../services/knowledgeApi";
 import { fontSize } from "../../../../../util";
 
@@ -96,9 +96,8 @@ function KnowledgeSection() {
 
     try {
       const params = {
-        // appId: selectedOrgId,
-        appId: "1cb76ad6656c415d87616b5a421668f1",
-        // 移除搜索参数，获取所有文档，然后在前端过滤
+        appId: selectedOrgId,
+        // appId: "1cb76ad6656c415d87616b5a421668f1",
       };
 
       const documents = await knowledgeApi.listDocuments(params);
@@ -131,13 +130,15 @@ function KnowledgeSection() {
 
   // 处理文档点击事件
   const handleDocumentClick = (document: KnowledgeDocument) => {
-    const appId = "1cb76ad6656c415d87616b5a421668f1"; // 使用当前选择的组织ID
-
+    if (!selectedOrgId) {
+      setError("请先选择组织");
+      return;
+    }
     dispatch(
       setDialogMessage(
         <KnowledgeDocumentDialog
           documentId={document.id}
-          appId={appId}
+          appId={selectedOrgId}
           closeDialog={() => {
             dispatch(setShowDialog(false));
             dispatch(setDialogMessage(undefined));

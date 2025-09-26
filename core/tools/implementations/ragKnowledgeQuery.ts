@@ -38,8 +38,8 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
   let orgId: any = null;
   try {
     // 尝试从extras中获取组织信息
-    // orgId = extras.config.selectedOrgId;
-    orgId = "1cb76ad6656c415d87616b5a421668f1";
+    orgId = extras.config.selectedOrgId;
+    // orgId = "1cb76ad6656c415d87616b5a421668f1";
     // orgId = "40FC1A880000456184F8E98396A1645F";
   } catch (orgError) {
     console.warn("⚠️ [RAG查询] 无法获取组织信息:", orgError);
@@ -212,7 +212,7 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
     const processedResults = [];
     for (const doc of validDocuments) {
       // 检查文档大小，如果超过阈值则进行切割
-      const CHUNK_SIZE = 8000; // 每个片段最大8000字符
+      const CHUNK_SIZE = 400000; // 每个片段最大8000字符
       const content = doc!.content;
 
       if (content.length <= CHUNK_SIZE) {
