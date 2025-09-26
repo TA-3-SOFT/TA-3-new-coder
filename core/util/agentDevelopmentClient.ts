@@ -4,6 +4,11 @@ import * as fs from "fs";
 // @ts-ignore
 import { cos_sim } from "../vendor/modules/@xenova/transformers/src/utils/maths.js";
 
+import {
+  KnowledgeApiService,
+  getKnowledgeApiServiceWithAuth,
+} from "./knowledgeApiService";
+
 export interface DevelopmentKnowledgeResponse {
   selectedUtilClasses: string[];
   frameworkRules: string[];
@@ -28,17 +33,6 @@ export interface UtilClassAnalysisResponse {
 export interface UtilClassWithKeywords {
   className: string;
   keywords: string[];
-}
-
-export interface VectorizedMethod {
-  methodSignature: string;
-  vector: number[];
-}
-
-export interface MethodMatchResult {
-  methodSignature: string;
-  keyword: string;
-  similarity: number;
 }
 
 export class AgentDevelopmentClient {
@@ -141,140 +135,6 @@ export class AgentDevelopmentClient {
     } catch (error) {
       console.error(`读取工具类 ${utilClassName} 方法签名失败:`, error);
       return null;
-    }
-  }
-
-  /**
-   * 向量化方法签名
-   * @param methods 方法签名数组
-   * @returns 向量化的方法数组
-   */
-  private async vectorizeMethods(
-    methods: string[],
-  ): Promise<VectorizedMethod[]> {
-    if (!this.embeddingsProvider) {
-      throw new Error("嵌入提供者未配置");
-    }
-
-    if (!methods.length) {
-      return [];
-    }
-
-    try {
-      console.log(`开始向量化 ${methods.length} 个方法签名`);
-      const vectors = await this.embeddingsProvider.embed(methods);
-
-      if (!Array.isArray(vectors) || vectors.length !== methods.length) {
-        throw new Error(
-          `向量化结果数量不匹配: 期望 ${methods.length}, 实际 ${vectors.length}`,
-        );
-      }
-
-      const vectorizedMethods: VectorizedMethod[] = methods.map(
-        (method, index) => ({
-          methodSignature: method,
-          vector: vectors[index],
-        }),
-      );
-
-      console.log(`成功向量化 ${vectorizedMethods.length} 个方法签名`);
-      return vectorizedMethods;
-    } catch (error) {
-      console.error(`向量化方法签名失败:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * 计算关键词与方法的相似度
-   * @param keywordVector 关键词向量
-   * @param methodVector 方法向量
-   * @returns 相似度分数
-   */
-  private calculateSimilarity(
-    keywordVector: number[],
-    methodVector: number[],
-  ): number {
-    if (!keywordVector.length || !methodVector.length) {
-      return 0;
-    }
-
-    try {
-      return cos_sim(keywordVector, methodVector);
-    } catch (error) {
-      console.error(`计算相似度失败: ${error}`);
-      return 0;
-    }
-  }
-
-  /**
-   * 使用向量匹配选择方法
-   * @param utilClassName 工具类名称
-   * @param keywords 关键词数组
-   * @param methods 方法签名数组
-   * @param threshold 相似度阈值
-   * @returns 匹配的方法结果
-   */
-  private async vectorMatchMethods(
-    utilClassName: string,
-    keywords: string[],
-    methods: string[],
-    threshold: number = 0.3,
-  ): Promise<MethodMatchResult[]> {
-    if (!this.embeddingsProvider) {
-      throw new Error("嵌入提供者未配置");
-    }
-
-    try {
-      // 向量化关键词和方法
-      const [keywordVectors, vectorizedMethods] = await Promise.all([
-        this.embeddingsProvider.embed(keywords),
-        this.vectorizeMethods(methods),
-      ]);
-
-      const matchResults: MethodMatchResult[] = [];
-
-      // 对每个关键词，找到最相似的方法
-      keywords.forEach((keyword, keywordIndex) => {
-        const keywordVector = keywordVectors[keywordIndex];
-
-        vectorizedMethods.forEach((vectorizedMethod) => {
-          const similarity = this.calculateSimilarity(
-            keywordVector,
-            vectorizedMethod.vector,
-          );
-
-          if (similarity >= threshold) {
-            matchResults.push({
-              methodSignature: vectorizedMethod.methodSignature,
-              keyword,
-              similarity,
-            });
-          }
-        });
-      });
-
-      // 按相似度排序并去重
-      const uniqueResults = new Map<string, MethodMatchResult>();
-      matchResults
-        .sort((a, b) => b.similarity - a.similarity)
-        .forEach((result) => {
-          if (
-            !uniqueResults.has(result.methodSignature) ||
-            uniqueResults.get(result.methodSignature)!.similarity <
-              result.similarity
-          ) {
-            uniqueResults.set(result.methodSignature, result);
-          }
-        });
-
-      console.log(
-        `${utilClassName} 向量匹配结果: ${uniqueResults.size} 个方法匹配`,
-      );
-      return Array.from(uniqueResults.values());
-    } catch (error) {
-      console.error(`向量匹配失败:`, error);
-      return [];
     }
   }
 
@@ -611,9 +471,9 @@ ${frameworkRules}
       let frameworkQuestions: string[] = [];
 
       try {
-        // 清理LLM返回的内容，移除可能的markdown代码块标记
+        // 清理LLM返回的内容，移除可能的代码块标记
         let cleanedResult = analysisResult.trim();
-        if (cleanedResult.startsWith("```json")) {
+        if (cleanedResult.startsWith("``json")) {
           cleanedResult = cleanedResult
             .replace(/^```json\s*/, "")
             .replace(/\s*```$/, "");
@@ -654,9 +514,9 @@ ${frameworkRules}
   }
 
   /**
-   * 根据用户需求和选中的工具类，使用向量匹配选择具体需要的方法
-   * @param userRequirement 用户需求（可选，主要用于日志）
-   * @param selectedUtilClasses 已选择的工具类列表（可选，如果不提供则使用存储的关键词信息）
+   * 根据用户需求和选中的工具类，使用LLM选择具体需要的方法（通过编号方式）
+   * @param userRequirement 用户需求
+   * @param selectedUtilClasses 已选择的工具类列表
    * @returns 选中的工具类方法
    */
   async analyzeUtilClassMethods(
@@ -664,35 +524,22 @@ ${frameworkRules}
     selectedUtilClasses?: string[],
   ): Promise<UtilClassAnalysisResponse> {
     try {
-      if (!this.embeddingsProvider) {
-        throw new Error("嵌入提供者未配置，无法进行向量匹配");
-      }
+      // 使用传入的工具类列表或从实例中获取
+      const utilClassNames =
+        selectedUtilClasses ||
+        (this.utilClassKeywords.length > 0
+          ? this.utilClassKeywords.map((item) => item.className)
+          : []);
 
-      // 使用存储的关键词信息或传入的工具类列表
-      const utilClassesWithKeywords =
-        this.utilClassKeywords.length > 0
-          ? this.utilClassKeywords
-          : (selectedUtilClasses || []).map((className) => ({
-              className,
-              keywords: [],
-            }));
-
-      if (utilClassesWithKeywords.length === 0) {
+      if (utilClassNames.length === 0) {
         console.warn("没有可用的工具类信息");
         return { selectedMethods: [] };
       }
 
       const selectedMethods: UtilClassMethod[] = [];
 
-      // 对每个工具类进行向量匹配
-      for (const utilClassInfo of utilClassesWithKeywords) {
-        const { className, keywords } = utilClassInfo;
-
-        if (keywords.length === 0) {
-          console.warn(`工具类 ${className} 没有关键词，跳过向量匹配`);
-          continue;
-        }
-
+      // 对每个工具类进行LLM分析
+      for (const className of utilClassNames) {
         // 读取工具类方法签名
         const methodInfo = await this.readUtilClassMethods(className);
         if (!methodInfo) {
@@ -700,39 +547,108 @@ ${frameworkRules}
           continue;
         }
 
-        console.log(
-          `开始为工具类 ${className} 进行向量匹配，关键词: ${keywords.join(", ")}`,
+        if (!userRequirement) {
+          console.warn("缺少用户需求，无法进行方法分析");
+          continue;
+        }
+
+        // 为每个方法分配编号
+        const numberedMethods = methodInfo.methods.map(
+          (method, index) => `${index + 1}. ${method}`,
         );
 
-        // 使用向量匹配选择方法
-        const matchResults = await this.vectorMatchMethods(
-          className,
-          keywords,
-          methodInfo.methods,
-          0.3, // 相似度阈值
-        );
+        // 构建LLM提示词
+        const prompt = `
+根据以下开发需求和工具类方法列表，请选择可能需要使用的方法，并返回这些方法的编号。
 
-        if (matchResults.length > 0) {
-          const selectedMethodSignatures = matchResults.map(
-            (result) => result.methodSignature,
-          );
-          selectedMethods.push({
-            className: methodInfo.className,
-            packagePath: methodInfo.packagePath,
-            methods: selectedMethodSignatures,
-          });
+开发需求：
+${userRequirement}
 
-          console.log(
-            `工具类 ${className} 匹配到 ${selectedMethodSignatures.length} 个方法`,
+工具类名称：${className}
+方法列表：
+${numberedMethods.join("\n")}
+
+请返回一个JSON数组，包含所有可能需要使用的方法的编号。只返回编号数组，不要包含其他解释性文字。
+
+示例输出格式：
+[1, 3, 5]
+`;
+
+        try {
+          // 调用LLM进行分析
+          const abortController = new AbortController();
+          const llmResponse = await this.llm.complete(
+            prompt,
+            abortController.signal,
           );
-        } else {
-          console.log(`工具类 ${className} 没有匹配到任何方法`);
+
+          // 解析LLM返回的结果
+          let selectedMethodIndices: number[] = [];
+
+          try {
+            // 清理LLM返回的内容，移除可能的代码块标记
+            let cleanedResult = llmResponse.trim();
+            if (cleanedResult.startsWith("```json")) {
+              cleanedResult = cleanedResult
+                .replace(/^```json\s*/, "")
+                .replace(/\s*```$/, "");
+            } else if (cleanedResult.startsWith("```")) {
+              cleanedResult = cleanedResult
+                .replace(/^```\s*/, "")
+                .replace(/\s*```$/, "");
+            }
+
+            selectedMethodIndices = JSON.parse(cleanedResult);
+
+            // 确保返回的是数字数组
+            if (!Array.isArray(selectedMethodIndices)) {
+              throw new Error("LLM返回的不是数组格式");
+            }
+
+            // 过滤掉无效的索引（小于1或大于方法总数）
+            selectedMethodIndices = selectedMethodIndices.filter(
+              (index) =>
+                typeof index === "number" &&
+                index >= 1 &&
+                index <= methodInfo.methods.length,
+            );
+          } catch (parseError) {
+            console.error(`解析LLM响应失败:`, parseError);
+            console.error(`原始响应: ${llmResponse}`);
+            // 如果解析失败，跳过这个工具类
+            continue;
+          }
+
+          // 根据编号获取实际的方法签名
+          const selectedMethodSignatures = selectedMethodIndices
+            .map((index) => methodInfo.methods[index - 1])
+            .filter(
+              // 过滤掉可能的undefined值
+              (method) => method !== undefined,
+            );
+
+          if (selectedMethodSignatures.length > 0) {
+            selectedMethods.push({
+              className: methodInfo.className,
+              packagePath: methodInfo.packagePath,
+              methods: selectedMethodSignatures,
+            });
+
+            console.log(
+              `工具类 ${className} 通过LLM分析匹配到 ${selectedMethodSignatures.length} 个方法`,
+            );
+          } else {
+            console.log(`工具类 ${className} 没有匹配到任何方法`);
+          }
+        } catch (llmError) {
+          console.error(`LLM分析工具类 ${className} 失败:`, llmError);
+          // 继续处理下一个工具类
         }
       }
 
       return { selectedMethods };
     } catch (error) {
-      console.error("向量匹配分析工具类方法失败:", error);
+      console.error("分析工具类方法失败:", error);
       return { selectedMethods: [] };
     }
   }
@@ -766,45 +682,198 @@ ${methodInfo.methods.map((method, index) => `${index + 1}. ${method}`).join("\n"
   }
 
   /**
-   * 获取框架规范的详细说明（仅通过远程API）
+   * 获取框架规范的详细说明（使用RAG模式）
    */
   async getFrameworkRuleDetails(question: string): Promise<string> {
     try {
-      const knowledge = await this.getRemoteKnowledge(question);
+      // 获取知识库API服务实例
+      // 注意：这里我们需要一个ControlPlaneClient实例，但在AgentDevelopmentClient中可能没有
+      // 我们可以尝试使用传入的fetch函数或者创建一个简化版本
+      const knowledgeApi = KnowledgeApiService.getInstance();
 
-      // 优先使用results中的内容
-      if (knowledge.results && knowledge.results.length > 0) {
-        const formattedResults = knowledge.results.map((result: any) => {
-          if (typeof result === "string") {
-            return result;
-          } else if (result.content) {
-            // 清理HTML标签，提取纯文本内容
-            const cleanContent = result.content
-              .replace(/<[^>]*>/g, " ") // 移除HTML标签
-              .replace(/&nbsp;/g, " ") // 替换&nbsp;
-              .replace(/\s+/g, " ") // 合并多个空格
-              .trim();
+      // 设置组织ID - 使用默认值或从环境变量获取
+      const orgId = "1cb76ad6656c415d87616b5a421668f1"; // 默认组织ID
 
-            return `**${result.document_name || "框架文档"}**\n${cleanContent}`;
-          } else {
-            return JSON.stringify(result, null, 2);
+      // 第一步：获取所有文档列表
+      const listParams: any = {
+        appId: orgId,
+      };
+
+      const allDocuments = await knowledgeApi.listDocuments(listParams);
+
+      if (allDocuments.length === 0) {
+        return `未找到任何知识库文档来回答问题: "${question}"`;
+      }
+
+      // 构造文档摘要信息供LLM选择
+      const documentSummaries = allDocuments.map((doc, index) => {
+        return {
+          id: index + 1,
+          fileName: doc.fileName,
+          summary: doc.fileSummary || "无摘要",
+        };
+      });
+
+      // 构造提示词，让LLM选择相关文档
+      let prompt = `我有一个关于框架规范的问题: "${question}"
+
+请根据这个问题，从以下文档列表中选择最相关的几个文档（最多5个），并返回它们的编号。
+
+文档列表:
+`;
+
+      documentSummaries.forEach((doc) => {
+        // 转义文件名和摘要中的特殊字符
+        const escapedFileName = doc.fileName
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, "\\n");
+        const escapedSummary = (doc.summary || "无摘要")
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, "\\n");
+        prompt += `${doc.id}. ${escapedFileName}\n   摘要: ${escapedSummary}\n\n`;
+      });
+
+      prompt += `请只返回编号，用逗号分隔，例如: "1,3,5"。如果不相关，请返回"无"。`;
+
+      // 使用系统LLM选择相关文档
+      const abortController = new AbortController();
+      const llmResponse = await this.llm.complete(
+        prompt,
+        abortController.signal,
+      );
+
+      // 提取LLM响应内容
+      let selectedDocIdsStr = "";
+      if (typeof llmResponse === "string") {
+        selectedDocIdsStr = llmResponse.trim();
+      }
+
+      // 解析LLM返回的文档编号
+      let selectedDocuments: any[] = [];
+      if (selectedDocIdsStr && selectedDocIdsStr.trim() !== "无") {
+        try {
+          // 提取数字（编号）
+          const ids = selectedDocIdsStr.match(/\d+/g);
+          if (ids) {
+            const uniqueIds = [
+              ...new Set(
+                ids
+                  .map((id) => parseInt(id))
+                  .filter((id) => id > 0 && id <= allDocuments.length),
+              ),
+            ];
+            selectedDocuments = uniqueIds
+              .slice(0, 5)
+              .map((id) => allDocuments[id - 1]);
           }
+        } catch (parseError) {
+          console.warn("解析LLM返回的文档编号时出错:", parseError);
+          // 如果解析失败，默认选择前3个文档
+          selectedDocuments = allDocuments.slice(
+            0,
+            Math.min(3, allDocuments.length),
+          );
+        }
+      }
+
+      if (selectedDocuments.length === 0) {
+        return `未找到与问题 "${question}" 相关的文档内容。`;
+      }
+
+      // 获取选中文档的详细内容
+      const detailedDocuments = [];
+      for (const doc of selectedDocuments) {
+        try {
+          const viewParams = {
+            appId: orgId,
+            documentId: doc.id,
+          };
+          const detailedDoc = await knowledgeApi.viewDocument(viewParams);
+          detailedDocuments.push(detailedDoc);
+        } catch (error) {
+          console.warn(`获取文档 ${doc.fileName} 详情时出错:`, error);
+          detailedDocuments.push(null);
+        }
+      }
+
+      // 过滤掉获取失败的文档
+      const validDocuments = detailedDocuments.filter((doc) => doc !== null);
+
+      // 处理文档内容，如果文档过大则进行切割并交给LLM处理
+      const processedResults = [];
+      for (const doc of validDocuments) {
+        // 检查文档大小，如果超过阈值则进行切割
+        const CHUNK_SIZE = 8000; // 每个片段最大8000字符
+        const content = doc!.content;
+
+        if (content.length <= CHUNK_SIZE) {
+          // 文档较小，直接处理
+          const summaryPrompt = `根据以下问题：
+
+"${question}"
+
+请分析并总结以下文档内容，提取与问题最相关的信息：
+
+${content.replace(/"/g, '\\"').replace(/\n/g, "\\n")}
+
+请提供简洁明了的总结，重点突出与问题相关的内容：`;
+
+          const summary = await this.llm.complete(
+            summaryPrompt,
+            abortController.signal,
+          );
+
+          processedResults.push({
+            content:
+              typeof summary === "string" ? summary : JSON.stringify(summary),
+            source: doc!.fileName || "未知来源",
+          });
+        } else {
+          // 文档较大，需要切割处理
+          console.log(
+            `文档 ${doc!.fileName} 较大 (${content.length} 字符)，需要切割处理`,
+          );
+
+          // 简化处理：只取前CHUNK_SIZE字符
+          const truncatedContent = content.substring(0, CHUNK_SIZE);
+          const summaryPrompt = `根据以下问题：
+
+"${question}"
+
+请分析并总结以下文档内容，提取与问题最相关的信息：
+
+${truncatedContent.replace(/"/g, '\\"').replace(/\n/g, "\\n")}
+
+请提供简洁明了的总结，重点突出与问题相关的内容：`;
+
+          const summary = await this.llm.complete(
+            summaryPrompt,
+            abortController.signal,
+          );
+
+          processedResults.push({
+            content:
+              typeof summary === "string" ? summary : JSON.stringify(summary),
+            source: doc!.fileName || "未知来源",
+          });
+        }
+      }
+
+      // 格式化返回结果
+      if (processedResults.length > 0) {
+        const formattedResults = processedResults.map((result: any) => {
+          return `**${result.source}**\n${result.content}`;
         });
         return formattedResults.join("\n\n");
+      } else {
+        return `未找到关于"${question}"的详细说明，请查阅框架文档或联系技术支持。`;
       }
-
-      // 如果没有results，使用answer
-      if (knowledge.answer) {
-        return knowledge.answer;
-      }
-
-      return `未找到关于"${question}"的详细说明，请查阅框架文档或联系技术支持。`;
     } catch (error) {
       console.error(
         `Error getting framework rule details for "${question}":`,
         error,
       );
-      return `获取框架规范详情时发生错误。`;
+      return `获取框架规范详情时发生错误: ${error instanceof Error ? error.message : String(error)}`;
     }
   }
 }

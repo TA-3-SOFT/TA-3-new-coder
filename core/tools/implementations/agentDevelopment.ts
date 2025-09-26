@@ -19,14 +19,14 @@ export const agentDevelopmentImpl: ToolImpl = async (args, extras) => {
       ];
     }
 
-    // 获取嵌入提供者（从配置中）
-    const embeddingsProvider = extras.config?.selectedModelByRole?.embed || undefined;
+    // 使用longcontext模型而不是默认的extras.llm
+    const longContextLLM = extras.config?.selectedModelByRole?.longcontext;
+    const llmToUse = longContextLLM || extras.llm;
 
-    // 创建开发客户端，使用系统LLM和嵌入提供者（如果可用）
+    // 创建开发客户端，使用系统LLM（不再需要嵌入提供者）
     const client = new AgentDevelopmentClient(
       extras.fetch,
-      extras.llm,
-      embeddingsProvider,
+      llmToUse,
     );
 
     // 分析开发需求，获取相关的工具类和开发规范
@@ -37,33 +37,29 @@ export const agentDevelopmentImpl: ToolImpl = async (args, extras) => {
     let content = `# Ta+3 404框架开发指南\n\n`;
     content += `## 用户需求\n${userRequirement}\n\n`;
 
-    // 尝试使用向量匹配选择具体方法
+    // 使用LLM分析具体方法（不再使用向量匹配）
     let methodsResult = null;
-    if (embeddingsProvider) {
-      try {
-        methodsResult = await client.analyzeUtilClassMethods();
-        console.log(
-          "向量匹配成功，找到方法:",
-          methodsResult.selectedMethods.length,
-        );
-      } catch (error) {
-        console.warn("向量匹配失败，将使用传统方法:", error);
-        methodsResult = null;
-      }
-    } else {
-      console.log("未配置嵌入提供者，使用传统方法显示工具类");
+    try {
+      methodsResult = await client.analyzeUtilClassMethods(userRequirement, analysisResult.selectedUtilClasses);
+      console.log(
+        "LLM方法分析成功，找到方法:",
+        methodsResult.selectedMethods.length,
+      );
+    } catch (error) {
+      console.warn("LLM方法分析失败:", error);
+      methodsResult = null;
     }
 
     // 添加工具类方法信息
     if (methodsResult && methodsResult.selectedMethods.length > 0) {
-      // 使用向量匹配结果
-      content += `## 推荐使用的工具类方法（基于向量匹配）\n\n`;
-      content += `> 以下方法是通过向量匹配技术，根据需求关键词自动筛选出的最相关方法\n\n`;
+      // 使用LLM分析结果
+      content += `## 推荐使用的工具类方法\n\n`;
+      content += `> 以下方法是通过LLM分析用户需求和工具类方法签名后推荐的最相关方法\n\n`;
 
       for (const utilMethod of methodsResult.selectedMethods) {
         content += `### ${utilMethod.className}\n`;
         content += `**包路径**: \`${utilMethod.packagePath}\`\n\n`;
-        content += `**匹配的方法** (${utilMethod.methods.length} 个):\n\n`;
+        content += `**推荐的方法** (${utilMethod.methods.length} 个):\n\n`;
 
         utilMethod.methods.forEach((method, index) => {
           content += `${index + 1}. \`${method}\`\n`;
@@ -74,11 +70,7 @@ export const agentDevelopmentImpl: ToolImpl = async (args, extras) => {
       // 回退到显示完整工具类信息
       if (analysisResult.selectedUtilClasses.length > 0) {
         content += `## 推荐使用的工具类\n\n`;
-        if (!embeddingsProvider) {
-          content += `> 未配置嵌入模型，显示完整工具类信息。要使用向量匹配功能，请在设置中配置嵌入模型。\n\n`;
-        } else {
-          content += `> 向量匹配未找到具体方法，显示完整工具类信息\n\n`;
-        }
+        content += `> 未能通过LLM分析确定具体方法，显示完整工具类信息\n\n`;
 
         for (const utilClass of analysisResult.selectedUtilClasses) {
           if (utilClass !== "分析过程中发生错误") {

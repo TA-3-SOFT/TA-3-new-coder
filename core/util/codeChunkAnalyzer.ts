@@ -1871,10 +1871,19 @@ Example:
       const id = this.nextChunkId++;
       this.codeChunkIndex[id] = chunk;
 
-      return `【Code Chunk ${id}】File: ${chunk.file_path}\nStart Line: ${chunk.start_line}\nContent:\n\`\`\`java\n${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}\n\`\`\``;
+      return `【Code Chunk ${id}】File: ${chunk.file_path}
+Start Line: ${chunk.start_line}
+Content:
+\`\`\`java
+${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}
+\`\`\``;
     });
 
-    const userContent = `Requirement Analysis:\n${userRequest}\n\nCode Snippets:\n${chunkDescriptions.join("\n\n")}`;
+    const userContent = `Requirement Analysis:
+${userRequest}
+
+Code Snippets:
+${chunkDescriptions.join("\\n\\n")}`;
 
     if (!this.llm) {
       throw new Error("LLM not available for relevance evaluation");
@@ -3011,10 +3020,76 @@ Example:
   }
 
   /**
-   * 智能选择代码片段 - 保留所有高分片段，不被topN严格限制
+   * 从代码片段中选择多样化的片段，尽量来自不同文件
    * @param scores 评分数组
-   * @param topN 建议的片段数量
-   * @param highScoreThreshold 高分阈值，默认为9.0
+   * @param maxCount 最大返回数量
+   */
+  private selectDiverseSnippets(
+    scores: RelevanceScore[],
+    maxCount: number,
+  ): RelevanceScore[] {
+    // 按文件路径分组
+    const fileGroups = new Map<string, RelevanceScore[]>();
+
+    for (const score of scores) {
+      // 使用ID查找文件路径
+      if (score.id && this.codeChunkIndex[score.id]) {
+        const filePath = this.codeChunkIndex[score.id].file_path;
+        if (!fileGroups.has(filePath)) {
+          fileGroups.set(filePath, []);
+        }
+        fileGroups.get(filePath)!.push(score);
+      }
+    }
+
+    // 从每个文件中选择片段，尽量均匀分布
+    const result: RelevanceScore[] = [];
+    const fileEntries = Array.from(fileGroups.entries());
+
+    // 先从每个文件选择一个片段
+    for (const [filePath, fileScores] of fileEntries) {
+      if (result.length >= maxCount) break;
+      // 选择该文件中分数最高的片段
+      const sortedFileScores = fileScores.sort((a, b) => b.score - a.score);
+      result.push(sortedFileScores[0]);
+    }
+
+    // 如果还需要更多片段，继续从每个文件中选择
+    let fileIndex = 0;
+    while (result.length < maxCount && fileEntries.length > 0) {
+      const [filePath, fileScores] =
+        fileEntries[fileIndex % fileEntries.length];
+      // 查找该文件中尚未被选择的片段
+      const selectedIds = new Set(result.map((s) => s.id));
+      const remainingScores = fileScores.filter((s) => !selectedIds.has(s.id));
+
+      if (remainingScores.length > 0) {
+        // 选择分数最高的片段
+        const sortedRemaining = remainingScores.sort(
+          (a, b) => b.score - a.score,
+        );
+        result.push(sortedRemaining[0]);
+      } else {
+        // 如果该文件没有剩余片段，从列表中移除
+        fileEntries.splice(fileIndex % fileEntries.length, 1);
+        fileIndex--;
+      }
+
+      fileIndex++;
+
+      // 防止无限循环
+      if (fileIndex > fileEntries.length * maxCount) break;
+    }
+
+    // 按分数排序返回
+    return result.sort((a, b) => b.score - a.score).slice(0, maxCount);
+  }
+
+  /**
+   * 智能选择代码片段 - 保留所有高分片段，但限制总数并尽量分散到不同文件
+   * @param scores 评分数组
+   * @param topN 建议的片段数量，当高分片段超过topN时，最多返回30个
+   * @param highScoreThreshold 高分阈值，默认为9.8
    */
   private selectTopSnippetsWithHighScorePreservation(
     scores: RelevanceScore[],
@@ -3033,12 +3108,18 @@ Example:
       (score) => score.score >= highScoreThreshold,
     );
 
+    // 如果高分片段数量超过topN，则限制最多返回30个
     if (highScoreSnippets.length > topN) {
-      // 如果高分片段数量超过topN，保留所有高分片段
-      return highScoreSnippets;
+      // 限制最大返回数量为30
+      const maxResults = Math.min(30, highScoreSnippets.length);
+      // 尽量从不同文件中选择片段
+      return this.selectDiverseSnippets(highScoreSnippets, maxResults);
     } else if (highScoreSnippets.length === topN) {
       // 如果高分片段数量正好等于topN，直接返回
-      return highScoreSnippets;
+      return this.selectDiverseSnippets(
+        highScoreSnippets,
+        highScoreSnippets.length,
+      );
     } else {
       // 如果高分片段数量少于topN，补充其他片段到topN
       const remainingSlots = topN - highScoreSnippets.length;
@@ -3047,20 +3128,21 @@ Example:
         .slice(0, remainingSlots);
 
       const result = [...highScoreSnippets, ...otherSnippets];
-      return result;
+      // 尽量分散选择
+      return this.selectDiverseSnippets(result, result.length);
     }
   }
 
   /**
-   * 智能选择ScoredChunk片段 - 保留所有高分片段
+   * 智能选择ScoredChunk片段 - 保留所有高分片段，但限制总数并尽量分散到不同文件
    * @param chunks ScoredChunk数组
-   * @param topN 建议的片段数量
-   * @param highScoreThreshold 高分阈值，默认为9.0
+   * @param topN 建议的片段数量，当高分片段超过topN时，最多返回30个
+   * @param highScoreThreshold 高分阈值，默认为9.8
    */
   private selectTopScoredChunksWithHighScorePreservation(
     chunks: ScoredChunk[],
     topN: number,
-    highScoreThreshold: number = 9.0,
+    highScoreThreshold: number = 9.8,
   ): ScoredChunk[] {
     if (!chunks.length) {
       return [];
@@ -3074,12 +3156,18 @@ Example:
       (chunk) => chunk.score >= highScoreThreshold,
     );
 
+    // 如果高分片段数量超过topN，则限制最多返回30个
     if (highScoreChunks.length > topN) {
-      // 如果高分片段数量超过topN，保留所有高分片段
-      return highScoreChunks;
+      // 限制最大返回数量为30
+      const maxResults = Math.min(30, highScoreChunks.length);
+      // 尽量从不同文件中选择片段
+      return this.selectDiverseScoredChunks(highScoreChunks, maxResults);
     } else if (highScoreChunks.length === topN) {
       // 如果高分片段数量正好等于topN，直接返回
-      return highScoreChunks;
+      return this.selectDiverseScoredChunks(
+        highScoreChunks,
+        highScoreChunks.length,
+      );
     } else {
       // 如果高分片段数量少于topN，补充其他片段到topN
       const remainingSlots = topN - highScoreChunks.length;
@@ -3088,9 +3176,76 @@ Example:
         .slice(0, remainingSlots);
 
       const result = [...highScoreChunks, ...otherChunks];
-
-      return result;
+      // 尽量分散选择
+      return this.selectDiverseScoredChunks(result, result.length);
     }
+  }
+
+  /**
+   * 从ScoredChunk片段中选择多样化的片段，尽量来自不同文件
+   * @param chunks ScoredChunk数组
+   * @param maxCount 最大返回数量
+   */
+  private selectDiverseScoredChunks(
+    chunks: ScoredChunk[],
+    maxCount: number,
+  ): ScoredChunk[] {
+    // 按文件路径分组
+    const fileGroups = new Map<string, ScoredChunk[]>();
+
+    for (const chunk of chunks) {
+      const filePath = chunk.file;
+      if (!fileGroups.has(filePath)) {
+        fileGroups.set(filePath, []);
+      }
+      fileGroups.get(filePath)!.push(chunk);
+    }
+
+    // 从每个文件中选择片段，尽量均匀分布
+    const result: ScoredChunk[] = [];
+    const fileEntries = Array.from(fileGroups.entries());
+
+    // 先从每个文件选择一个片段
+    for (const [filePath, fileChunks] of fileEntries) {
+      if (result.length >= maxCount) break;
+      // 选择该文件中分数最高的片段
+      const sortedFileChunks = fileChunks.sort((a, b) => b.score - a.score);
+      result.push(sortedFileChunks[0]);
+    }
+
+    // 如果还需要更多片段，继续从每个文件中选择
+    let fileIndex = 0;
+    while (result.length < maxCount && fileEntries.length > 0) {
+      const [filePath, fileChunks] =
+        fileEntries[fileIndex % fileEntries.length];
+      // 查找该文件中尚未被选择的片段
+      const selectedFilesAndLines = new Set(
+        result.map((s) => `${s.file}:${s.start_line}`),
+      );
+      const remainingChunks = fileChunks.filter(
+        (s) => !selectedFilesAndLines.has(`${s.file}:${s.start_line}`),
+      );
+
+      if (remainingChunks.length > 0) {
+        // 选择分数最高的片段
+        const sortedRemaining = remainingChunks.sort(
+          (a, b) => b.score - a.score,
+        );
+        result.push(sortedRemaining[0]);
+      } else {
+        // 如果该文件没有剩余片段，从列表中移除
+        fileEntries.splice(fileIndex % fileEntries.length, 1);
+        fileIndex--;
+      }
+
+      fileIndex++;
+
+      // 防止无限循环
+      if (fileIndex > fileEntries.length * maxCount) break;
+    }
+
+    // 按分数排序返回
+    return result.sort((a, b) => b.score - a.score).slice(0, maxCount);
   }
 
   /**
@@ -3367,13 +3522,41 @@ ${snippetDescriptions.join("\n\n")}`;
         throw new Error(`工作空间目录 ${normalizedBasePath} 不存在`);
       }
 
-      // 为每个模块并发处理
+      // 为每个模块串行处理
       const moduleResults: ScoredChunk[] = [];
-      const moduleTasks: Promise<ScoredChunk[]>[] = [];
+      const allProcessedChunks: ScoredChunk[] = []; // 用于收集所有处理过的代码块
 
+      // 创建一个新的moduleFileMap，其中包含补全后的模块路径
+      const resolvedModuleFileMap: ModuleFileMap = {};
+
+      // 补全模块路径
       for (const [moduleName, files] of Object.entries(moduleFileMap)) {
-        const moduleTask = this.concurrencyManager.execute(async () => {
-          return await this.processModuleChunks(
+        // 如果moduleName看起来像是一个简单的名称而不是完整路径，尝试补全路径
+        let resolvedModuleName = moduleName;
+
+        // 检查moduleName是否是完整路径
+        if (!path.isAbsolute(moduleName)) {
+          // moduleName看起来像相对路径或简单名称，尝试补全路径
+          const possibleModulePaths = await this.findModulePath(
+            normalizedBasePath,
+            moduleName,
+          );
+          if (possibleModulePaths.length > 0) {
+            // 使用找到的第一个匹配路径
+            resolvedModuleName = possibleModulePaths[0];
+            console.log(
+              `🔍 模块路径补全: "${moduleName}" -> "${resolvedModuleName}"`,
+            );
+          }
+        }
+
+        resolvedModuleFileMap[resolvedModuleName] = files;
+      }
+
+      // 串行处理每个模块，避免并发请求过多
+      for (const [moduleName, files] of Object.entries(resolvedModuleFileMap)) {
+        try {
+          const moduleChunks = await this.processModuleChunks(
             moduleName,
             files,
             normalizedBasePath,
@@ -3381,12 +3564,14 @@ ${snippetDescriptions.join("\n\n")}`;
             topN,
             batchSize,
           );
-        });
-        moduleTasks.push(moduleTask);
+          moduleResults.push(...moduleChunks);
+          
+          // 收集所有处理过的代码块用于后续的模块总结
+          allProcessedChunks.push(...moduleChunks);
+        } catch (error) {
+          console.error(`❌ 模块 ${moduleName} 处理失败: ${error}`);
+        }
       }
-
-      // 等待所有模块处理完成
-      const moduleTaskResults = await Promise.allSettled(moduleTasks);
 
       let successModules = 0;
       let errorModules = 0;
@@ -3397,18 +3582,12 @@ ${snippetDescriptions.join("\n\n")}`;
         totalProvidedChunks += files.length; // 这里是文件数，实际片段数会更多
       }
 
-      for (let i = 0; i < moduleTaskResults.length; i++) {
-        const result = moduleTaskResults[i];
-        const moduleName = Object.keys(moduleFileMap)[i];
-
-        if (result.status === "fulfilled") {
-          const moduleChunks = result.value;
-          moduleResults.push(...moduleChunks);
-          successModules++;
-        } else {
-          console.error(`❌ 模块 ${moduleName} 处理失败: ${result.reason}`);
-          errorModules++;
-        }
+      // 统计处理结果
+      const moduleNames = Object.keys(moduleFileMap);
+      for (let i = 0; i < moduleNames.length; i++) {
+        // 注意: 由于我们现在是串行处理，每个模块都已经直接添加到moduleResults中了
+        // 这里只是为了统计成功和失败的模块数量
+        successModules++;
       }
 
       // 按模块统计过滤前的片段数
@@ -3455,15 +3634,79 @@ ${snippetDescriptions.join("\n\n")}`;
         );
 
         // 为备选方案的代码片段生成总结并输出到日志
-        this.generateAndLogSummaries(fallbackSnippets, userRequest);
+        await this.generateAndLogSummaries(fallbackSnippets, userRequest);
 
         return fallbackSnippets;
       }
+
+      // 在所有模块处理完成后，异步生成模块总结（不阻塞主线程）
+      this.generateModuleSummariesFromProcessedChunks(allProcessedChunks)
+        .catch(error => {
+          console.warn("⚠️ 异步生成模块总结失败:", error);
+        });
 
       return filteredResults;
     } catch (error) {
       // 重新抛出异常
       throw error;
+    }
+  }
+
+  /**
+   * 在工作空间中查找模块路径
+   * @param basePath 工作空间基础路径
+   * @param moduleName 模块名称
+   * @returns 可能的模块路径数组
+   */
+  private async findModulePath(basePath: string, moduleName: string): Promise<string[]> {
+    try {
+      const possiblePaths: string[] = [];
+      
+      // 使用常见的启发式路径搜索
+      const commonModulePaths = [
+        moduleName,
+        `src/${moduleName}`,
+        `src/main/${moduleName}`,
+        `src/main/java/${moduleName}`,
+        `src/main/resources/${moduleName}`,
+        `modules/${moduleName}`,
+        `packages/${moduleName}`,
+        `components/${moduleName}`,
+        `apps/${moduleName}`,
+        `projects/${moduleName}`,
+        `services/${moduleName}`,
+        `libs/${moduleName}`,
+      ];
+      
+      // 针对ta404组件的特殊路径模式
+      if (moduleName.startsWith("ta404-component-") || moduleName.includes("ta404-component-")) {
+        commonModulePaths.push(
+          `ta404-component-project/${moduleName}`,
+          `ta404-component-project/ta404-component-modules/${moduleName}`,
+          `ta404-component-project/ta404-component-domain/${moduleName}`,
+          `ta404-component-project/ta404-component-apps/${moduleName}`,
+        );
+      }
+      
+      // 检查每个可能的路径
+      for (const modulePath of commonModulePaths) {
+        const fullPath = path.join(basePath, modulePath);
+        const fullUri = this.safePathToUri(fullPath);
+        
+        try {
+          if (await this.ide.fileExists(fullUri)) {
+            possiblePaths.push(modulePath);
+          }
+        } catch (error) {
+          // 忽略单个路径检查的错误
+          continue;
+        }
+      }
+      
+      return possiblePaths;
+    } catch (error) {
+      console.warn(`查找模块路径 "${moduleName}" 时出错:`, error);
+      return [];
     }
   }
 
@@ -3488,6 +3731,7 @@ ${snippetDescriptions.join("\n\n")}`;
     const moduleChunks: CodeChunk[] = [];
     const fileTasks: Promise<CodeChunk[]>[] = [];
 
+    // 使用moduleName作为路径的一部分
     const modulePath = path.join(basePath, moduleName);
     for (const file of files) {
       const filePath = path.join(modulePath, file);
@@ -3516,8 +3760,8 @@ ${snippetDescriptions.join("\n\n")}`;
       return [];
     }
 
-    // 为所有读取的代码块生成总结并输出到日志
-    this.logAllCodeChunks(moduleName, moduleChunks);
+    // 注意：这里不再调用 logAllCodeChunks，避免在处理过程中生成重复的日志
+    // 日志将在 getRelevantSnippets 方法结束后统一处理
 
     // 使用智能预过滤策略
     const chunksToAnalyze = await this.smartPreFilter(
@@ -3537,77 +3781,60 @@ ${snippetDescriptions.join("\n\n")}`;
       const id = this.nextChunkId++;
       this.codeChunkIndex[id] = chunk;
 
-      return `【Code Chunk ${id}】File: ${chunk.file_path}\nStart Line: ${chunk.start_line}\nContent:\n\`\`\`java\n${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}\n\`\`\``;
+      return `【Code Chunk ${id}】File: ${chunk.file_path}
+Start Line: ${chunk.start_line}
+Content:
+\`\`\`java
+${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}
+\`\`\``;
     });
 
-    // 对该模块的代码块进行批处理评分
+    // 对该模块的代码块进行批处理评分（串行执行）
     const moduleScores: RelevanceScore[] = [];
-    const batchTasks: Promise<{
-      batchIndex: number;
-      scores: RelevanceScore[];
-      error?: Error;
-    }>[] = [];
+    let successBatches = 0;
+    let errorBatches = 0;
 
     const totalBatches = Math.ceil(moduleChunks.length / batchSize);
 
+    // 串行处理每个批次，避免并发请求过多
     for (let i = 0; i < moduleChunks.length; i += batchSize) {
       const batchIndex = Math.floor(i / batchSize) + 1;
       const batch = moduleChunks.slice(i, i + batchSize);
 
-      const task = this.concurrencyManager.execute(async () => {
-        try {
-          const batchScores = await this.evaluateRelevance(userRequest, batch);
-          return { batchIndex, scores: batchScores };
-        } catch (error) {
-          console.error(
-            `模块 ${moduleName} 第 ${batchIndex} 批处理失败: ${error instanceof Error ? error.message : String(error)}`,
-          );
-          // 为失败的批次添加默认分数
-          const defaultScores = batch.map((chunk) => {
-            // 查找chunk对应的ID
-            const id = Object.keys(this.codeChunkIndex).find((key) => {
-              const storedChunk = this.codeChunkIndex[parseInt(key)];
-              return (
-                storedChunk.file_path === chunk.file_path &&
-                storedChunk.start_line === chunk.start_line
-              );
-            });
+      try {
+        const batchScores = await this.evaluateRelevance(userRequest, batch);
+        moduleScores.push(...batchScores);
+        successBatches++;
+      } catch (error) {
+        console.error(
+          `模块 ${moduleName} 第 ${batchIndex} 批处理失败: ${error instanceof Error ? error.message : String(error)}`,
+        );
 
-            return {
-              id: id ? parseInt(id) : undefined,
-              file: chunk.file_path,
-              start_line: chunk.start_line,
-              score: 0,
-            };
+        // 为失败的批次添加默认分数
+        const defaultScores = batch.map((chunk) => {
+          // 查找chunk对应的ID
+          const id = Object.keys(this.codeChunkIndex).find((key) => {
+            const storedChunk = this.codeChunkIndex[parseInt(key)];
+            return (
+              storedChunk.file_path === chunk.file_path &&
+              storedChunk.start_line === chunk.start_line
+            );
           });
-          return { batchIndex, scores: defaultScores, error: error as Error };
-        }
-      });
 
-      batchTasks.push(task);
-    }
+          return {
+            id: id ? parseInt(id) : undefined,
+            file: chunk.file_path,
+            start_line: chunk.start_line,
+            score: 0,
+          };
+        });
 
-    // 等待该模块所有批次完成
-    const batchResults = await Promise.allSettled(batchTasks);
-
-    let successBatches = 0;
-    let errorBatches = 0;
-
-    for (const result of batchResults) {
-      if (result.status === "fulfilled") {
-        moduleScores.push(...result.value.scores);
-        if (result.value.error) {
-          errorBatches++;
-        } else {
-          successBatches++;
-        }
-      } else {
-        console.error(`模块 ${moduleName} 批次处理完全失败: ${result.reason}`);
+        moduleScores.push(...defaultScores);
         errorBatches++;
       }
     }
 
-    // 智能选择该模块的代码片段 - 保留所有高分片段
+    // 智能选择该模块的代码片段 - 保留所有高分片段，但限制总数并尽量分散到不同文件
     const selectedChunks = this.selectTopSnippetsWithHighScorePreservation(
       moduleScores,
       topN,
@@ -3759,41 +3986,39 @@ ${snippetDescriptions.join("\n\n")}`;
    * @param moduleName 模块名称
    * @param codeChunks 原始代码块数组
    */
-  private logAllCodeChunks(moduleName: string, codeChunks: CodeChunk[]): void {
+  private async logAllCodeChunks(
+    moduleName: string,
+    codeChunks: CodeChunk[],
+  ): Promise<void> {
     if (!this.enableSummaries || !this.llm || codeChunks.length === 0) {
       return;
     }
 
-    // 异步执行，不阻塞主流程
-    Promise.resolve().then(async () => {
-      try {
-        console.log(
-          `📚 模块 ${moduleName} 读取了 ${codeChunks.length} 个代码块，开始生成总结...`,
-        );
+    try {
+      console.log(
+        `📚 模块 ${moduleName} 读取了 ${codeChunks.length} 个代码块，开始生成总结...`,
+      );
 
-        // 将 CodeChunk 转换为 ScoredChunk 格式以便复用现有的总结方法
-        const scoredChunks: ScoredChunk[] = codeChunks.map((chunk) => ({
-          file: chunk.file_path,
-          start_line: chunk.start_line,
-          score: 1.0, // 给所有代码块一个默认分数
-          code: chunk.chunk,
-          module: moduleName,
-        }));
+      // 将 CodeChunk 转换为 ScoredChunk 格式以便复用现有的总结方法
+      const scoredChunks: ScoredChunk[] = codeChunks.map((chunk) => ({
+        file: chunk.file_path,
+        start_line: chunk.start_line,
+        score: 1.0, // 给所有代码块一个默认分数
+        code: chunk.chunk,
+        module: moduleName,
+      }));
 
-        // 生成代码片段总结并输出到日志
-        await this.logCodeSummaries(scoredChunks);
+      // 生成代码片段总结并输出到日志
+      await this.logCodeSummaries(scoredChunks);
 
-        // 为该模块生成总结
-        const moduleChunks = new Map<string, ScoredChunk[]>();
-        moduleChunks.set(moduleName, scoredChunks);
-        await this.logModuleSummaries(moduleChunks);
-      } catch (error) {
-        console.warn(
-          `⚠️ 模块 ${moduleName} 代码块总结生成失败:`,
-          error instanceof Error ? error.message : String(error),
-        );
-      }
-    });
+      // 注意：这里不再调用 logModuleSummaries，避免重复处理
+      // 模块总结将在 getRelevantSnippets 方法结束后统一处理
+    } catch (error) {
+      console.warn(
+        `⚠️ 模块 ${moduleName} 代码块总结生成失败:`,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
 
   /**
@@ -3892,13 +4117,6 @@ ${chunkDescriptions.join("\n\n")}`;
         if (codeSummaries && Array.isArray(codeSummaries)) {
           const summaries = codeSummaries as CodeSummary[];
           if (summaries.length > 0) {
-            console.log(`📄 第${batchIndex}批代码片段总结:`);
-            summaries.forEach((summary, index) => {
-              console.log(
-                `  ${i + index + 1}. ${summary.file}:${summary.start_line}`,
-              );
-              console.log(`     总结: ${summary.summary}`);
-            });
           } else {
             console.warn(`⚠️ 第${batchIndex}批代码总结结果为空`);
           }
@@ -3911,10 +4129,6 @@ ${chunkDescriptions.join("\n\n")}`;
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
-
-      console.log(
-        `✅ 代码片段总结生成完成，共处理${codeChunks.length}个代码块`,
-      );
     } catch (error) {
       console.warn(
         "⚠️ 生成代码总结过程出错:",
@@ -4351,7 +4565,11 @@ ${modulesSummariesDescription}
         );
       } else {
         // 架构分析部分不存在，添加新的架构分析部分
-        updatedContent += `\n\n## 🏗️ 架构分析\n${newArchitectureContent}\n`;
+        updatedContent += `
+
+## 🏗️ 架构分析
+${newArchitectureContent}
+`;
       }
 
       // 写入更新后的内容
@@ -4366,43 +4584,72 @@ ${modulesSummariesDescription}
   }
 
   /**
-   * 生成并输出代码总结到日志（异步执行，不阻塞主流程）
+   * 从处理过的代码块生成模块总结
+   * @param processedChunks 处理过的代码块数组
+   */
+  private async generateModuleSummariesFromProcessedChunks(
+    processedChunks: ScoredChunk[]
+  ): Promise<void> {
+    try {
+      // 按模块分组代码片段
+      const moduleChunks = new Map<string, ScoredChunk[]>();
+      for (const chunk of processedChunks) {
+        const module = chunk.module || "未知模块";
+        if (!moduleChunks.has(module)) {
+          moduleChunks.set(module, []);
+        }
+        moduleChunks.get(module)!.push(chunk);
+      }
+
+      // 生成模块总结并输出到日志
+      if (moduleChunks.size > 0) {
+        console.log("🔄 开始处理所有模块总结...");
+        await this.logModuleSummaries(moduleChunks);
+        console.log("✅ 所有模块总结处理完成");
+      }
+    } catch (error) {
+      console.warn(
+        "⚠️ 从处理过的代码块生成模块总结失败:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  /**
+   * 生成并输出代码总结到日志
    * 注意：这个方法主要用于备选方案，因为正常流程中代码总结已经在 processModuleChunks 中完成
    * @param chunks 代码片段数组
    * @param userRequest 用户请求
    */
-  private generateAndLogSummaries(
+  private async generateAndLogSummaries(
     chunks: ScoredChunk[],
     userRequest: string,
-  ): void {
+  ): Promise<void> {
     if (!this.llm || chunks.length === 0) {
       return;
     }
 
-    // 异步执行，不阻塞主流程
-    Promise.resolve().then(async () => {
-      try {
-        // 生成代码片段总结并输出到日志
-        await this.logCodeSummaries(chunks);
+    try {
+      // 生成代码片段总结并输出到日志
+      await this.logCodeSummaries(chunks);
 
-        // 按模块分组代码片段
-        const moduleChunks = new Map<string, ScoredChunk[]>();
-        for (const chunk of chunks) {
-          const module = chunk.module || "未知模块";
-          if (!moduleChunks.has(module)) {
-            moduleChunks.set(module, []);
-          }
-          moduleChunks.get(module)!.push(chunk);
+      // 按模块分组代码片段
+      const moduleChunks = new Map<string, ScoredChunk[]>();
+      for (const chunk of chunks) {
+        const module = chunk.module || "未知模块";
+        if (!moduleChunks.has(module)) {
+          moduleChunks.set(module, []);
         }
-
-        // 生成模块总结并输出到日志
-        await this.logModuleSummaries(moduleChunks);
-      } catch (error) {
-        console.warn(
-          "⚠️ 备选方案总结生成过程出错:",
-          error instanceof Error ? error.message : String(error),
-        );
+        moduleChunks.get(module)!.push(chunk);
       }
-    });
+
+      // 生成模块总结并输出到日志
+      await this.logModuleSummaries(moduleChunks);
+    } catch (error) {
+      console.warn(
+        "⚠️ 备选方案总结生成过程出错:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
 }
