@@ -8,7 +8,7 @@ import com.intellij.history.integration.ui.models.RevisionItem
 import com.intellij.util.containers.ContainerUtil
 
 object LocalHistoryUtil {
-    @JvmStatic
+/*    @JvmStatic
     fun findRevisionIndexToRevert(dirHistoryModel: HistoryDialogModel, label: PutLabelChange): Int {
         val revs = dirHistoryModel.revisions
 
@@ -33,7 +33,7 @@ object LocalHistoryUtil {
     @JvmStatic
     fun isChangeWithId(revision: Revision, targetChangeId: Long): Boolean {
         return revision is ChangeRevision && revision.containsChangeWithId(targetChangeId)
-    }
+    }*/
 
     /**
      * 查找离目标时间戳最近且在其之前的版本索引
