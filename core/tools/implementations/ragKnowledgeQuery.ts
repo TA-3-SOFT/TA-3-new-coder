@@ -28,7 +28,7 @@ interface DocumentChunk {
 }
 
 export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
-  const { query } = args;
+  const { query, appid } = args;
 
   if (!query || typeof query !== "string" || query.trim().length === 0) {
     throw new Error("查询内容不能为空");
@@ -39,11 +39,14 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
   try {
     // 尝试从extras中获取组织信息
     orgId = extras.config.selectedOrgId;
-    // orgId = "1cb76ad6656c415d87616b5a421668f1";
+    // orgId = "4176c7786222421ba4e351fd404b8488";
     // orgId = "40FC1A880000456184F8E98396A1645F";
   } catch (orgError) {
     console.warn("⚠️ [RAG查询] 无法获取组织信息:", orgError);
   }
+
+  // 如果传入了appid参数，则使用appid，否则使用orgId
+  const appId = appid || orgId;
 
   try {
     console.log(`🔍 [RAG查询] 开始查询: "${query}"`);
@@ -55,7 +58,7 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
 
     // 第一步：获取所有文档列表
     const listParams: any = {
-      appId: orgId,
+      appId: appId,
     };
 
     const allDocuments = await knowledgeApi.listDocuments(listParams);
@@ -161,14 +164,6 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
         );
       }
     }
-    // 如果LLM返回"无"或空，不选择任何文档
-    // else {
-    //   // 如果LLM返回"无"或空，选择前3个文档
-    //   selectedDocuments = allDocuments.slice(
-    //     0,
-    //     Math.min(3, allDocuments.length),
-    //   );
-    // }
 
     console.log(`✅ [RAG查询] 选中 ${selectedDocuments.length} 个文档`);
 
@@ -191,7 +186,7 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
     for (const doc of selectedDocuments) {
       try {
         const viewParams = {
-          appId: orgId,
+          appId: appId,
           documentId: doc.id,
         };
         const detailedDoc = await knowledgeApi.viewDocument(viewParams);
