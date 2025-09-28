@@ -367,13 +367,37 @@ export class ProjectInfoInitializer {
       return undefined;
     }
 
-    // 添加工作路径信息到上下文
-    const workspaceDirs = await this.ide.getWorkspaceDirs();
-
     try {
-      // 构建分析提示，提供工具让AI主动获取信息
-      const analysisPrompt = `请分析以下项目信息，总结项目文档。你需要主动使用提供的工具来获取更多项目详细信息，然后再进行分析总结。
-      对项目分析的目的是了解项目总结项目，使用项目总结后续结合开发需求完成开发需求。你应该尽量多的阅读项目中的文档，里面可能有关于项目的信息。
+      // 分别获取四个部分的分析结果
+      const projectSummary = await this.analyzeProjectSummary(basicInfo, rootDir);
+      const architectureAnalysis = await this.analyzeArchitecture(basicInfo, rootDir);
+      const technologyStackAnalysis = await this.analyzeTechnologyStack(basicInfo, rootDir);
+      const codeStyle = await this.analyzeCodeStyle(basicInfo, rootDir);
+
+      return {
+        projectSummary,
+        architectureAnalysis,
+        technologyStackAnalysis,
+        codeStyle
+      };
+    } catch (error) {
+      console.error("LLM 分析过程中出错:", error);
+      return undefined;
+    }
+  }
+
+  /**
+   * 分析项目概述
+   */
+  private async analyzeProjectSummary(
+    basicInfo: Omit<ProjectInfo, "llmAnalysis">,
+    rootDir: string
+  ): Promise<string> {
+    if (!this.llm) {
+      return "LLM未配置";
+    }
+
+    const analysisPrompt = `请分析以下项目信息，提供项目概述分析。你需要主动使用提供的工具来获取更多项目详细信息。
 
 ## 基础项目信息
 - **项目名称**: ${basicInfo.name}
@@ -382,14 +406,133 @@ export class ProjectInfoInitializer {
 - **包管理器**: ${basicInfo.packageManager}
 - **检测到的框架**: ${basicInfo.frameworks.join(", ") || "无"}
 - **工作路径**: ${rootDir}
+
+请专注于提供项目的整体概述和定位分析，包括但不限于：
+1. 项目的核心功能和目标
+2. 项目的主要特点和价值
+3. 项目的定位和应用领域
+4. 项目解决的主要问题
 `;
 
-      // 调用 LLM 进行分析，提供工具支持
-      let messages: ChatMessage[] = [
-        {
-          role: "system",
-          content: `你是一个资深的软件架构师和技术专家，擅长分析项目结构、技术栈和开发模式。请基于提供的项目信息，给出专业、详细且实用的分析。你可以使用提供的工具来获取更多项目信息。使用工具时请串行调用，不要并行调用工具。
-            
+    return await this.performSingleAnalysis(analysisPrompt, "项目概述分析", rootDir);
+  }
+
+  /**
+   * 分析项目架构
+   */
+  private async analyzeArchitecture(
+    basicInfo: Omit<ProjectInfo, "llmAnalysis">,
+    rootDir: string
+  ): Promise<string> {
+    if (!this.llm) {
+      return "LLM未配置";
+    }
+
+    const analysisPrompt = `请分析以下项目信息，提供架构分析。你需要主动使用提供的工具来获取更多项目详细信息。
+
+## 基础项目信息
+- **项目名称**: ${basicInfo.name}
+- **项目描述**: ${basicInfo.description}
+- **主要编程语言**: ${basicInfo.mainLanguage}
+- **包管理器**: ${basicInfo.packageManager}
+- **检测到的框架**: ${basicInfo.frameworks.join(", ") || "无"}
+- **工作路径**: ${rootDir}
+
+请专注于提供项目的架构分析，包括但不限于：
+1. 项目的目录结构和组织方式
+2. 各个模块的功能和用途
+3. 模块间的依赖关系
+4. 项目的分层结构（如前端、后端、数据层等）
+`;
+
+    return await this.performSingleAnalysis(analysisPrompt, "架构分析", rootDir);
+  }
+
+  /**
+   * 分析技术栈
+   */
+  private async analyzeTechnologyStack(
+    basicInfo: Omit<ProjectInfo, "llmAnalysis">,
+    rootDir: string
+  ): Promise<string> {
+    if (!this.llm) {
+      return "LLM未配置";
+    }
+
+    const analysisPrompt = `请分析以下项目信息，提供技术栈分析。你需要主动使用提供的工具来获取更多项目详细信息。
+
+## 基础项目信息
+- **项目名称**: ${basicInfo.name}
+- **项目描述**: ${basicInfo.description}
+- **主要编程语言**: ${basicInfo.mainLanguage}
+- **包管理器**: ${basicInfo.packageManager}
+- **检测到的框架**: ${basicInfo.frameworks.join(", ") || "无"}
+- **工作路径**: ${rootDir}
+
+请专注于分析项目使用的技术栈，包括但不限于：
+1. 使用的核心框架和库
+2. 开发工具和构建工具
+3. 数据库和中间件
+4. 部署和运维相关技术
+5. 第三方服务和API集成
+`;
+
+    return await this.performSingleAnalysis(analysisPrompt, "技术栈分析", rootDir);
+  }
+
+  /**
+   * 分析代码风格
+   */
+  private async analyzeCodeStyle(
+    basicInfo: Omit<ProjectInfo, "llmAnalysis">,
+    rootDir: string
+  ): Promise<string> {
+    if (!this.llm) {
+      return "LLM未配置";
+    }
+
+    const analysisPrompt = `请分析以下项目信息，提供代码风格与标准分析。你需要主动使用提供的工具来获取更多项目详细信息。
+
+## 基础项目信息
+- **项目名称**: ${basicInfo.name}
+- **项目描述**: ${basicInfo.description}
+- **主要编程语言**: ${basicInfo.mainLanguage}
+- **包管理器**: ${basicInfo.packageManager}
+- **检测到的框架**: ${basicInfo.frameworks.join(", ") || "无"}
+- **工作路径**: ${rootDir}
+
+请专注于分析项目的代码风格和规范，包括但不限于：
+1. 命名规范（变量、函数、类、文件等）
+2. 代码组织结构规范
+3. 注释和文档规范
+4. 编码最佳实践
+5. 代码复用和模块化方式
+`;
+
+    return await this.performSingleAnalysis(analysisPrompt, "代码风格与标准", rootDir);
+  }
+
+  /**
+   * 执行单个部分的分析
+   */
+  private async performSingleAnalysis(
+    analysisPrompt: string,
+    analysisType: string,
+    rootDir: string
+  ): Promise<string> {
+    if (!this.llm) {
+      return "LLM未配置";
+    }
+
+    // 添加工作路径信息到上下文
+    const workspaceDirs = await this.ide.getWorkspaceDirs();
+
+    // 构建分析提示，提供工具让AI主动获取信息
+    let messages: ChatMessage[] = [
+      {
+        role: "system",
+        content: `你是一个资深的软件架构师和技术专家，擅长分析项目结构、技术栈和开发模式。请基于提供的项目信息，给出专业、详细且实用的分析。你可以使用提供的工具来获取更多项目信息。使用工具时请串行调用，不要并行调用工具.
+          
 ## 可用工具
 你可以并且应该使用以下工具来获取更多项目信息：
 1. **builtin_ls**: 列出目录中的文件和文件夹，可以了解项目结构
@@ -408,220 +551,200 @@ export class ProjectInfoInitializer {
 4. 如果已有Ta+3牛码.md文件，先阅读已有的文件内容
 5. 结合获取的信息进行专业分析
 
-获取足够信息后，必须提供以下分析：
-
-## 项目概述分析
-[对项目的整体概述和定位分析]
-
-## 架构分析
-[树状展示项目结构，分析各个模块用处，项目结构展示到模块级别即可。模块用处不用单独列举，在树状图中填写]
-
-## 技术栈分析
-[对使用的技术栈、框架、工具的深入分析]
-
-## 代码风格与标准
-[结合文档内容和技术栈信息，分析项目的代码风格规范和标准。可以选取部分你觉得重要的代码文件阅读，总结代码共性提取代码风格。可以通过目录名文件名分析命名规则]
+获取足够信息后，只提供${analysisType}部分的分析，不要包含其他部分的内容。
 
 请确保分析内容专业、实用。在开始分析前，你必须先使用工具获取项目信息。`,
-        },
+      },
+      {
+        role: "user",
+        content: analysisPrompt,
+      },
+    ];
+
+    // 创建 AbortController 用于控制请求
+    const abortController = new AbortController();
+    const toolExtras = {
+      ide: this.ide,
+      fetch: fetch.bind(globalThis),
+      workspacePaths: [rootDir],
+    };
+
+    // 循环处理多轮工具调用，直到LLM不再调用工具
+    let iteration = 0;
+    const maxIterations = 200; // 设置最大迭代次数防止无限循环
+    let fullResponse = "";
+
+    while (iteration < maxIterations) {
+      const response = await this.llm.streamChat(
+        messages,
+        abortController.signal,
         {
-          role: "user",
-          content: analysisPrompt,
+          tools: this.getAvailableTools(),
         },
-      ];
+      );
 
-      // 创建 AbortController 用于控制请求
-      const abortController = new AbortController();
-      const toolExtras = {
-        ide: this.ide,
-        fetch: fetch.bind(globalThis),
-        workspacePaths: [rootDir],
-      };
+      // 先收集完整的响应
+      let completeResponse = "";
+      let allChunks: ChatMessage[] = [];
 
-      // 循环处理多轮工具调用，直到LLM不再调用工具
-      let iteration = 0;
-      const maxIterations = 100; // 设置最大迭代次数防止无限循环
-      let fullResponse = "";
+      for await (const chunk of response) {
+        completeResponse += chunk.content;
+        allChunks.push(chunk);
+      }
 
-      while (iteration < maxIterations) {
-        const response = await this.llm.streamChat(
-          messages,
-          abortController.signal,
-          {
-            tools: this.getAvailableTools(),
-          },
-        );
+      // 然后处理收集到的完整响应
+      let toolCallMessages: ChatMessage[] = [];
+      let assistantToolCallMessages: ChatMessage[] = []; // 保存包含工具调用的助手消息
+      let pendingToolCalls: { [id: string]: any } = {}; // 临时存储正在进行中的工具调用
 
-        // 先收集完整的响应
-        let completeResponse = "";
-        let allChunks: ChatMessage[] = [];
+      for (const chunk of allChunks) {
+        // 处理工具调用
+        if (
+          chunk.role === "assistant" &&
+          "toolCalls" in chunk &&
+          chunk.toolCalls
+        ) {
+          // 保存包含工具调用的助手消息（用于后续发送回LLM）
+          assistantToolCallMessages.push(chunk);
 
-        for await (const chunk of response) {
-          completeResponse += chunk.content;
-          allChunks.push(chunk);
-        }
+          // 处理流式工具调用
+          for (const toolCall of chunk.toolCalls) {
+            // 确保工具调用有ID
+            let toolCallId;
+            if (toolCall.id) {
+              // 如果LLM提供了ID，使用它
+              toolCallId = toolCall.id;
+            } else {
+              // 如果没有提供ID，尝试匹配已存在的工具调用（基于function.name）
+              const existingCallId = Object.keys(pendingToolCalls).find(
+                (id) =>
+                  pendingToolCalls[id].function?.name ===
+                  toolCall.function?.name,
+              );
 
-        // 然后处理收集到的完整响应
-        let toolCallMessages: ChatMessage[] = [];
-        let assistantToolCallMessages: ChatMessage[] = []; // 保存包含工具调用的助手消息
-        let pendingToolCalls: { [id: string]: any } = {}; // 临时存储正在进行中的工具调用
-
-        for (const chunk of allChunks) {
-          // 处理工具调用
-          if (
-            chunk.role === "assistant" &&
-            "toolCalls" in chunk &&
-            chunk.toolCalls
-          ) {
-            // 保存包含工具调用的助手消息（用于后续发送回LLM）
-            assistantToolCallMessages.push(chunk);
-
-            // 处理流式工具调用
-            for (const toolCall of chunk.toolCalls) {
-              // 确保工具调用有ID
-              let toolCallId;
-              if (toolCall.id) {
-                // 如果LLM提供了ID，使用它
-                toolCallId = toolCall.id;
+              if (existingCallId) {
+                // 如果找到匹配的现有工具调用，使用它的ID
+                toolCallId = existingCallId;
               } else {
-                // 如果没有提供ID，尝试匹配已存在的工具调用（基于function.name）
-                const existingCallId = Object.keys(pendingToolCalls).find(
-                  (id) =>
-                    pendingToolCalls[id].function?.name ===
-                    toolCall.function?.name,
-                );
+                // 否则生成新的ID
+                toolCallId = `tool_call_${Date.now()}_${Math.random()}`;
+              }
+            }
 
-                if (existingCallId) {
-                  // 如果找到匹配的现有工具调用，使用它的ID
-                  toolCallId = existingCallId;
-                } else {
-                  // 否则生成新的ID
-                  toolCallId = `tool_call_${Date.now()}_${Math.random()}`;
+            // 初始化或更新工具调用
+            if (!pendingToolCalls[toolCallId]) {
+              pendingToolCalls[toolCallId] = {
+                id: toolCallId,
+                type: toolCall.type || "function",
+                function: {
+                  name: toolCall.function?.name || "",
+                  arguments: toolCall.function?.arguments || "",
+                },
+              };
+            } else {
+              // 合并流式参数
+              if (toolCall.function?.arguments) {
+                pendingToolCalls[toolCallId].function.arguments +=
+                  toolCall.function.arguments;
+              }
+              // 更新工具名称（如果之前为空）
+              if (
+                toolCall.function?.name &&
+                !pendingToolCalls[toolCallId].function.name
+              ) {
+                pendingToolCalls[toolCallId].function.name =
+                  toolCall.function.name;
+              }
+              // 更新类型（如果之前为空）
+              if (toolCall.type && !pendingToolCalls[toolCallId].type) {
+                pendingToolCalls[toolCallId].type = toolCall.type;
+              }
+              // 如果原始ID为空但当前有ID，则更新ID
+              if (!pendingToolCalls[toolCallId].id && toolCall.id) {
+                pendingToolCalls[toolCallId].id = toolCall.id;
+              }
+            }
+
+            // 检查工具调用是否完成（有name即可尝试调用，即使arguments为空）
+            const pendingCall = pendingToolCalls[toolCallId];
+            if (pendingCall.function?.name) {
+              // 如果有参数，验证是否为有效的JSON；如果没有参数，则直接执行
+              let isValid = true;
+              if (pendingCall.function.arguments) {
+                try {
+                  // 验证参数是否为有效的JSON
+                  JSON.parse(pendingCall.function.arguments);
+                } catch (e) {
+                  isValid = false;
                 }
               }
 
-              // 初始化或更新工具调用
-              if (!pendingToolCalls[toolCallId]) {
-                pendingToolCalls[toolCallId] = {
-                  id: toolCallId,
-                  type: toolCall.type || "function",
-                  function: {
-                    name: toolCall.function?.name || "",
-                    arguments: toolCall.function?.arguments || "",
-                  },
-                };
-              } else {
-                // 合并流式参数
-                if (toolCall.function?.arguments) {
-                  pendingToolCalls[toolCallId].function.arguments +=
-                    toolCall.function.arguments;
-                }
-                // 更新工具名称（如果之前为空）
-                if (
-                  toolCall.function?.name &&
-                  !pendingToolCalls[toolCallId].function.name
-                ) {
-                  pendingToolCalls[toolCallId].function.name =
-                    toolCall.function.name;
-                }
-                // 更新类型（如果之前为空）
-                if (toolCall.type && !pendingToolCalls[toolCallId].type) {
-                  pendingToolCalls[toolCallId].type = toolCall.type;
-                }
-                // 如果原始ID为空但当前有ID，则更新ID
-                if (!pendingToolCalls[toolCallId].id && toolCall.id) {
-                  pendingToolCalls[toolCallId].id = toolCall.id;
-                }
-              }
+              // 如果参数有效或没有参数，则执行工具调用
+              if (isValid) {
+                try {
+                  // 调用实际的工具处理逻辑
+                  const tool = this.getAvailableTools().find(
+                    (t) => t.function.name === pendingCall.function?.name,
+                  );
 
-              // 检查工具调用是否完成（有name即可尝试调用，即使arguments为空）
-              const pendingCall = pendingToolCalls[toolCallId];
-              if (pendingCall.function?.name) {
-                // 如果有参数，验证是否为有效的JSON；如果没有参数，则直接执行
-                let isValid = true;
-                if (pendingCall.function.arguments) {
-                  try {
-                    // 验证参数是否为有效的JSON
-                    JSON.parse(pendingCall.function.arguments);
-                  } catch (e) {
-                    isValid = false;
-                  }
-                }
-
-                // 如果参数有效或没有参数，则执行工具调用
-                if (isValid) {
-                  try {
-                    // 调用实际的工具处理逻辑
-                    const tool = this.getAvailableTools().find(
-                      (t) => t.function.name === pendingCall.function?.name,
+                  if (tool) {
+                    const callArgs = pendingCall.function.arguments || "{}";
+                    const result = await this.callTool(
+                      tool,
+                      callArgs,
+                      toolExtras,
                     );
 
-                    if (tool) {
-                      const callArgs = pendingCall.function.arguments || "{}";
-                      const result = await this.callTool(
-                        tool,
-                        callArgs,
-                        toolExtras,
-                      );
+                    // 创建工具响应消息
+                    const toolResponse: ChatMessage = {
+                      role: "tool",
+                      content: result.contextItems
+                        .map((item) =>
+                          typeof item.content === "string"
+                            ? item.content
+                            : JSON.stringify(item.content),
+                        )
+                        .join("\n"),
+                      toolCallId: pendingCall.id,
+                    };
+                    toolCallMessages.push(toolResponse);
 
-                      // 创建工具响应消息
-                      const toolResponse: ChatMessage = {
-                        role: "tool",
-                        content: result.contextItems
-                          .map((item) =>
-                            typeof item.content === "string"
-                              ? item.content
-                              : JSON.stringify(item.content),
-                          )
-                          .join("\n"),
-                        toolCallId: pendingCall.id,
-                      };
-                      toolCallMessages.push(toolResponse);
-
-                      // 从待处理列表中移除已完成的工具调用
-                      delete pendingToolCalls[toolCallId];
-                    }
-                  } catch (parseError) {
-                    // JSON解析失败，说明参数还不完整，继续累积
+                    // 从待处理列表中移除已完成的工具调用
+                    delete pendingToolCalls[toolCallId];
                   }
+                } catch (parseError) {
+                  // JSON解析失败，说明参数还不完整，继续累积
                 }
               }
             }
-          } else if (chunk.role === "tool") {
-            toolCallMessages.push(chunk);
-          } else {
-            // 普通内容响应已经收集在completeResponse中
-            fullResponse += chunk.content;
           }
+        } else if (chunk.role === "tool") {
+          toolCallMessages.push(chunk);
+        } else {
+          // 普通内容响应已经收集在completeResponse中
+          fullResponse += chunk.content;
         }
-
-        // 如果没有工具调用，说明LLM已完成分析
-        if (
-          toolCallMessages.length === 0 &&
-          Object.keys(pendingToolCalls).length === 0
-        ) {
-          break;
-        }
-
-        // 如果有工具调用，重新发送包含工具调用和工具结果的消息
-        const newMessages = [
-          ...messages,
-          ...assistantToolCallMessages,
-          ...toolCallMessages,
-        ];
-        messages = newMessages;
-        iteration++;
       }
 
-      // 解析 LLM 响应
-      console.log("Parsing LLM response");
-      const result = this.parseLLMResponse(fullResponse);
-      console.log("Parsed result:", result);
-      return result;
-    } catch (error) {
-      console.error("LLM 分析过程中出错:", error);
-      return undefined;
+      // 如果没有工具调用，说明LLM已完成分析
+      if (
+        toolCallMessages.length === 0 &&
+        Object.keys(pendingToolCalls).length === 0
+      ) {
+        break;
+      }
+
+      // 如果有工具调用，重新发送包含工具调用和工具结果的消息
+      const newMessages = [
+        ...messages,
+        ...assistantToolCallMessages,
+        ...toolCallMessages,
+      ];
+      messages = newMessages;
+      iteration++;
     }
+
+    return fullResponse.trim() || `未能生成${analysisType}分析`;
   }
 
   /**
