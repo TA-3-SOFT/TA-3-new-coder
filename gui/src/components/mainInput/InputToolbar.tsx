@@ -94,9 +94,6 @@ function InputToolbar(props: InputToolbarProps) {
           {!isInEdit && (
             <HoverItem data-tooltip-id="mode-select-tooltip" className="!p-0">
               <ModeSelect />
-              <ToolTip id="mode-select-tooltip" place="top">
-                选择模式
-              </ToolTip>
             </HoverItem>
           )}
           <HoverItem data-tooltip-id="model-select-tooltip" className="!p-0">
