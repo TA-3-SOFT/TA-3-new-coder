@@ -150,11 +150,23 @@
 
         <action id="continue.openConfigPage"
                 class="com.github.continuedev.continueintellijextension.actions.OpenConfigAction"
-                icon="AllIcons.General.GearPlain"
+                icon="AllIcons.General.ExternalTools"
                 text="配置项"
                 description="配置项">
             <override-text place="GoToAction" text="配置项"/>
         </action>
+
+        <action id="continue.setTopRightAnchor"
+                class="com.github.continuedev.continueintellijextension.actions.SetTopRightAnchorAction"
+                icon="AllIcons.General.ArrowRight"
+                text="居右展示"
+                description="居右展示" />
+
+        <action id="continue.setBottomLeftAnchor"
+                class="com.github.continuedev.continueintellijextension.actions.SetBottomLeftAnchorAction"
+                icon="AllIcons.General.ArrowDown"
+                text="居下展示"
+                description="居下展示" />
 
         <action id="continue.openLogs"
                 class="com.github.continuedev.continueintellijextension.actions.OpenLogsAction"
@@ -167,6 +179,8 @@
         <group id="ContinueSidebarActionsGroup">
             <reference ref="continue.newContinueSession"/>
             <reference ref="continue.viewHistory"/>
+            <reference ref="continue.setTopRightAnchor"/>
+            <reference ref="continue.setBottomLeftAnchor"/>
             <reference ref="continue.openConfigPage"/>
         </group>
 

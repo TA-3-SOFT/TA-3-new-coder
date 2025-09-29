@@ -6,6 +6,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.wm.ToolWindow
+import com.intellij.openapi.wm.ToolWindowAnchor
+import com.intellij.openapi.wm.ToolWindowManager
 
 
 class AcceptDiffAction : AnAction() {
@@ -104,6 +108,22 @@ class OpenLogsAction : AnAction() {
         }
     }
 }
+class SetTopRightAnchorAction : AnAction("定位右上"), DumbAware {
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        val toolWindowManager = ToolWindowManager.getInstance(project)
+        val toolWindow = toolWindowManager.getToolWindow("TA+3 牛码")
+        toolWindow?.setAnchor(ToolWindowAnchor.RIGHT, null)
+    }
+}
 
+class SetBottomLeftAnchorAction : AnAction("定位下左"), DumbAware {
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        val toolWindowManager = ToolWindowManager.getInstance(project)
+        val toolWindow = toolWindowManager.getToolWindow("TA+3 牛码")
+        toolWindow?.setAnchor(ToolWindowAnchor.BOTTOM, null)
+    }
+}
 
 
