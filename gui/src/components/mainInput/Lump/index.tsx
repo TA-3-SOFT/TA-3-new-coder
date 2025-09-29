@@ -1,17 +1,13 @@
 import styled from "styled-components";
-import {
-  defaultBorderRadius,
-  vscCommandCenterInactiveBorder,
-  vscInputBackground,
-} from "../..";
+import { defaultBorderRadius, vscCommandCenterInactiveBorder } from "../..";
 import { useLump } from "./LumpContext";
 import { LumpToolbar } from "./LumpToolbar";
 import { SelectedSection } from "./sections/SelectedSection";
 
 const LumpDiv = styled.div`
-  background-color: ${vscInputBackground};
-  margin-left: 4px;
-  margin-right: 4px;
+  //background-color: var(--vscode-toolbar-background, #f3f3f3);
+  margin-left: 10px;
+  margin-right: 10px;
   border-radius: ${defaultBorderRadius} ${defaultBorderRadius} 0 0;
   border-top: 1px solid ${vscCommandCenterInactiveBorder};
   border-left: 1px solid ${vscCommandCenterInactiveBorder};

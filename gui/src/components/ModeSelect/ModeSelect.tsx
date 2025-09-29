@@ -75,7 +75,7 @@ export function ModeSelect() {
       <div className="relative">
         <ListboxButton
           data-testid="mode-select-button"
-          className="xs:px-2 text-description gap-1 rounded-full border-none px-1.5 py-0.5 transition-colors duration-200 hover:brightness-110"
+          className="xs:px-2 primary-hover gap-1 rounded-full border-none px-1.5 py-0.5 transition-colors duration-200 hover:brightness-110"
         >
           <ModeIcon mode={mode} />
           <span className="hidden sm:block">
@@ -111,7 +111,7 @@ export function ModeSelect() {
           >
             <div className="flex flex-row items-center gap-1.5">
               <ModeIcon mode="agent" />
-              <span className="">智能体</span>
+              <span className="">智能体(常规任务)</span>
             </div>
             {agentModeSupported ? (
               mode === "agent" && <CheckIcon className="ml-auto h-3 w-3" />
@@ -127,7 +127,7 @@ export function ModeSelect() {
           >
             <div className="flex flex-row items-center gap-1.5">
               <ModeIcon mode="structured-agent" />
-              <span className="">流程化智能体</span>
+              <span className="">流程化智能体(复杂需求)</span>
             </div>
             {agentModeSupported ? (
               mode === "structured-agent" && (

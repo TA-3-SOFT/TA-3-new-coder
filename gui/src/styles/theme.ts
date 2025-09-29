@@ -86,7 +86,7 @@ export const THEME_COLORS = {
   },
   "input-background": {
     vars: ["--vscode-input-background"],
-    default: "#2d2d2d", // dark gray
+    default: "#2d2d2d",
   },
   "input-foreground": {
     vars: ["--vscode-input-foreground"],
