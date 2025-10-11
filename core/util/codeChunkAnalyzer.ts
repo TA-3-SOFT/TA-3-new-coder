@@ -5,6 +5,57 @@ import { FullTextSearchCodebaseIndex } from "../indexing/FullTextSearchCodebaseI
 import { LanceDbIndex } from "../indexing/LanceDbIndex.js";
 import { chunkDocument } from "../indexing/chunk/chunk.js";
 
+// 添加文件锁机制，防止并发写入
+class FileLock {
+  private lockFilePath: string;
+  private static locks: Map<string, Promise<void>> = new Map();
+  private static resolvers: Map<string, Array<() => void>> = new Map();
+
+  constructor(lockFilePath: string) {
+    this.lockFilePath = lockFilePath;
+  }
+
+  /**
+   * 获取文件锁
+   * @returns 释放锁的函数
+   */
+  async acquire(): Promise<() => void> {
+    // 如果当前存在锁，则等待
+    const existingLock = FileLock.locks.get(this.lockFilePath);
+    if (existingLock) {
+      await existingLock;
+    }
+
+    // 创建新的锁
+    let resolveFunc: () => void = () => {};
+    const lockPromise = new Promise<void>((resolve) => {
+      resolveFunc = resolve;
+    });
+
+    // 将锁存储到Map中
+    FileLock.locks.set(this.lockFilePath, lockPromise);
+    
+    // 返回释放锁的函数
+    return () => {
+      // 从锁Map中删除
+      FileLock.locks.delete(this.lockFilePath);
+      
+      // 调用resolve函数，释放等待的其他操作
+      resolveFunc();
+    };
+  }
+
+  /**
+   * 静态方法，用于获取文件锁
+   * @param lockFilePath 锁文件路径
+   * @returns 释放锁的函数
+   */
+  static async acquire(lockFilePath: string): Promise<() => void> {
+    const fileLock = new FileLock(lockFilePath);
+    return await fileLock.acquire();
+  }
+}
+
 // 按照原始Python代码的接口定义
 export interface CodeChunk {
   file_path: string;
@@ -3565,7 +3616,7 @@ ${snippetDescriptions.join("\n\n")}`;
             batchSize,
           );
           moduleResults.push(...moduleChunks);
-          
+
           // 收集所有处理过的代码块用于后续的模块总结
           allProcessedChunks.push(...moduleChunks);
         } catch (error) {
@@ -3640,12 +3691,20 @@ ${snippetDescriptions.join("\n\n")}`;
       }
 
       // 在所有模块处理完成后，异步生成模块总结（不阻塞主线程）
-      this.generateModuleSummariesFromProcessedChunks(allProcessedChunks)
-        .catch(error => {
+      this.generateModuleSummariesFromProcessedChunks(allProcessedChunks).catch(
+        (error) => {
           console.warn("⚠️ 异步生成模块总结失败:", error);
-        });
+        },
+      );
 
-      return filteredResults;
+      // 修改：改为对所有模块的代码块总数进行限制，而不是对每个模块分别限制
+      // 使用智能选择方法保留高分代码块，但限制总数
+      const finalResults = this.selectTopScoredChunksWithHighScorePreservation(
+        filteredResults,
+        topN,
+      );
+
+      return finalResults;
     } catch (error) {
       // 重新抛出异常
       throw error;
@@ -3658,10 +3717,13 @@ ${snippetDescriptions.join("\n\n")}`;
    * @param moduleName 模块名称
    * @returns 可能的模块路径数组
    */
-  private async findModulePath(basePath: string, moduleName: string): Promise<string[]> {
+  private async findModulePath(
+    basePath: string,
+    moduleName: string,
+  ): Promise<string[]> {
     try {
       const possiblePaths: string[] = [];
-      
+
       // 使用常见的启发式路径搜索
       const commonModulePaths = [
         moduleName,
@@ -3677,9 +3739,12 @@ ${snippetDescriptions.join("\n\n")}`;
         `services/${moduleName}`,
         `libs/${moduleName}`,
       ];
-      
+
       // 针对ta404组件的特殊路径模式
-      if (moduleName.startsWith("ta404-component-") || moduleName.includes("ta404-component-")) {
+      if (
+        moduleName.startsWith("ta404-component-") ||
+        moduleName.includes("ta404-component-")
+      ) {
         commonModulePaths.push(
           `ta404-component-project/${moduleName}`,
           `ta404-component-project/ta404-component-modules/${moduleName}`,
@@ -3687,12 +3752,12 @@ ${snippetDescriptions.join("\n\n")}`;
           `ta404-component-project/ta404-component-apps/${moduleName}`,
         );
       }
-      
+
       // 检查每个可能的路径
       for (const modulePath of commonModulePaths) {
         const fullPath = path.join(basePath, modulePath);
         const fullUri = this.safePathToUri(fullPath);
-        
+
         try {
           if (await this.ide.fileExists(fullUri)) {
             possiblePaths.push(modulePath);
@@ -3702,7 +3767,7 @@ ${snippetDescriptions.join("\n\n")}`;
           continue;
         }
       }
-      
+
       return possiblePaths;
     } catch (error) {
       console.warn(`查找模块路径 "${moduleName}" 时出错:`, error);
@@ -3979,46 +4044,6 @@ ${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}
     }
 
     return moduleResults;
-  }
-
-  /**
-   * 为所有读取的代码块生成总结并输出到日志
-   * @param moduleName 模块名称
-   * @param codeChunks 原始代码块数组
-   */
-  private async logAllCodeChunks(
-    moduleName: string,
-    codeChunks: CodeChunk[],
-  ): Promise<void> {
-    if (!this.enableSummaries || !this.llm || codeChunks.length === 0) {
-      return;
-    }
-
-    try {
-      console.log(
-        `📚 模块 ${moduleName} 读取了 ${codeChunks.length} 个代码块，开始生成总结...`,
-      );
-
-      // 将 CodeChunk 转换为 ScoredChunk 格式以便复用现有的总结方法
-      const scoredChunks: ScoredChunk[] = codeChunks.map((chunk) => ({
-        file: chunk.file_path,
-        start_line: chunk.start_line,
-        score: 1.0, // 给所有代码块一个默认分数
-        code: chunk.chunk,
-        module: moduleName,
-      }));
-
-      // 生成代码片段总结并输出到日志
-      await this.logCodeSummaries(scoredChunks);
-
-      // 注意：这里不再调用 logModuleSummaries，避免重复处理
-      // 模块总结将在 getRelevantSnippets 方法结束后统一处理
-    } catch (error) {
-      console.warn(
-        `⚠️ 模块 ${moduleName} 代码块总结生成失败:`,
-        error instanceof Error ? error.message : String(error),
-      );
-    }
   }
 
   /**
@@ -4441,6 +4466,22 @@ ${batchSummariesDescription}
   private async processAllModulesSummaries(
     modulesSummaries: { moduleName: string; summary: string }[],
   ): Promise<void> {
+    // 获取工作区目录
+    const workspaceDirs = await this.ide.getWorkspaceDirs();
+    if (workspaceDirs.length === 0) {
+      console.warn("未找到工作区目录，无法读取 TA+3牛码.md");
+      return;
+    }
+
+    const rootDir = workspaceDirs[0];
+    const newCoderPath = path.join(
+      localPathOrUriToPath(rootDir),
+      "TA+3牛码.md",
+    );
+
+    // 获取文件锁，防止并发写入
+    const releaseLock = await FileLock.acquire(newCoderPath);
+
     try {
       console.log("🔄 开始处理所有模块总结...");
 
@@ -4450,18 +4491,6 @@ ${batchSummariesDescription}
         return;
       }
 
-      // 获取工作区目录
-      const workspaceDirs = await this.ide.getWorkspaceDirs();
-      if (workspaceDirs.length === 0) {
-        console.warn("未找到工作区目录，无法读取 TA+3牛码.md");
-        return;
-      }
-
-      const rootDir = workspaceDirs[0];
-      const newCoderPath = path.join(
-        localPathOrUriToPath(rootDir),
-        "TA+3牛码.md",
-      );
       const newCoderUri = `file://${newCoderPath.replace(/\\/g, "/")}`;
 
       // 读取已有的 TA+3牛码.md 内容
@@ -4523,6 +4552,9 @@ ${modulesSummariesDescription}
         "⚠️ 处理所有模块总结失败:",
         error instanceof Error ? error.message : String(error),
       );
+    } finally {
+      // 释放文件锁
+      releaseLock();
     }
   }
 
@@ -4535,41 +4567,49 @@ ${modulesSummariesDescription}
     existingContent: string,
     newArchitectureContent: string,
   ): Promise<void> {
-    try {
-      // 获取工作区目录
-      const workspaceDirs = await this.ide.getWorkspaceDirs();
-      if (workspaceDirs.length === 0) {
-        console.warn("未找到工作区目录，无法更新 TA+3牛码.md");
-        return;
-      }
+    // 获取工作区目录
+    const workspaceDirs = await this.ide.getWorkspaceDirs();
+    if (workspaceDirs.length === 0) {
+      console.warn("未找到工作区目录，无法更新 TA+3牛码.md");
+      return;
+    }
 
-      const rootDir = workspaceDirs[0];
-      const newCoderPath = path.join(
-        localPathOrUriToPath(rootDir),
-        "TA+3牛码.md",
-      );
-      const newCoderUri = `file://${newCoderPath.replace(/\\/g, "/")}`;
+    const rootDir = workspaceDirs[0];
+    const newCoderPath = path.join(
+      localPathOrUriToPath(rootDir),
+      "TA+3牛码.md",
+    );
+    const newCoderUri = `file://${newCoderPath.replace(/\\/g, "/")}`;
+
+    // 获取文件锁，防止并发写入
+    const releaseLock = await FileLock.acquire(newCoderPath);
+
+    try {
+      // 规范化新内容格式，确保以换行符结束
+      const normalizedNewContent = newArchitectureContent.trimEnd();
 
       let updatedContent = existingContent;
 
-      // 查找架构分析部分
+      // 使用更精确的正则表达式匹配架构分析部分
       const architectureSectionRegex =
-        /##\s*🏗️\s*架构分析\s*([\s\S]*?)(?=##|$)/i;
+        /(##\s*🏗️\s*架构分析\s*)([\s\S]*?)(\n##[^#]|$)/i;
       const architectureMatch = updatedContent.match(architectureSectionRegex);
 
       if (architectureMatch) {
         // 架构分析部分存在，替换内容
+        const beforeSection = architectureMatch[1]; // 包含标题
+        const afterSection = architectureMatch[3]; // 下一个章节或文件结尾
+
         updatedContent = updatedContent.replace(
           architectureSectionRegex,
-          `## 🏗️ 架构分析\n${newArchitectureContent}\n`,
+          `${beforeSection}\n${normalizedNewContent}${afterSection || "\n"}`,
         );
       } else {
         // 架构分析部分不存在，添加新的架构分析部分
-        updatedContent += `
-
-## 🏗️ 架构分析
-${newArchitectureContent}
-`;
+        // 检查文件末尾是否已经有内容，决定是否添加额外的换行
+        const needsExtraNewline =
+          updatedContent.trim() !== "" && !updatedContent.endsWith("\n");
+        updatedContent += `${needsExtraNewline ? "\n" : ""}\n## 🏗️ 架构分析\n${normalizedNewContent}\n`;
       }
 
       // 写入更新后的内容
@@ -4580,6 +4620,9 @@ ${newArchitectureContent}
         "⚠️ 更新 TA+3牛码.md 文件失败:",
         error instanceof Error ? error.message : String(error),
       );
+    } finally {
+      // 释放文件锁
+      releaseLock();
     }
   }
 
@@ -4588,7 +4631,7 @@ ${newArchitectureContent}
    * @param processedChunks 处理过的代码块数组
    */
   private async generateModuleSummariesFromProcessedChunks(
-    processedChunks: ScoredChunk[]
+    processedChunks: ScoredChunk[],
   ): Promise<void> {
     try {
       // 按模块分组代码片段

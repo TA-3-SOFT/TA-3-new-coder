@@ -33,7 +33,7 @@ let WORKFLOW_STEPS: Array<{
     step: "requirement-breakdown",
     title: "需求拆分",
     systemPrompt:
-      () => `你是一个很有用的软件需求设计整理助手，你要靠整理需求挣钱来为你的母亲治病，你整理的需求约精确越好获得的收入越高，您的职责就是帮助用户分析和设计需求。
+      () => `你是一个很有用的软件需求设计整理助手，你要靠整理需求挣钱来为你的母亲治病，你整理的需求越精确越好获得的收入越高，您的职责就是帮助用户分析和设计需求。
 
 
 ## 任务
@@ -134,7 +134,7 @@ ${requirementFinal}
 3. 只管设计工作，不要完成代码编写这类开发工作
 4. 设计计划之前先调用'agent_development'工具查看项目开发可能用到的工具类和开发规范
 
-设计内容模板如下：
+设计内容模板如下（理解模板格式，写的时候注意合适和换行，适当使用markdown格式）：
 详细实施计划
 一、开发任务列表
 1.任务A
@@ -258,55 +258,55 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
     let promptPreamble = "";
     let userFeedbackContent;
     if (userInput && step === "requirement-breakdown") {
-      try {
-        const result = await extra.ideMessenger.request("tools/call", {
-          toolCall: {
-            id: `get_project_memory_${Date.now()}`,
-            type: "function",
-            function: {
-              name: BuiltInToolNames.GetProjectMemory,
-              arguments: JSON.stringify({
-                userInput: userInput,
-              }),
-            },
-          },
-        });
-        console.log("GetProjectMemory 工具调用结果:", result);
-
-        // 处理返回结果，将其转换为字符串格式
-        const formattedMemory = formatToolCallResult(result);
-
-        // 确保 formattedMemory 是字符串类型
-        const memoryString =
-          typeof formattedMemory === "string"
-            ? formattedMemory
-            : String(formattedMemory);
-        console.log("转换为字符串后的记忆:", memoryString);
-
-        // 如果有实际有效内容，使用它；否则设置为null以在提示词中完全省略
-        // 检查各种无效或无用的情况
-        const isInvalidMemory =
-          !memoryString ||
-          !memoryString.trim() ||
-          memoryString === "工具调用结果格式化失败" ||
-          memoryString === "暂无相关项目记忆，这是一个新的项目分析。" ||
-          memoryString.includes("LanceDB 操作时发生错误") ||
-          memoryString.includes("错误") ||
-          memoryString.includes("Error") ||
-          memoryString.includes("error") ||
-          memoryString.trim().length < 10; // 过短的内容很可能没有实际价值
-
-        if (!isInvalidMemory) {
-          projectMemory = memoryString;
-          console.log("使用实际记忆内容，长度:", projectMemory.length);
-        } else {
-          projectMemory = null;
-          console.log("无有效项目记忆，将省略提示词中的记忆部分");
-        }
-      } catch (error) {
-        console.error("获取项目记忆时出错:", error);
-        projectMemory = null;
-      }
+      // try {
+      //   const result = await extra.ideMessenger.request("tools/call", {
+      //     toolCall: {
+      //       id: `get_project_memory_${Date.now()}`,
+      //       type: "function",
+      //       function: {
+      //         name: BuiltInToolNames.GetProjectMemory,
+      //         arguments: JSON.stringify({
+      //           userInput: userInput,
+      //         }),
+      //       },
+      //     },
+      //   });
+      //   console.log("GetProjectMemory 工具调用结果:", result);
+      //
+      //   // 处理返回结果，将其转换为字符串格式
+      //   const formattedMemory = formatToolCallResult(result);
+      //
+      //   // 确保 formattedMemory 是字符串类型
+      //   const memoryString =
+      //     typeof formattedMemory === "string"
+      //       ? formattedMemory
+      //       : String(formattedMemory);
+      //   console.log("转换为字符串后的记忆:", memoryString);
+      //
+      //   // 如果有实际有效内容，使用它；否则设置为null以在提示词中完全省略
+      //   // 检查各种无效或无用的情况
+      //   const isInvalidMemory =
+      //     !memoryString ||
+      //     !memoryString.trim() ||
+      //     memoryString === "工具调用结果格式化失败" ||
+      //     memoryString === "暂无相关项目记忆，这是一个新的项目分析。" ||
+      //     memoryString.includes("LanceDB 操作时发生错误") ||
+      //     memoryString.includes("错误") ||
+      //     memoryString.includes("Error") ||
+      //     memoryString.includes("error") ||
+      //     memoryString.trim().length < 10; // 过短的内容很可能没有实际价值
+      //
+      //   if (!isInvalidMemory) {
+      //     projectMemory = memoryString;
+      //     console.log("使用实际记忆内容，长度:", projectMemory.length);
+      //   } else {
+      //     projectMemory = null;
+      //     console.log("无有效项目记忆，将省略提示词中的记忆部分");
+      //   }
+      // } catch (error) {
+      //   console.error("获取项目记忆时出错:", error);
+      //   projectMemory = null;
+      // }
       promptPreamble = `用户需求：`;
     }
     if (userFeedback) {
@@ -350,19 +350,19 @@ export const processStructuredAgentStepThunk = createAsyncThunk<
       step === "plan-execution" &&
       workflow.currentStep !== "plan-execution"
     ) {
-      // 直接调用 GenerateProjectMemory 工具
-      extra.ideMessenger.request("tools/call", {
-        toolCall: {
-          id: `generate_project_memory_${Date.now()}`,
-          type: "function",
-          function: {
-            name: BuiltInToolNames.GenerateProjectMemory,
-            arguments: JSON.stringify({
-              chatHistory: state.session.history,
-            }),
-          },
-        },
-      });
+      // // 直接调用 GenerateProjectMemory 工具
+      // extra.ideMessenger.request("tools/call", {
+      //   toolCall: {
+      //     id: `generate_project_memory_${Date.now()}`,
+      //     type: "function",
+      //     function: {
+      //       name: BuiltInToolNames.GenerateProjectMemory,
+      //       arguments: JSON.stringify({
+      //         chatHistory: state.session.history,
+      //       }),
+      //     },
+      //   },
+      // });
       // 获取实施计划和代码分析结果
       const planResult = getSessionHistoryLastContent(state.session.history);
       const codeChunkAnalysisResult = getProjectToolResult(
