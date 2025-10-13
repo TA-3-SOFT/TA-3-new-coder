@@ -41,7 +41,7 @@ class TabnineLensCollector(
         if (element.elementType.toString() in enabledElementTypes) {
             if (ContinueExtensionSettings.instance.continueState.interactionMode == 1) {
                 sink.addBlockElement(
-                    offset = element.startOffset,
+                    offset = element.textRange.startOffset,
                     relatesToPrecedingText = true,
                     showAbove = true,
                     priority = 0,
@@ -106,7 +106,7 @@ class TabnineLensCollector(
                 )
 
                 sink.addBlockElement(
-                    offset = element.startOffset,
+                    offset = element.textRange.startOffset,
                     relatesToPrecedingText = true,
                     showAbove = true,
                     priority = 0,
@@ -151,7 +151,7 @@ class TabnineLensCollector(
     }
 
     private fun countLeadingWhitespace(editor: Editor, element: PsiElement): Int {
-        val lineNumber = editor.document.getLineNumber(element.startOffset)
+        val lineNumber = editor.document.getLineNumber(element.textRange.startOffset)
         return editor.document.getText(
             TextRange(
                 editor.document.getLineStartOffset(lineNumber),

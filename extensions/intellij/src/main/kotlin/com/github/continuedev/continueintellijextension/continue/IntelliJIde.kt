@@ -15,9 +15,7 @@ import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
 import com.intellij.history.LocalHistoryException
-import com.intellij.history.integration.LocalHistoryImpl
-import com.intellij.history.integration.ui.models.DirectoryHistoryDialogModel
-import com.intellij.history.integration.ui.models.EntireFileHistoryDialogModel
+import com.intellij.history.integration.ui.models.HistoryDialogModel
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.notification.NotificationAction
@@ -26,21 +24,20 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
-import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.editor.impl.DocumentMarkupModel
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.IconLoader
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.testFramework.LightVirtualFile
-import com.intellij.vcs.log.history.FileHistoryData
 import kotlinx.coroutines.*
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
@@ -50,7 +47,6 @@ import java.io.FileInputStream
 import java.io.InputStreamReader
 import java.net.URI
 import java.nio.charset.Charset
-import java.nio.file.Paths
 import javax.swing.Action
 import javax.swing.JComponent
 
@@ -328,23 +324,46 @@ class IntelliJIDE(
                 throw IllegalArgumentException("File not found: $filepath")
             }
 
-            val localHistoryImpl = LocalHistoryImpl.getInstanceImpl()
-            val fileHistoryModel = EntireFileHistoryDialogModel(
-                project,
-                localHistoryImpl.gateway,
-                localHistoryImpl.facade,
-                virtualFile
+            val localHistoryImplClass = Class.forName("com.intellij.history.integration.LocalHistoryImpl")
+            val getInstanceImplMethod = localHistoryImplClass.getDeclaredMethod("getInstanceImpl")
+            val localHistoryImpl = getInstanceImplMethod.invoke(null)
+
+            val gatewayField = localHistoryImplClass.getDeclaredField("gateway")
+            gatewayField.isAccessible = true
+            val gateway = gatewayField.get(localHistoryImpl)
+
+            val facadeField = localHistoryImplClass.getDeclaredField("facade")
+            facadeField.isAccessible = true
+            val facade = facadeField.get(localHistoryImpl)
+
+            val fileHistoryModelClass = Class.forName("com.intellij.history.integration.ui.models.EntireFileHistoryDialogModel")
+            val constructor = fileHistoryModelClass.getDeclaredConstructor(
+                Class.forName("com.intellij.openapi.project.Project"),
+                Class.forName("com.intellij.history.integration.IdeaGateway"),
+                Class.forName("com.intellij.history.core.LocalHistoryFacade"),
+                Class.forName("com.intellij.openapi.vfs.VirtualFile")
             )
+            val fileHistoryModel = constructor.newInstance(project, gateway, facade, virtualFile)
 
             // 获取最适合的历史版本：优先使用指定时间戳之前的版本，如果没有则使用最原始版本
-            val targetRevision = LocalHistoryUtil.findBestHistoricalRevision(fileHistoryModel, timestamp)
+            val targetRevision = LocalHistoryUtil.findBestHistoricalRevision(fileHistoryModel as HistoryDialogModel, timestamp)
                 ?: throw LocalHistoryException("No revision history found for file: $filepath")
 
             // 从历史版本中获取文件内容
             val historicalContent = try {
-                val content = targetRevision.revision.findEntry()?.content
-                if (content != null) {
-                    String(content.bytes, Charset.forName("UTF-8"))
+                val revisionField = targetRevision.javaClass.getDeclaredField("revision")
+                revisionField.isAccessible = true
+                val revision = revisionField.get(targetRevision)
+
+                val findEntryMethod = revision.javaClass.getDeclaredMethod("findEntry")
+                val entry = findEntryMethod.invoke(revision)
+                if (entry != null) {
+                    val getContentMethod = entry.javaClass.getDeclaredMethod("getContent")
+                    val content = getContentMethod.invoke(entry)
+
+                    val bytesField = content.javaClass.getDeclaredMethod("getBytes")
+                    val bytes = bytesField.invoke(content) as ByteArray
+                    String(bytes, Charset.forName("UTF-8"))
                 } else {
                     // 如果历史版本中没有找到文件内容，可能文件在那个时间点不存在
                     ""
@@ -707,19 +726,33 @@ class IntelliJIDE(
                         if (targetTimestamp == null) {
                             throw IllegalArgumentException("Invalid timestamp format: $checkpointId")
                         }
-
-                        val localHistoryImpl = LocalHistoryImpl.getInstanceImpl()
+                        
                         val projectDir: VirtualFile = project.guessProjectDir()!!
-                        val dirHistoryModel = DirectoryHistoryDialogModel(
-                            project,
-                            localHistoryImpl.gateway,
-                            localHistoryImpl.facade,
-                            projectDir
+
+                        val localHistoryImplClass = Class.forName("com.intellij.history.integration.LocalHistoryImpl")
+                        val getInstanceImplMethod = localHistoryImplClass.getDeclaredMethod("getInstanceImpl")
+                        val localHistoryImpl = getInstanceImplMethod.invoke(null)
+
+                        val gatewayField = localHistoryImplClass.getDeclaredField("gateway")
+                        gatewayField.isAccessible = true
+                        val gateway = gatewayField.get(localHistoryImpl)
+
+                        val facadeField = localHistoryImplClass.getDeclaredField("facade")
+                        facadeField.isAccessible = true
+                        val facade = facadeField.get(localHistoryImpl)
+
+                        val dirHistoryModelClass = Class.forName("com.intellij.history.integration.ui.models.DirectoryHistoryDialogModel")
+                        val constructor = dirHistoryModelClass.getDeclaredConstructor(
+                            Class.forName("com.intellij.openapi.project.Project"),
+                            Class.forName("com.intellij.history.integration.IdeaGateway"),
+                            Class.forName("com.intellij.history.core.LocalHistoryFacade"),
+                            Class.forName("com.intellij.openapi.vfs.VirtualFile")
                         )
+                        val dirHistoryModel = constructor.newInstance(project, gateway, facade, projectDir)
 
                         // 使用 LocalHistoryUtil 获取最适合的历史版本
                         val targetRevision = LocalHistoryUtil.findBestHistoricalRevision(
-                            dirHistoryModel,
+                            dirHistoryModel as HistoryDialogModel,
                             targetTimestamp
                         )
 
@@ -773,16 +806,29 @@ class IntelliJIDE(
                             throw IllegalArgumentException("File not found: $filepath")
                         }
 
-                        val localHistoryImpl = LocalHistoryImpl.getInstanceImpl()
-                        val fileHistoryModel = EntireFileHistoryDialogModel(
-                            project,
-                            localHistoryImpl.gateway,
-                            localHistoryImpl.facade,
-                            virtualFile
+                        val localHistoryImplClass = Class.forName("com.intellij.history.integration.LocalHistoryImpl")
+                        val getInstanceImplMethod = localHistoryImplClass.getDeclaredMethod("getInstanceImpl")
+                        val localHistoryImpl = getInstanceImplMethod.invoke(null)
+
+                        val gatewayField = localHistoryImplClass.getDeclaredField("gateway")
+                        gatewayField.isAccessible = true
+                        val gateway = gatewayField.get(localHistoryImpl)
+
+                        val facadeField = localHistoryImplClass.getDeclaredField("facade")
+                        facadeField.isAccessible = true
+                        val facade = facadeField.get(localHistoryImpl)
+
+                        val fileHistoryModelClass = Class.forName("com.intellij.history.integration.ui.models.EntireFileHistoryDialogModel")
+                        val constructor = fileHistoryModelClass.getDeclaredConstructor(
+                            Class.forName("com.intellij.openapi.project.Project"),
+                            Class.forName("com.intellij.history.integration.IdeaGateway"),
+                            Class.forName("com.intellij.history.core.LocalHistoryFacade"),
+                            Class.forName("com.intellij.openapi.vfs.VirtualFile")
                         )
+                        val fileHistoryModel = constructor.newInstance(project, gateway, facade, virtualFile)
 
                         // 获取最适合的历史版本：优先使用指定时间戳之前的版本，如果没有则使用最原始版本
-                        val targetRevision = LocalHistoryUtil.findBestHistoricalRevision(fileHistoryModel, timestamp)
+                        val targetRevision = LocalHistoryUtil.findBestHistoricalRevision(fileHistoryModel as HistoryDialogModel, timestamp)
                             ?: throw LocalHistoryException("No revision history found for file: $filepath")
 
                         // 获取版本在列表中的索引

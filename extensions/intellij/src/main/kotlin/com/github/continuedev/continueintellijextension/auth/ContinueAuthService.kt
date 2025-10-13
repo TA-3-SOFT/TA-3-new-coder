@@ -13,7 +13,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -268,7 +267,15 @@ class ContinueAuthService {
 
     private fun retrieveSecret(key: String): String? {
         return try {
-            val attributes = createCredentialAttributes(key, CREDENTIALS_USER)
+//            val attributes = createCredentialAttributes(key, CREDENTIALS_USER)
+            val attributes = try {
+                val method = Class.forName("com.intellij.remoteServer.util.CloudConfigurationUtil")
+                    .getMethod("createCredentialAttributes", String::class.java, String::class.java)
+                method.invoke(null, key, CREDENTIALS_USER) as com.intellij.credentialStore.CredentialAttributes
+            } catch (e: Exception) {
+                println("Error creating credential attributes for key $key: ${e.message}")
+                null
+            }
             val passwordSafe: PasswordSafe = PasswordSafe.instance
 
             val credentials: Credentials? = passwordSafe[attributes!!]
@@ -282,7 +289,16 @@ class ContinueAuthService {
 
     private fun storeSecret(key: String, secret: String) {
         try {
-            val attributes = createCredentialAttributes(key, CREDENTIALS_USER)
+//            val attributes = createCredentialAttributes(key, CREDENTIALS_USER)
+            val attributes = try {
+                val method = Class.forName("com.intellij.remoteServer.util.CloudConfigurationUtil")
+                    .getMethod("createCredentialAttributes", String::class.java, String::class.java)
+                method.invoke(null, key, CREDENTIALS_USER) as com.intellij.credentialStore.CredentialAttributes
+            } catch (e: Exception) {
+                println("Error creating credential attributes for key $key: ${e.message}")
+                null
+            }
+
             val passwordSafe: PasswordSafe = PasswordSafe.instance
 
             val credentials = Credentials(CREDENTIALS_USER, secret)
