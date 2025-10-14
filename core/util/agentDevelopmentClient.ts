@@ -4,10 +4,7 @@ import * as fs from "fs";
 // @ts-ignore
 import { cos_sim } from "../vendor/modules/@xenova/transformers/src/utils/maths.js";
 
-import {
-  KnowledgeApiService,
-  getKnowledgeApiServiceWithAuth,
-} from "./knowledgeApiService";
+import { KnowledgeApiService } from "./knowledgeApiService";
 
 export interface DevelopmentKnowledgeResponse {
   selectedUtilClasses: string[];
@@ -441,7 +438,7 @@ ${frameworkRules}
 1. 从工具类列表中选择可能需要使用的工具类名称，并为每个工具类生成关键词来描述所有需要的方法功能
 2. 针对开发规范中可能不清楚或需要详细了解的地方，生成具体的提问句子
 
-请直接返回纯JSON格式，不要包含任何markdown代码块标记：
+请直接返回纯JSON格式，不要包含任何代码块标记：
 {
   "selectedUtilClassesWithKeywords": [
     {
@@ -456,7 +453,7 @@ ${frameworkRules}
   "frameworkQuestions": ["针对事务管理规范的具体提问？", "关于缓存配置的详细问题？"]
 }
 
-注意：请确保返回的是有效的JSON格式，不要添加json的markdown标记。
+注意：请确保返回的是有效的JSON格式，不要添加json的代码块标记。
 `;
 
       // 创建一个AbortController来提供signal
@@ -473,15 +470,35 @@ ${frameworkRules}
       try {
         // 清理LLM返回的内容，移除可能的代码块标记
         let cleanedResult = analysisResult.trim();
-        if (cleanedResult.startsWith("``json")) {
+
+        // 更健壮地处理各种可能的代码块格式
+        // 处理 ```json 格式（包括可能的大小写变体）
+        if (cleanedResult.toLowerCase().startsWith("```json")) {
           cleanedResult = cleanedResult
-            .replace(/^```json\s*/, "")
-            .replace(/\s*```$/, "");
-        } else if (cleanedResult.startsWith("```")) {
-          cleanedResult = cleanedResult
-            .replace(/^```\s*/, "")
+            .replace(/^```json\s*/i, "")
             .replace(/\s*```$/, "");
         }
+        // 处理其他以 ``` 开头的格式
+        else if (cleanedResult.startsWith("```")) {
+          // 找到第一个换行符的位置，从那之后的内容才是真正的JSON
+          const firstNewlineIndex = cleanedResult.indexOf("\n");
+          if (firstNewlineIndex !== -1) {
+            cleanedResult = cleanedResult.substring(firstNewlineIndex + 1);
+          } else {
+            // 如果没有换行符，就移除开头的 ```
+            cleanedResult = cleanedResult.substring(3);
+          }
+          // 移除结尾的 ```
+          if (cleanedResult.endsWith("```")) {
+            cleanedResult = cleanedResult.substring(
+              0,
+              cleanedResult.length - 3,
+            );
+          }
+        }
+
+        // 再次清理，确保移除任何前后的空白字符
+        cleanedResult = cleanedResult.trim();
 
         const parsed = JSON.parse(cleanedResult);
         selectedUtilClassesWithKeywords =
@@ -588,15 +605,35 @@ ${numberedMethods.join("\n")}
           try {
             // 清理LLM返回的内容，移除可能的代码块标记
             let cleanedResult = llmResponse.trim();
-            if (cleanedResult.startsWith("```json")) {
+
+            // 更健壮地处理各种可能的代码块格式
+            // 处理 ```json 格式（包括可能的大小写变体）
+            if (cleanedResult.toLowerCase().startsWith("```json")) {
               cleanedResult = cleanedResult
-                .replace(/^```json\s*/, "")
-                .replace(/\s*```$/, "");
-            } else if (cleanedResult.startsWith("```")) {
-              cleanedResult = cleanedResult
-                .replace(/^```\s*/, "")
+                .replace(/^```json\s*/i, "")
                 .replace(/\s*```$/, "");
             }
+            // 处理其他以 ``` 开头的格式
+            else if (cleanedResult.startsWith("```")) {
+              // 找到第一个换行符的位置，从那之后的内容才是真正的JSON
+              const firstNewlineIndex = cleanedResult.indexOf("\n");
+              if (firstNewlineIndex !== -1) {
+                cleanedResult = cleanedResult.substring(firstNewlineIndex + 1);
+              } else {
+                // 如果没有换行符，就移除开头的 ```
+                cleanedResult = cleanedResult.substring(3);
+              }
+              // 移除结尾的 ```
+              if (cleanedResult.endsWith("```")) {
+                cleanedResult = cleanedResult.substring(
+                  0,
+                  cleanedResult.length - 3,
+                );
+              }
+            }
+
+            // 再次清理，确保移除任何前后的空白字符
+            cleanedResult = cleanedResult.trim();
 
             selectedMethodIndices = JSON.parse(cleanedResult);
 
@@ -692,7 +729,7 @@ ${methodInfo.methods.map((method, index) => `${index + 1}. ${method}`).join("\n"
       const knowledgeApi = KnowledgeApiService.getInstance();
 
       // 设置组织ID - 使用默认值或从环境变量获取
-      const orgId = "1cb76ad6656c415d87616b5a421668f1"; // 默认组织ID
+      const orgId = "4176c7786222421ba4e351fd404b8488"; // 默认组织ID
 
       // 第一步：获取所有文档列表
       const listParams: any = {

@@ -34,12 +34,12 @@ class FileLock {
 
     // 将锁存储到Map中
     FileLock.locks.set(this.lockFilePath, lockPromise);
-    
+
     // 返回释放锁的函数
     return () => {
       // 从锁Map中删除
       FileLock.locks.delete(this.lockFilePath);
-      
+
       // 调用resolve函数，释放等待的其他操作
       resolveFunc();
     };
@@ -3684,9 +3684,6 @@ ${snippetDescriptions.join("\n\n")}`;
           Math.min(topN, 5), // 备选方案返回较少的片段
         );
 
-        // 为备选方案的代码片段生成总结并输出到日志
-        await this.generateAndLogSummaries(fallbackSnippets, userRequest);
-
         return fallbackSnippets;
       }
 
@@ -4044,122 +4041,6 @@ ${chunk.chunk.substring(0, 1000)}${chunk.chunk.length > 1000 ? "..." : ""}
     }
 
     return moduleResults;
-  }
-
-  /**
-   * 为代码片段生成简短总结并输出到日志
-   * @param codeChunks 代码片段数组
-   */
-  private async logCodeSummaries(codeChunks: ScoredChunk[]): Promise<void> {
-    if (!this.llm || !codeChunks.length) {
-      return;
-    }
-
-    try {
-      // 设置批处理大小
-      const batchSize = 10; // 每批处理10个代码块
-      const totalBatches = Math.ceil(codeChunks.length / batchSize);
-
-      console.log(
-        `🔍 开始生成代码片段总结，共${codeChunks.length}个代码块，分${totalBatches}批处理...`,
-      );
-
-      // 分批处理代码块总结
-      for (let i = 0; i < codeChunks.length; i += batchSize) {
-        const batchIndex = Math.floor(i / batchSize) + 1;
-        const batch = codeChunks.slice(i, i + batchSize);
-
-        console.log(
-          `   处理第${batchIndex}/${totalBatches}批，包含${batch.length}个代码块...`,
-        );
-
-        // 构建代码片段描述
-        const chunkDescriptions = batch.map(
-          (chunk, index) =>
-            `【代码片段 ${i + index + 1}】
-文件: ${chunk.file}
-起始行: ${chunk.start_line}
-代码内容:
-\`\`\`java
-${chunk.code.substring(0, 800)}${chunk.code.length > 800 ? "..." : ""}
-\`\`\``,
-        );
-
-        const userContent = `请为以下代码片段生成简短总结：
-
-${chunkDescriptions.join("\n\n")}`;
-
-        // 重置之前的结果
-        this.toolCallResults.codeSummaries = undefined;
-
-        // 创建带超时的 AbortController
-        const abortController = new AbortController();
-        const timeoutId = setTimeout(() => {
-          abortController.abort();
-        }, 30000); // 30秒超时
-
-        const messages: ChatMessage[] = [
-          {
-            role: "system",
-            content: this.summarySystemPrompt,
-          },
-          { role: "user", content: userContent },
-        ];
-
-        const response = await this.llm.chat(messages, abortController.signal, {
-          temperature: 0.0,
-          maxTokens: 4096,
-        });
-
-        clearTimeout(timeoutId);
-
-        // 处理LLM响应内容
-        const content = response.content;
-        if (typeof content === "string") {
-          try {
-            const args = this.extractToolCallArgs(
-              content,
-              "submitCodeSummaries",
-            );
-
-            if (args.summaries && Array.isArray(args.summaries)) {
-              this.submitCodeSummaries(args.summaries);
-            } else {
-              console.warn("⚠️ 工具调用参数中缺少 summaries 数组");
-            }
-          } catch (extractError) {
-            console.error(
-              "❌ 从内容中提取代码总结失败:",
-              extractError instanceof Error
-                ? extractError.message
-                : String(extractError),
-            );
-          }
-        }
-
-        // 检查是否有工具调用结果并输出到日志
-        const codeSummaries = this.toolCallResults.codeSummaries;
-        if (codeSummaries && Array.isArray(codeSummaries)) {
-          const summaries = codeSummaries as CodeSummary[];
-          if (summaries.length > 0) {
-          } else {
-            console.warn(`⚠️ 第${batchIndex}批代码总结结果为空`);
-          }
-        } else {
-          console.warn(`⚠️ 无法获取第${batchIndex}批代码总结结果`);
-        }
-
-        // 添加小延迟避免过于频繁的请求
-        if (batchIndex < totalBatches) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      }
-    } catch (error) {
-      console.warn(
-        "⚠️ 生成代码总结过程出错:",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
   }
 
   /**
@@ -4653,44 +4534,6 @@ ${modulesSummariesDescription}
     } catch (error) {
       console.warn(
         "⚠️ 从处理过的代码块生成模块总结失败:",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-  }
-
-  /**
-   * 生成并输出代码总结到日志
-   * 注意：这个方法主要用于备选方案，因为正常流程中代码总结已经在 processModuleChunks 中完成
-   * @param chunks 代码片段数组
-   * @param userRequest 用户请求
-   */
-  private async generateAndLogSummaries(
-    chunks: ScoredChunk[],
-    userRequest: string,
-  ): Promise<void> {
-    if (!this.llm || chunks.length === 0) {
-      return;
-    }
-
-    try {
-      // 生成代码片段总结并输出到日志
-      await this.logCodeSummaries(chunks);
-
-      // 按模块分组代码片段
-      const moduleChunks = new Map<string, ScoredChunk[]>();
-      for (const chunk of chunks) {
-        const module = chunk.module || "未知模块";
-        if (!moduleChunks.has(module)) {
-          moduleChunks.set(module, []);
-        }
-        moduleChunks.get(module)!.push(chunk);
-      }
-
-      // 生成模块总结并输出到日志
-      await this.logModuleSummaries(moduleChunks);
-    } catch (error) {
-      console.warn(
-        "⚠️ 备选方案总结生成过程出错:",
         error instanceof Error ? error.message : String(error),
       );
     }

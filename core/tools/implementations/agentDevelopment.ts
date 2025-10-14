@@ -1,5 +1,6 @@
 import { ToolImpl } from ".";
 import { AgentDevelopmentClient } from "../../util/agentDevelopmentClient.js";
+import { getKnowledgeApiServiceWithAuth } from "../../util/knowledgeApiService";
 
 export const agentDevelopmentImpl: ToolImpl = async (args, extras) => {
   try {
@@ -8,6 +9,9 @@ export const agentDevelopmentImpl: ToolImpl = async (args, extras) => {
     if (userFeedbackContent) {
       userRequirement += `\n\n用户反馈:${userFeedbackContent}`;
     }
+
+    // 获取带认证的知识库API服务实例
+    getKnowledgeApiServiceWithAuth(extras.config.controlPlaneClient);
     // 验证参数
     if (!userRequirement || typeof userRequirement !== "string") {
       return [
@@ -24,10 +28,7 @@ export const agentDevelopmentImpl: ToolImpl = async (args, extras) => {
     const llmToUse = longContextLLM || extras.llm;
 
     // 创建开发客户端，使用系统LLM（不再需要嵌入提供者）
-    const client = new AgentDevelopmentClient(
-      extras.fetch,
-      llmToUse,
-    );
+    const client = new AgentDevelopmentClient(extras.fetch, llmToUse);
 
     // 分析开发需求，获取相关的工具类和开发规范
     const analysisResult =
@@ -40,7 +41,10 @@ export const agentDevelopmentImpl: ToolImpl = async (args, extras) => {
     // 使用LLM分析具体方法（不再使用向量匹配）
     let methodsResult = null;
     try {
-      methodsResult = await client.analyzeUtilClassMethods(userRequirement, analysisResult.selectedUtilClasses);
+      methodsResult = await client.analyzeUtilClassMethods(
+        userRequirement,
+        analysisResult.selectedUtilClasses,
+      );
       console.log(
         "LLM方法分析成功，找到方法:",
         methodsResult.selectedMethods.length,
