@@ -35,8 +35,8 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
   let orgId: any = null;
   try {
     // 尝试从extras中获取组织信息
-    // orgId = extras.config.selectedOrgId;
-    orgId = "4176c7786222421ba4e351fd404b8488";
+    orgId = extras.config.selectedOrgId;
+    // orgId = "4176c7786222421ba4e351fd404b8488";
     // orgId = "40FC1A880000456184F8E98396A1645F";
   } catch (orgError) {
     console.warn("⚠️ [RAG查询] 无法获取组织信息:", orgError);
