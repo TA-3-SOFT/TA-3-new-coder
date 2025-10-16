@@ -4,6 +4,7 @@ import { canParseUrl } from "../util/url";
 import { BuiltInToolNames } from "./builtIn";
 
 import { agentDevelopmentImpl } from "./implementations/agentDevelopment";
+import { codebaseAnalysisImpl } from "./implementations/codebaseAnalysis";
 import { codeChunkAnalysisImpl } from "./implementations/codeChunkAnalysis";
 import { createNewFileImpl } from "./implementations/createNewFile";
 import { createRuleBlockImpl } from "./implementations/createRuleBlock";
@@ -165,6 +166,8 @@ async function callBuiltInTool(
       return await lsToolImpl(args, extras);
     case BuiltInToolNames.ProjectAnalysis:
       return await projectAnalysisImpl(args, extras);
+    case BuiltInToolNames.CodebaseAnalysis:
+      return await codebaseAnalysisImpl(args, extras);
     case BuiltInToolNames.CodeChunkAnalysis:
       return await codeChunkAnalysisImpl(args, extras);
     case BuiltInToolNames.AgentDevelopment:

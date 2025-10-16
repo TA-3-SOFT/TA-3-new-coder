@@ -13,7 +13,14 @@ export const selectActiveTools = createSelector(
     (store: RootState) => store.config.config.keepToolCallsInChatMode,
     (store: RootState) => store.session.structuredAgentWorkflow,
   ],
-  (mode, tools, policies, groupPolicies, keepToolCallsInChatMode, structuredAgentWorkflow): Tool[] => {
+  (
+    mode,
+    tools,
+    policies,
+    groupPolicies,
+    keepToolCallsInChatMode,
+    structuredAgentWorkflow,
+  ): Tool[] => {
     if (mode === "chat") {
       // 如果启用了设置，则在Chat模式下也返回只读工具
       if (keepToolCallsInChatMode) {
@@ -21,7 +28,7 @@ export const selectActiveTools = createSelector(
           (tool) =>
             policies[tool.function.name] !== "disabled" &&
             groupPolicies[tool.group] !== "exclude" &&
-            isReadOnlyTool(tool),
+            isModeTool(tool, mode),
         );
       } else {
         // 如果没有启用设置，则在Chat模式下不返回任何工具
@@ -31,11 +38,17 @@ export const selectActiveTools = createSelector(
       return tools.filter(
         (tool) =>
           policies[tool.function.name] !== "disabled" &&
-          groupPolicies[tool.group] !== "exclude",
+          groupPolicies[tool.group] !== "exclude" &&
+          isModeTool(tool, mode),
       );
     } else if (mode === "structured-agent") {
       // 结构化智能体模式：根据当前步骤返回允许的工具
-      return getStructuredAgentStepTools(tools, policies, groupPolicies, structuredAgentWorkflow);
+      return getStructuredAgentStepTools(
+        tools,
+        policies,
+        groupPolicies,
+        structuredAgentWorkflow,
+      );
     } else {
       return [];
     }
@@ -79,19 +92,37 @@ function getStructuredAgentStepTools(
 }
 
 // 判断工具是否为只读工具
-function isReadOnlyTool(tool: Tool): boolean {
-  // 根据内置工具名称判断是否为只读工具
-  const readOnlyToolNames = [
-    BuiltInToolNames.ReadFile,
-    BuiltInToolNames.ReadCurrentlyOpenFile,
-    BuiltInToolNames.GrepSearch,
-    BuiltInToolNames.FileGlobSearch,
-    BuiltInToolNames.LSTool,
-    BuiltInToolNames.ViewDiff,
-  ];
-
-  return (
-    tool.readonly ||
-    readOnlyToolNames.includes(tool.function.name as BuiltInToolNames)
-  );
+function isModeTool(tool: Tool, mode: string): boolean {
+  if (mode === "chat") {
+    const chatToolNames = [
+      BuiltInToolNames.ReadFile,
+      BuiltInToolNames.ReadCurrentlyOpenFile,
+      BuiltInToolNames.GrepSearch,
+      BuiltInToolNames.FileGlobSearch,
+      BuiltInToolNames.LSTool,
+      BuiltInToolNames.ViewDiff,
+      BuiltInToolNames.CodebaseAnalysis,
+      BuiltInToolNames.RagKnowledgeQuery,
+      BuiltInToolNames.GetProjectMemory,
+    ];
+    return chatToolNames.includes(tool.function.name as BuiltInToolNames);
+  } else if (mode === "agent") {
+    const agentToolNames = [
+      BuiltInToolNames.ReadFile,
+      BuiltInToolNames.ReadCurrentlyOpenFile,
+      BuiltInToolNames.GrepSearch,
+      BuiltInToolNames.FileGlobSearch,
+      BuiltInToolNames.LSTool,
+      BuiltInToolNames.ViewDiff,
+      BuiltInToolNames.CodebaseAnalysis,
+      BuiltInToolNames.RagKnowledgeQuery,
+      BuiltInToolNames.GetProjectMemory,
+      BuiltInToolNames.EditExistingFile,
+      BuiltInToolNames.CreateNewFile,
+      BuiltInToolNames.RunTerminalCommand,
+    ];
+    return agentToolNames.includes(tool.function.name as BuiltInToolNames);
+  } else {
+    return false;
+  }
 }

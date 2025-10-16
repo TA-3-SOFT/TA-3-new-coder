@@ -56,6 +56,7 @@ import { EmptyChatBody } from "./EmptyChatBody";
 import { ExploreDialogWatcher } from "./ExploreDialogWatcher";
 import { ToolCallDiv } from "./ToolCallDiv";
 import { useAutoScroll } from "./useAutoScroll";
+import AnswerIcon from "../../components/StepContainer/AnswerIcon";
 
 const StepsDiv = styled.div`
   position: relative;
@@ -318,6 +319,19 @@ export function Chat() {
                 dispatch(newSession());
               }}
             >
+              {index > 0 && history[index - 1].message.role === "user" && (
+                <div
+                  style={{
+                    lineHeight: "20px",
+                    display: "flex",
+                    paddingLeft: "15px",
+                    paddingTop: "5px",
+                  }}
+                >
+                  <AnswerIcon />
+                  <div className="pl-1.5">TA+3 牛码</div>
+                </div>
+              )}
               {item.message.role === "user" ? (
                 <>
                   <ContinueInputBox

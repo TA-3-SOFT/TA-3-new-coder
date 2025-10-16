@@ -53,7 +53,7 @@ const GradientBorder = styled.div<{
   loading: 0 | 1;
 }>`
   border-radius: ${(props) => props.borderRadius || "0"};
-  padding: 1px;
+  padding: 2px;
   background: ${(props) =>
     props.borderColor
       ? props.borderColor

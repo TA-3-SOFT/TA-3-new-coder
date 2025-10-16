@@ -15,6 +15,7 @@ import "./TipTapEditor.css";
 import { handleImageFile } from "./utils";
 import { createEditorConfig, getPlaceholderText } from "./utils/editorConfig";
 import { useEditorEventHandlers } from "./utils/keyHandlers";
+import AskIcon from "./AskIcon";
 
 export interface TipTapEditorProps {
   availableContextProviders: ContextProviderDescription[];
@@ -173,111 +174,125 @@ export function TipTapEditor(props: TipTapEditorProps) {
   }, [cancelBlurTimeout]);
 
   return (
-    <InputBoxDiv
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      onKeyUp={handleKeyUp}
-      style={
-        shouldHideToolbar && !props.isMainInput
-          ? { backgroundColor: "#008ff519" }
-          : {}
-      }
-      className={shouldHideToolbar ? "cursor-default" : "cursor-text"}
-      onClick={() => {
-        editor?.commands.focus();
-      }}
-      onDragOver={(event) => {
-        event.preventDefault();
-        setShowDragOverMsg(true);
-      }}
-      onDragLeave={(e) => {
-        if (e.relatedTarget === null) {
-          if (e.shiftKey) {
-            setShowDragOverMsg(false);
-          } else {
-            setTimeout(() => setShowDragOverMsg(false), 2000);
+    <div className="bg-badge w-full pr-[2px]" style={{ borderRadius: "3px" }}>
+      <InputBoxDiv
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
+        style={
+          shouldHideToolbar && !props.isMainInput
+            ? { backgroundColor: "#008ff519" }
+            : {}
+        }
+        className={shouldHideToolbar ? "cursor-default" : "cursor-text"}
+        onClick={() => {
+          editor?.commands.focus();
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setShowDragOverMsg(true);
+        }}
+        onDragLeave={(e) => {
+          if (e.relatedTarget === null) {
+            if (e.shiftKey) {
+              setShowDragOverMsg(false);
+            } else {
+              setTimeout(() => setShowDragOverMsg(false), 2000);
+            }
           }
-        }
-      }}
-      onDragEnter={() => {
-        setShowDragOverMsg(true);
-      }}
-      onDrop={(event) => {
-        if (
-          !defaultModel ||
-          !modelSupportsImages(
-            defaultModel.provider,
-            defaultModel.model,
-            defaultModel.title,
-            defaultModel.capabilities,
-          )
-        ) {
-          return;
-        }
-        setShowDragOverMsg(false);
-        let file = event.dataTransfer.files[0];
-        void handleImageFile(ideMessenger, file).then((result) => {
-          if (!editor) {
+        }}
+        onDragEnter={() => {
+          setShowDragOverMsg(true);
+        }}
+        onDrop={(event) => {
+          if (
+            !defaultModel ||
+            !modelSupportsImages(
+              defaultModel.provider,
+              defaultModel.model,
+              defaultModel.title,
+              defaultModel.capabilities,
+            )
+          ) {
             return;
           }
-          if (result) {
-            const [_, dataUrl] = result;
-            const { schema } = editor.state;
-            const node = schema.nodes.image.create({ src: dataUrl });
-            const tr = editor.state.tr.insert(0, node);
-            editor.view.dispatch(tr);
-          }
-        });
-        event.preventDefault();
-      }}
-    >
-      <div className="px-2.5 pb-1 pt-2">
-        <EditorContent
-          className={`scroll-container overflow-y-scroll ${props.isMainInput ? "max-h-[70vh]" : ""}`}
-          spellCheck={false}
-          editor={editor}
-          onClick={(event) => {
-            event.stopPropagation();
-          }}
-        />
-        <InputToolbar
-          isMainInput={props.isMainInput}
-          toolbarOptions={props.toolbarOptions}
-          activeKey={activeKey}
-          hidden={shouldHideToolbar && !props.isMainInput}
-          onAddContextItem={() => insertCharacterWithWhitespace("@")}
-          onEnter={onEnterRef.current}
-          onImageFileSelected={(file) => {
-            void handleImageFile(ideMessenger, file).then((result) => {
-              if (!editor) {
-                return;
-              }
-              if (result) {
-                const [_, dataUrl] = result;
-                const { schema } = editor.state;
-                const node = schema.nodes.image.create({ src: dataUrl });
-                editor.commands.command(({ tr }) => {
-                  tr.insert(0, node);
-                  return true;
-                });
-              }
-            });
-          }}
-          disabled={isStreaming}
-        />
-      </div>
-
-      {showDragOverMsg &&
-        modelSupportsImages(
-          defaultModel?.provider || "",
-          defaultModel?.model || "",
-          defaultModel?.title,
-          defaultModel?.capabilities,
-        ) && (
-          <DragOverlay show={showDragOverMsg} setShow={setShowDragOverMsg} />
+          setShowDragOverMsg(false);
+          let file = event.dataTransfer.files[0];
+          void handleImageFile(ideMessenger, file).then((result) => {
+            if (!editor) {
+              return;
+            }
+            if (result) {
+              const [_, dataUrl] = result;
+              const { schema } = editor.state;
+              const node = schema.nodes.image.create({ src: dataUrl });
+              const tr = editor.state.tr.insert(0, node);
+              editor.view.dispatch(tr);
+            }
+          });
+          event.preventDefault();
+        }}
+      >
+        {shouldHideToolbar && !props.isMainInput && (
+          <div
+            style={{
+              lineHeight: "20px",
+              display: "flex",
+              paddingLeft: "5px",
+              paddingTop: "5px",
+            }}
+          >
+            <AskIcon />
+            <div className="pl-1.5">我</div>
+          </div>
         )}
-      <div id={TIPPY_DIV_ID} className="fixed z-50" />
-    </InputBoxDiv>
+        <div className="px-2.5 pb-1 pt-2">
+          <EditorContent
+            className={`scroll-container overflow-y-scroll ${props.isMainInput ? "max-h-[70vh]" : ""}`}
+            spellCheck={false}
+            editor={editor}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          />
+          <InputToolbar
+            isMainInput={props.isMainInput}
+            toolbarOptions={props.toolbarOptions}
+            activeKey={activeKey}
+            hidden={shouldHideToolbar && !props.isMainInput}
+            onAddContextItem={() => insertCharacterWithWhitespace("@")}
+            onEnter={onEnterRef.current}
+            onImageFileSelected={(file) => {
+              void handleImageFile(ideMessenger, file).then((result) => {
+                if (!editor) {
+                  return;
+                }
+                if (result) {
+                  const [_, dataUrl] = result;
+                  const { schema } = editor.state;
+                  const node = schema.nodes.image.create({ src: dataUrl });
+                  editor.commands.command(({ tr }) => {
+                    tr.insert(0, node);
+                    return true;
+                  });
+                }
+              });
+            }}
+            disabled={isStreaming}
+          />
+        </div>
+        {showDragOverMsg &&
+          modelSupportsImages(
+            defaultModel?.provider || "",
+            defaultModel?.model || "",
+            defaultModel?.title,
+            defaultModel?.capabilities,
+          ) && (
+            <DragOverlay show={showDragOverMsg} setShow={setShowDragOverMsg} />
+          )}
+        <div id={TIPPY_DIV_ID} className="fixed z-50" />
+      </InputBoxDiv>
+    </div>
   );
 }

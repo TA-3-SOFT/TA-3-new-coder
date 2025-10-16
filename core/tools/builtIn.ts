@@ -11,6 +11,7 @@ export enum BuiltInToolNames {
   ViewDiff = "builtin_view_diff",
   LSTool = "builtin_ls",
   ProjectAnalysis = "project_analysis",
+  CodebaseAnalysis = "codebase_analysis",
   CodeChunkAnalysis = "code_chunk_analysis",
   // CodeVectorAnalysis = "code_vector_analysis",
   CreateRuleBlock = "builtin_create_rule_block",
