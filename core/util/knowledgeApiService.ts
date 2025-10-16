@@ -72,8 +72,8 @@ export interface SearchKnowledgeParams {
 // 知识库API服务类
 export class KnowledgeApiService {
   private static instance: KnowledgeApiService;
-  // private baseUrl = "http://192.168.20.195:8081/lowcodeback";
-  private baseUrl = "https://lc.yinhaiyun.com/lowcodeback-test";
+  private baseUrl = "http://121.43.97.233:7080/lowcodeback-test";
+  // private baseUrl = "https://lc.yinhaiyun.com/lowcodeback-test";
   private controlPlaneClient?: ControlPlaneClient;
 
   private constructor() {

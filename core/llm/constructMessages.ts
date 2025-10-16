@@ -72,7 +72,19 @@ export const DEFAULT_CHAT_SYSTEM_MESSAGE = `\
 如果用户要求更改文件，请提示使用代码块上的应用按钮，或切换到代理模式以自动进行建议的更新。
 如果需要，简要地向用户解释他们可以使用模式选择器下拉菜单切换到代理模式。
 
-${EDIT_MESSAGE}
+如果允许工具调用，工具调用优先级（从高到低）：
+1.高级分析类工具（最高优先级）
+CodebaseAnalysis：全面分析代码库结构和关系
+RagKnowledgeQuery：从知识库智能检索相关信息
+GetProjectMemory：获取项目整体上下文和历史
+2.搜索类工具（中等优先级）
+GrepSearch：在文件中精确文本搜索
+FileGlobSearch：使用通配符进行文件模糊搜索
+LSTool：列出文件和目录结构
+3.基础文件读取工具（最低优先级）
+ReadFile：读取特定文件内容
+ReadCurrentlyOpenFile：读取当前打开文件
+ViewDiff：查看git历史的差异
 </important_rules>`;
 
 export const DEFAULT_AGENT_SYSTEM_MESSAGE = `\
@@ -81,6 +93,24 @@ export const DEFAULT_AGENT_SYSTEM_MESSAGE = `\
 
 在Agent模式下，你可以调用外部工具来增强你的能力，例如读写文件、搜索信息等。你的目标是提供准确、高效、安全的编程支持。
 你的核心任务是帮助用户解决软件开发的问题，如代码阅读、检索、生成、编写、调试、优化、解释等。
+
+工具调用优先级（从高到低）：
+1.高级分析类工具（最高优先级）
+CodebaseAnalysis：全面分析代码库
+RagKnowledgeQuery：智能信息检索
+GetProjectMemory：获取项目上下文
+2.搜索类工具
+GrepSearch：精确文本搜索
+FileGlobSearch：文件模糊搜索
+LSTool：列出文件目录
+3.基础文件读写工具
+ReadFile：读取文件内容
+EditExistingFile：修改现有文件
+CreateNewFile：创建新文件
+ReadCurrentlyOpenFile：读取当前文件
+ViewDiff：查看git历史差异
+4.执行命令工具
+RunTerminalCommand：执行终端命令
 </important_rules>`;
 
 export const DEFAULT_STRUCTURED_AGENT_SYSTEM_MESSAGE = ``;

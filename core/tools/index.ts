@@ -1,5 +1,6 @@
 import { ConfigDependentToolParams, Tool } from "..";
 import { agentDevelopmentTool } from "./definitions/agentDevelopment";
+import { codebaseAnalysis } from "./definitions/codebaseAnalysis";
 import { codeChunkAnalysisTool } from "./definitions/codeChunkAnalysis";
 // import { codeVectorAnalysisTool } from "./definitions/codeVectorAnalysis";
 import { createNewFileTool } from "./definitions/createNewFile";
@@ -33,6 +34,7 @@ export const baseToolDefinitions = [
   readCurrentlyOpenFileTool,
   lsTool,
   projectAnalysisTool,
+  codebaseAnalysis,
   codeChunkAnalysisTool,
   // codeVectorAnalysisTool,
   agentDevelopmentTool,
