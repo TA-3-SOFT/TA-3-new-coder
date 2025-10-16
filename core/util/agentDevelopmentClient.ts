@@ -670,12 +670,6 @@ ${numberedMethods.join("\n")}
               packagePath: methodInfo.packagePath,
               methods: selectedMethodSignatures,
             });
-
-            console.log(
-              `工具类 ${className} 通过LLM分析匹配到 ${selectedMethodSignatures.length} 个方法`,
-            );
-          } else {
-            console.log(`工具类 ${className} 没有匹配到任何方法`);
           }
         } catch (llmError) {
           console.error(`LLM分析工具类 ${className} 失败:`, llmError);
@@ -845,15 +839,15 @@ ${methodInfo.methods.map((method, index) => `${index + 1}. ${method}`).join("\n"
 
         if (content.length <= CHUNK_SIZE) {
           // 文档较小，直接处理
-          const summaryPrompt = `根据以下问题：
-
+          const summaryPrompt = `根据以下问题：  
+  
 "${question}"
 
 请分析并总结以下文档内容，提取与问题最相关的信息：
 
 ${content.replace(/"/g, '\\"').replace(/\n/g, "\\n")}
 
-请提供简洁明了的总结，重点突出与问题相关的内容：`;
+请提供简洁明了、准确无误的总结，重点突出与问题相关的内容，直接给出最终结论，不需要引用原文或分点说明：`;
 
           const summary = await this.llm.complete(
             summaryPrompt,
@@ -866,11 +860,6 @@ ${content.replace(/"/g, '\\"').replace(/\n/g, "\\n")}
             source: doc!.fileName || "未知来源",
           });
         } else {
-          // 文档较大，需要切割处理
-          console.log(
-            `文档 ${doc!.fileName} 较大 (${content.length} 字符)，需要切割处理`,
-          );
-
           // 简化处理：只取前CHUNK_SIZE字符
           const truncatedContent = content.substring(0, CHUNK_SIZE);
           const summaryPrompt = `根据以下问题：
@@ -881,7 +870,7 @@ ${content.replace(/"/g, '\\"').replace(/\n/g, "\\n")}
 
 ${truncatedContent.replace(/"/g, '\\"').replace(/\n/g, "\\n")}
 
-请提供简洁明了的总结，重点突出与问题相关的内容：`;
+请提供简洁明了、准确无误的总结，重点突出与问题相关的内容，直接给出最终结论，不需要引用原文或分点说明：`;
 
           const summary = await this.llm.complete(
             summaryPrompt,
@@ -898,10 +887,26 @@ ${truncatedContent.replace(/"/g, '\\"').replace(/\n/g, "\\n")}
 
       // 格式化返回结果
       if (processedResults.length > 0) {
-        const formattedResults = processedResults.map((result: any) => {
-          return `**${result.source}**\n${result.content}`;
-        });
-        return formattedResults.join("\n\n");
+        // 合并所有结果为一个简洁的结论
+        const summaries = processedResults.map((result: any) => result.content);
+        if (summaries.length > 1) {
+          const combinePrompt = `请将以下多个总结内容合并为一个简洁明了、准确无误的最终结论，直接回答问题"${question}"，不要引用原文或分点说明：
+
+${summaries.map((s: string) => `"${s}"`).join("\n\n")}
+
+请提供一个统一的、简洁的、准确的最终结论：`;
+
+          const combinedSummary = await this.llm.complete(
+            combinePrompt,
+            abortController.signal,
+          );
+
+          return typeof combinedSummary === "string"
+            ? combinedSummary
+            : JSON.stringify(combinedSummary);
+        } else {
+          return summaries[0];
+        }
       } else {
         return `未找到关于"${question}"的详细说明，请查阅框架文档或联系技术支持。`;
       }

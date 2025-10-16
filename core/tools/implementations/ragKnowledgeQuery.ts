@@ -1,8 +1,5 @@
 import { ToolImpl } from ".";
-import {
-  KnowledgeApiService,
-  getKnowledgeApiServiceWithAuth,
-} from "../../util/knowledgeApiService";
+import { getKnowledgeApiServiceWithAuth } from "../../util/knowledgeApiService";
 
 interface RagQueryResult {
   content: string;
@@ -38,8 +35,8 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
   let orgId: any = null;
   try {
     // 尝试从extras中获取组织信息
-    orgId = extras.config.selectedOrgId;
-    // orgId = "4176c7786222421ba4e351fd404b8488";
+    // orgId = extras.config.selectedOrgId;
+    orgId = "4176c7786222421ba4e351fd404b8488";
     // orgId = "40FC1A880000456184F8E98396A1645F";
   } catch (orgError) {
     console.warn("⚠️ [RAG查询] 无法获取组织信息:", orgError);
@@ -49,8 +46,6 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
   const appId = appid || orgId;
 
   try {
-    console.log(`🔍 [RAG查询] 开始查询: "${query}"`);
-
     // 获取带认证的知识库API服务实例
     const knowledgeApi = getKnowledgeApiServiceWithAuth(
       extras.config.controlPlaneClient,
@@ -62,7 +57,6 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
     };
 
     const allDocuments = await knowledgeApi.listDocuments(listParams);
-    console.log(`✅ [RAG查询] 获取到 ${allDocuments.length} 个文档`);
 
     if (allDocuments.length === 0) {
       return [
@@ -106,9 +100,6 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
 
     prompt += `请只返回编号，用逗号分隔，例如: "1,3,5"。如果不相关，请返回"无"。`;
 
-    // 调用LLM选择相关文档
-    console.log(`🔍 [RAG查询] 请求LLM选择相关文档`);
-
     // 使用longcontext模型而不是默认的extras.llm
     const longContextLLM = extras.config?.selectedModelByRole?.longcontext;
     const llmToUse = longContextLLM || extras.llm;
@@ -134,8 +125,6 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
         .join("")
         .trim();
     }
-
-    console.log(`✅ [RAG查询] LLM选择结果: ${selectedDocIdsStr}`);
 
     // 解析LLM返回的文档编号
     let selectedDocuments: any[] = []; // 修复类型错误
@@ -164,8 +153,6 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
         );
       }
     }
-
-    console.log(`✅ [RAG查询] 选中 ${selectedDocuments.length} 个文档`);
 
     if (selectedDocuments.length === 0) {
       return [
@@ -203,84 +190,82 @@ export const ragKnowledgeQueryImpl: ToolImpl = async (args, extras) => {
     // 过滤掉获取失败的文档
     const validDocuments = detailedDocuments.filter((doc) => doc !== null);
 
-    // 处理文档内容，如果文档过大则进行切割并交给LLM处理
-    const processedResults = [];
+    // 处理文档内容，先对每个文档进行详细总结
+    const docSummaries = [];
     for (const doc of validDocuments) {
       // 检查文档大小，如果超过阈值则进行切割
-      const CHUNK_SIZE = 400000; // 每个片段最大8000字符
+      const CHUNK_SIZE = 400000; // 每个片段最大字符数
       const content = doc!.content;
+      const fileName = doc!.fileName || "未知来源";
 
+      let summary = "";
       if (content.length <= CHUNK_SIZE) {
         // 文档较小，直接处理
-        const summary = await processDocumentWithLLM(query, content, llmToUse);
-        processedResults.push({
-          content: summary,
-          source: doc!.fileName || "未知来源",
-          metadata: {
-            fileId: doc!.fileId,
-            fileType: doc!.fileType,
-            fileSize: doc!.fileSize,
-            createTime: doc!.createTime,
-            categoryId: doc!.categoryId,
-            categoryName: doc!.categoryName,
-          },
-        });
-      } else {
-        // 文档较大，需要切割处理
-        console.log(
-          `🔍 [RAG查询] 文档 ${doc!.fileName} 较大 (${content.length} 字符)，需要切割处理`,
-        );
-
-        // 切割文档
-        const chunks = splitDocumentIntoChunks(
+        summary = await processDocumentWithLLMForDetail(
+          query,
           content,
-          CHUNK_SIZE,
-          doc!.fileName,
+          llmToUse,
         );
+      } else {
+        // 切割文档
+        const chunks = splitDocumentIntoChunks(content, CHUNK_SIZE, fileName);
 
         // 分别处理每个片段
         const chunkSummaries = [];
         for (const chunk of chunks) {
-          const summary = await processDocumentChunkWithLLM(
+          const chunkSummary = await processDocumentChunkWithLLM(
             query,
             chunk,
             llmToUse,
           );
-          chunkSummaries.push(summary);
+          chunkSummaries.push(chunkSummary);
         }
 
         // 合并所有片段的总结
         const combinedSummary = chunkSummaries.join("\n\n");
 
         // 如果合并后的内容仍然很长，再次总结
-        let finalSummary = combinedSummary;
         if (combinedSummary.length > CHUNK_SIZE) {
-          finalSummary = await processDocumentWithLLM(
+          summary = await processDocumentWithLLMForDetail(
             query,
             combinedSummary,
             llmToUse,
           );
+        } else {
+          summary = combinedSummary;
         }
-
-        processedResults.push({
-          content: finalSummary,
-          source: doc!.fileName || "未知来源",
-          metadata: {
-            fileId: doc!.fileId,
-            fileType: doc!.fileType,
-            fileSize: doc!.fileSize,
-            createTime: doc!.createTime,
-            categoryId: doc!.categoryId,
-            categoryName: doc!.categoryName,
-          },
-        });
       }
+
+      docSummaries.push({
+        fileName,
+        summary,
+      });
     }
 
-    console.log(`✅ [RAG查询] 处理完成 ${processedResults.length} 个文档`);
+    // 基于所有文档的详细总结生成最终简洁答案
+    let allSummariesContent = "";
+    docSummaries.forEach((docSummary) => {
+      allSummariesContent += `\n\n文档: ${docSummary.fileName}\n${docSummary.summary}`;
+    });
+
+    const finalAnswer = await processDocumentWithLLMForFinal(
+      query,
+      allSummariesContent,
+      llmToUse,
+    );
 
     // 格式化返回结果
-    return formatRagResults(query, { answer: "", results: processedResults });
+    return [
+      {
+        name: "RAG知识库查询结果",
+        description: `查询: ${query}`,
+        content: `# RAG知识库查询结果
+
+**查询内容:** ${query}
+
+${finalAnswer}`,
+      },
+    ];
   } catch (error) {
     console.error("❌ [RAG查询] 查询失败:", error);
 
@@ -349,15 +334,13 @@ function splitDocumentIntoChunks(
     chunk.total = total;
   });
 
-  console.log(`✅ [RAG查询] 文档切割成 ${chunks.length} 个片段`);
-
   return chunks;
 }
 
 /**
- * 使用LLM处理整个文档
+ * 使用LLM处理整个文档，生成详细总结
  */
-async function processDocumentWithLLM(
+async function processDocumentWithLLMForDetail(
   query: string,
   content: string,
   llm: any,
@@ -370,11 +353,14 @@ async function processDocumentWithLLM(
 
 "${escapedQuery}"
 
-请分析并总结以下文档内容，提取与查询最相关的信息：
+请分析并总结以下文档内容，提取与查询最相关的信息，提供详细且全面的总结。要求：
+1. 提供详细的信息，涵盖文档中与查询相关的主要内容
+2. 保留重要的技术细节和数据
+3. 可以引用关键信息，但不要大量复制原文
+4. 保持结构清晰，便于后续进一步处理
 
-${escapedContent}
-
-请提供简洁明了的总结，重点突出与查询相关的内容：`;
+文档内容：
+${escapedContent}`;
 
   try {
     const abortController = new AbortController();
@@ -476,6 +462,70 @@ ${escapedContent}
       return `处理文档片段时JSON解析出错: 可能是LLM返回了格式不正确的响应`;
     }
     return `处理文档片段时出错: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+/**
+ * 使用LLM处理多个文档总结，生成最终简洁答案
+ */
+async function processDocumentWithLLMForFinal(
+  query: string,
+  content: string,
+  llm: any,
+): Promise<string> {
+  // 对query和content进行转义处理，避免特殊字符导致JSON解析错误
+  const escapedQuery = query.replace(/"/g, '\\"').replace(/\n/g, "\\n");
+  const escapedContent = content.replace(/"/g, '\\"').replace(/\n/g, "\\n");
+
+  const prompt = `根据以下查询请求：
+
+"${escapedQuery}"
+
+请分析以下各个文档的总结内容，提供一个精准、简洁的最终答案。要求：
+1. 只输出最终答案，不需要解释过程
+2. 不要引用原文内容
+3. 不要分点说明
+4. 不需要按文档分别说明
+5. 保持内容简洁明了
+
+各文档总结内容：
+${escapedContent}`;
+
+  try {
+    const abortController = new AbortController();
+    const response = await llm.chat(
+      [{ role: "user", content: prompt }],
+      abortController.signal,
+      {
+        temperature: 0.3,
+      },
+    );
+
+    if (typeof response.content === "string") {
+      return response.content.trim();
+    } else if (Array.isArray(response.content)) {
+      // 尝试处理可能的JSON解析错误
+      try {
+        return response.content
+          .filter((part: any) => part.type === "text")
+          .map((part: any) => part.text)
+          .join("")
+          .trim();
+      } catch (parseError) {
+        console.warn("⚠️ [RAG查询] 解析LLM响应数组时出错:", parseError);
+        // 返回原始响应内容的字符串表示
+        return JSON.stringify(response.content);
+      }
+    }
+
+    return "无法处理文档内容";
+  } catch (error) {
+    console.error("❌ [RAG查询] LLM处理文档时出错:", error);
+    // 提供更详细的错误信息
+    if (error instanceof Error && error.message.includes("JSON")) {
+      return `处理文档时JSON解析出错: 可能是LLM返回了格式不正确的响应`;
+    }
+    return `处理文档时出错: ${error instanceof Error ? error.message : String(error)}`;
   }
 }
 

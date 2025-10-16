@@ -24,7 +24,7 @@ export const ragKnowledgeQueryTool: Tool = {
         },
         appid: {
           type: "string",
-          description: "可选的知识库ID。如果不提供，将使用默认的组织ID",
+          description: "可选的知识库ID。没有明确要求的时候，不传这个参数。",
         },
       },
       required: ["query"],
