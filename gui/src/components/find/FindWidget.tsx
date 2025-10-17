@@ -225,17 +225,17 @@ export const useFindWidget = (
         onChange={(e) => {
           setCurrentValue(e.target.value);
         }}
-        placeholder="Search..."
+        placeholder="搜索..."
       />
       <p className="xs:block hidden min-w-12 whitespace-nowrap px-1 text-center text-xs">
         {matches.length === 0
-          ? "No results"
+          ? "无结果"
           : `${(currentMatch?.index ?? 0) + 1} of ${matches.length}`}
       </p>
       <div className="hidden flex-row gap-0.5 sm:flex">
         <HeaderButtonWithToolTip
           tooltipPlacement="top-end"
-          text={"Previous Match"}
+          text={"上一个"}
           onClick={(e) => {
             e.stopPropagation();
             previousMatch();
@@ -247,7 +247,7 @@ export const useFindWidget = (
         </HeaderButtonWithToolTip>
         <HeaderButtonWithToolTip
           tooltipPlacement="top-end"
-          text={"Next Match"}
+          text={"下一个"}
           onClick={(e) => {
             e.stopPropagation();
             nextMatch();
@@ -262,11 +262,7 @@ export const useFindWidget = (
         disabled={disabled}
         inverted={caseSensitive}
         tooltipPlacement="top-end"
-        text={
-          caseSensitive
-            ? "Turn off case sensitivity"
-            : "Turn on case sensitivity"
-        }
+        text={caseSensitive ? "关闭大小写敏感" : "打开大小写敏感"}
         onClick={(e) => {
           e.stopPropagation();
           setCaseSensitive((curr) => !curr);
