@@ -30,15 +30,17 @@ export const editFileTool: Tool = {
         changes: {
           type: "string",
           description:
-            "Any modifications to the file, showing only needed changes. Do NOT wrap this in a codeblock or write anything besides the code changes. In larger files, use brief language-appropriate placeholders for large unmodified sections, e.g. '// ... existing code ...'",
+            "对文件进行的任何修改，只显示必要的更改(包括需要新增，修改，删除的代码)。不要将其包装在代码块中。在较大的文件中，对未修改的大部分内容使用简洁的、语言适当的占位符，例如 '// ... existing code ...'",
         },
         startLine: {
           type: "number",
-          description: "当前修改内容相关的代码块，在最新文件版本中的开始行号",
+          description:
+            "在最新文件版本中，当前changes内容相关的代码块的开始行号",
         },
         endLine: {
           type: "number",
-          description: "当前修改内容相关的代码块，在最新文件版本中的结束行号",
+          description:
+            "在最新文件版本中，当前changes内容相关的代码块的结束行号",
         },
       },
     },

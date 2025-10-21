@@ -23,7 +23,7 @@ import { viewDiffTool } from "./definitions/viewDiff";
 
 export const baseToolDefinitions = [
   readFileTool,
-  readFileRangeTool,
+  // readFileRangeTool,
   editFileTool,
   createNewFileTool,
   runTerminalCommandTool,
@@ -41,7 +41,7 @@ export const baseToolDefinitions = [
   ragKnowledgeQueryTool,
   getProjectMemoryTool,
   generateProjectMemoryTool,
-  createRuleBlock,
+  // createRuleBlock,
   // replacing with ls tool for now
   // viewSubdirectoryTool,
   // viewRepoMapTool,

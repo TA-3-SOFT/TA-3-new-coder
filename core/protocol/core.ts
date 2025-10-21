@@ -15,6 +15,8 @@ import {
   ListDocumentsParams,
   ViewDocumentParams,
   SearchKnowledgeParams,
+  GenerateTokenParams,
+  GenerateTokenResult,
 } from "../util/knowledgeApiService";
 
 import {
@@ -223,4 +225,5 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   "knowledge/listDocuments": [ListDocumentsParams, KnowledgeDocument[]];
   "knowledge/viewDocument": [ViewDocumentParams, KnowledgeDocumentDetail];
   "knowledge/searchKnowledge": [SearchKnowledgeParams, KnowledgeSearchResult[]];
+  "knowledge/generateToken": [GenerateTokenParams, GenerateTokenResult];
 };

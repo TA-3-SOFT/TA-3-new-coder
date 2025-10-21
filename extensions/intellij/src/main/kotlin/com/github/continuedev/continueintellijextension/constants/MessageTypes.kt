@@ -134,6 +134,7 @@ class MessageTypes {
             "project/initializeInfo",
             "knowledge/listDocuments",
             "knowledge/viewDocument",
+            "knowledge/generateToken",
         )
     }
 }

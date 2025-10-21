@@ -874,6 +874,19 @@ export class Core {
       }
     });
 
+    on("knowledge/generateToken", async (msg) => {
+      try {
+        // 使用单例的知识库API服务，设置当前的认证客户端
+        const knowledgeApiService = getKnowledgeApiServiceWithAuth(
+          this.configHandler.controlPlaneClient,
+        );
+        return await knowledgeApiService.generateToken(msg.data);
+      } catch (error) {
+        console.error("Failed to generate knowledge Token:", error);
+        throw error;
+      }
+    });
+
     on("knowledge/searchKnowledge", async (msg) => {
       try {
         // 使用单例的知识库API服务，设置当前的认证客户端

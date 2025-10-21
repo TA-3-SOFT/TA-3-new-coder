@@ -47,7 +47,8 @@ export const uiSlice = createSlice({
     ttsActive: false,
     toolSettings: {
       [BuiltInToolNames.ReadFile]: "allowedWithoutPermission",
-      [BuiltInToolNames.ReadFileRange]: "allowedWithoutPermission",
+      // [BuiltInToolNames.ReadFileRange]: "allowedWithoutPermission",
+      [BuiltInToolNames.ReadCurrentlyOpenFile]: "allowedWithoutPermission",
       [BuiltInToolNames.EditExistingFile]: "allowedWithPermission",
       [BuiltInToolNames.CreateNewFile]: "allowedWithPermission",
       [BuiltInToolNames.RunTerminalCommand]: "allowedWithPermission",
@@ -62,9 +63,10 @@ export const uiSlice = createSlice({
       [BuiltInToolNames.GenerateProjectMemory]: "allowedWithoutPermission",
       [BuiltInToolNames.GetProjectMemory]: "allowedWithoutPermission",
       [BuiltInToolNames.RagKnowledgeQuery]: "allowedWithoutPermission",
+      [BuiltInToolNames.CodebaseAnalysis]: "allowedWithoutPermission",
       // [BuiltInToolNames.CodeVectorAnalysis]: "allowedWithoutPermission",
-      [BuiltInToolNames.CreateRuleBlock]: "allowedWithPermission",
-      [BuiltInToolNames.RequestRule]: "disabled",
+      // [BuiltInToolNames.CreateRuleBlock]: "allowedWithPermission",
+      // [BuiltInToolNames.RequestRule]: "disabled",
     },
     toolGroupSettings: {
       [BUILT_IN_GROUP_NAME]: "include",

@@ -203,11 +203,11 @@ export default async function doLoadConfig(options: {
     }
   }
 
-  newConfig.tools.push(
-    ...getConfigDependentToolDefinitions({
-      rules: newConfig.rules,
-    }),
-  );
+  // newConfig.tools.push(
+  //   ...getConfigDependentToolDefinitions({
+  //     rules: newConfig.rules,
+  //   }),
+  // );
 
   // Detect duplicate tool names
   const counts: Record<string, number> = {};

@@ -1,5 +1,8 @@
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowTopRightOnSquareIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../../../../redux/hooks";
 import {
   setDialogMessage,
@@ -13,6 +16,10 @@ import {
 import { fontSize } from "../../../../../util";
 
 import KnowledgeDocumentDialog from "./KnowledgeDocumentDialog";
+import { EnterButton } from "../../../InputToolbar/EnterButton";
+import { useAuth } from "../../../../../context/Auth";
+import { isOnPremSession } from "core/control-plane/AuthTypes";
+import { IdeMessengerContext } from "../../../../../context/IdeMessenger";
 
 function KnowledgeDocumentItem({
   document,
@@ -83,6 +90,8 @@ function KnowledgeSection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const { session } = useAuth();
+  const ideMessenger = useContext(IdeMessengerContext);
 
   // 获取知识库文档列表
   const fetchDocuments = async () => {
@@ -149,6 +158,33 @@ function KnowledgeSection() {
     dispatch(setShowDialog(true));
   };
 
+  // 处理文档管理事件
+  const onDocsManagement = async () => {
+    // No login button for on-prem deployments
+    if (isOnPremSession(session)) {
+      return;
+    }
+    try {
+      if (selectedOrgId && session?.account.id) {
+        const params = {
+          appId: selectedOrgId,
+          loginId: session.account.id,
+        };
+
+        const generateTokenResult = await knowledgeApi.generateToken(params);
+        // 跳转到网页端
+        const redirectUrl = encodeURIComponent(
+          `lowCodePlatformManagement.html#/appMenu/knowledgeManagement?appId=${generateTokenResult.appId}&productId=${generateTokenResult.productId}`,
+        );
+        const url = `http://192.168.20.195:8080/aiSsoLogin.html?token=${generateTokenResult.token}&redirect=${redirectUrl}`;
+        ideMessenger.post("openUrl", url);
+      }
+    } catch (err) {
+      console.error("Failed to fetch knowledge documents:", err);
+      setError(err instanceof Error ? err.message : "网络请求失败，请检查连接");
+    }
+  };
+
   return (
     <div className="flex flex-col">
       {/* 搜索框 */}
@@ -159,8 +195,14 @@ function KnowledgeSection() {
           placeholder="搜索知识库文档..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="bg-input text-input-foreground border-input-border placeholder-input-placeholder w-[calc(100%-40px)] rounded-md border pl-8 text-sm transition-colors focus:outline-none"
+          className="bg-input text-input-foreground border-input-border placeholder-input-placeholder w-[calc(100%-110px)] rounded-md border pl-8 text-sm transition-colors focus:outline-none"
         />
+        <div className="float-right mt-0.5">
+          <EnterButton className="text-description" onClick={onDocsManagement}>
+            <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
+            文档管理
+          </EnterButton>
+        </div>
       </div>
 
       {/* 文档列表 */}

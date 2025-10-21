@@ -41,6 +41,13 @@ export interface KnowledgeSearchResult {
   updateTime: string;
 }
 
+export interface GenerateTokenResult {
+  productId: string;
+  appId: string;
+  expireIn: number;
+  token: string;
+}
+
 export interface KnowledgeApiResponse<T> {
   code: number;
   requestId: string;
@@ -69,9 +76,15 @@ export interface SearchKnowledgeParams {
   useRerank?: boolean;
 }
 
+export interface GenerateTokenParams {
+  loginId: string;
+  appId: string;
+}
+
 // 知识库API服务类
 export class KnowledgeApiService {
   private static instance: KnowledgeApiService;
+  // private baseUrl = "http://192.168.20.195:8081/lowcodeback";
   private baseUrl = "http://121.43.97.233:7080/lowcodeback-test";
   // private baseUrl = "https://lc.yinhaiyun.com/lowcodeback-test";
   private controlPlaneClient?: ControlPlaneClient;
@@ -205,6 +218,26 @@ export class KnowledgeApiService {
       }
     } catch (error) {
       console.error("Failed to search knowledge:", error);
+      throw error;
+    }
+  }
+
+  async generateToken(
+    params: GenerateTokenParams,
+  ): Promise<GenerateTokenResult> {
+    try {
+      const response = await this.makeRequest(
+        "/api/ai-sso/generate-token",
+        params,
+      );
+
+      if (response.serviceSuccess && response.code === 200) {
+        return response.data as GenerateTokenResult;
+      } else {
+        throw new Error(response.errors?.join(", ") || "生成token信息失败");
+      }
+    } catch (error) {
+      console.error("Failed to generate token:", error);
       throw error;
     }
   }

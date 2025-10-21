@@ -42,6 +42,13 @@ export interface KnowledgeSearchResult {
   updateTime: string;
 }
 
+export interface GenerateTokenResult {
+  productId: string;
+  appId: string;
+  expireIn: number;
+  token: string;
+}
+
 export interface KnowledgeApiResponse<T> {
   code: number;
   requestId: string;
@@ -68,6 +75,11 @@ export interface SearchKnowledgeParams {
   topK?: number;
   minSimilarity?: number;
   useRerank?: boolean;
+}
+
+export interface GenerateTokenParams {
+  loginId: string;
+  appId: string;
 }
 
 class KnowledgeApiService {
@@ -113,6 +125,25 @@ class KnowledgeApiService {
       }
     } catch (error) {
       console.error("Failed to view document:", error);
+      throw error;
+    }
+  }
+
+  async generateToken(
+    params: GenerateTokenParams,
+  ): Promise<GenerateTokenResult> {
+    try {
+      const result = await this.ideMessenger.request(
+        "knowledge/generateToken",
+        params,
+      );
+      if (result.status === "success") {
+        return result.content;
+      } else {
+        throw new Error("获取知识库token失败");
+      }
+    } catch (error) {
+      console.error("Failed to generate token:", error);
       throw error;
     }
   }

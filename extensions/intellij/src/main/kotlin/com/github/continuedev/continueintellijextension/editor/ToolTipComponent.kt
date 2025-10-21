@@ -169,8 +169,12 @@ class ToolTipComponent : JBPanel<ToolTipComponent> {
         val totalWidth = addToChatWidth + editWidth + buttonMargin + (2 * componentHorizontalPadding)
         val totalHeight = buttonHeight + (2 * buttonVerticalPadding)
 
+        // 向下移动一行的距离
+        val lineHeight = editor.lineHeight
+        val adjustedY = y + lineHeight
+
         // 调整位置，确保工具提示不会超出编辑器边界
-        val adjustedPosition = adjustPositionToFitInEditor(editor, x, y, totalWidth, totalHeight)
+        val adjustedPosition = adjustPositionToFitInEditor(editor, x, adjustedY, totalWidth, totalHeight)
         setBounds(adjustedPosition.x, adjustedPosition.y, totalWidth, totalHeight)
     }
 

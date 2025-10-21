@@ -27,6 +27,7 @@ import java.net.URL
 class ContinueAuthService {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
+
     companion object {
         fun getInstance(): ContinueAuthService = service<ContinueAuthService>()
         private const val CREDENTIALS_USER = "ContinueAuthUser"
@@ -103,9 +104,10 @@ class ContinueAuthService {
             }
 
             val data = responseMap.get("data") as? Map<*, *>
+            val id = data?.get("loginId") as? String ?: ""
             val label = data?.get("label") as? String ?: ""
 
-            val sessionInfo = ControlPlaneSessionInfo(uid, ControlPlaneSessionInfo.Account(label, label))
+            val sessionInfo = ControlPlaneSessionInfo(uid, ControlPlaneSessionInfo.Account(id, label))
             setControlPlaneSessionInfo(sessionInfo)
 
         return sessionInfo

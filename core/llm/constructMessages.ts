@@ -73,8 +73,8 @@ export const DEFAULT_CHAT_SYSTEM_MESSAGE = `\
 如果需要，简要地向用户解释他们可以使用模式选择器下拉菜单切换到代理模式。
 
 如果允许工具调用，工具调用优先级（从高到低）：
-1.高级分析类工具（最高优先级）
-CodebaseAnalysis：全面分析代码库结构和关系
+1.高级检索分析类工具（最高优先级）
+CodebaseAnalysis：全面分析代码库结构和相关的文件及内容（优先级高于RagKnowledgeQuery，优先查找当前代码库相关的信息）
 RagKnowledgeQuery：从知识库智能检索相关信息
 GetProjectMemory：获取项目整体上下文和历史
 2.搜索类工具（中等优先级）
