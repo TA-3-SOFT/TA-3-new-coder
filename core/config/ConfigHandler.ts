@@ -206,10 +206,16 @@ export class ConfigHandler {
     }
 
     orgs = orgs.organizations ?? [];
-    for (let j = 0; j < orgs.length; j++) {
-      orgs[j] = await this.loadProfiles(orgs[j]);
+    if (orgs.length > 0) {
+      let orgTemp = await this.loadProfiles(orgs[0]);
+      for (let j = 0; j < orgs.length; j++) {
+        orgs[j] = {
+          ...orgTemp,
+          id: orgs[j].id,
+          name: orgs[j].name,
+        };
+      }
     }
-
     return orgs;
   }
 
