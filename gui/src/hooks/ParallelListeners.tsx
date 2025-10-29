@@ -22,6 +22,8 @@ import { updateIndexingStatus } from "../redux/slices/indexingSlice";
 import {
   acceptToolCall,
   addContextItemsAtIndex,
+  newSession,
+  setMode,
   updateApplyState,
   updateToolCallOutput,
 } from "../redux/slices/sessionSlice";
@@ -137,6 +139,24 @@ function ParallelListeners() {
     [handleConfigUpdate],
   );
 
+  useWebviewListener(
+    "setMode",
+    async (mode) => {
+      dispatch(setMode(mode));
+    },
+    [dispatch],
+  );
+
+  const mode = useAppSelector((state) => state.session.mode);
+
+  useWebviewListener(
+    "getCurrentSessionMode",
+    async () => {
+      return mode;
+    },
+    [mode],
+  );
+
   // Load symbols for chat on any session change
   const sessionId = useAppSelector((state) => state.session.id);
   useEffect(() => {
@@ -209,6 +229,21 @@ function ParallelListeners() {
   useWebviewListener("setInactive", async () => {
     void dispatch(cancelStream());
   });
+
+  useWebviewListener(
+    "newSessionIfStructuredAgent",
+    async () => {
+      // 检查当前模式是否为 structured-agent，如果是则创建新会话
+      console.log("newSessionIfStructuredAgent called, current mode:", mode);
+      if (mode === "structured-agent") {
+        console.log("Creating new session for structured-agent mode");
+        dispatch(newSession());
+      } else {
+        console.log("Not in structured-agent mode, skipping new session creation");
+      }
+    },
+    [mode, dispatch],
+  );
 
   useWebviewListener("setTTSActive", async (status) => {
     dispatch(setTTSActive(status));

@@ -88,4 +88,5 @@ export const CORE_TO_WEBVIEW_PASS_THROUGH: (keyof ToWebviewFromCoreProtocol)[] =
     "sessionUpdate",
     "didCloseFiles",
     "toolCallPartialOutput",
+    "setMode",
   ];

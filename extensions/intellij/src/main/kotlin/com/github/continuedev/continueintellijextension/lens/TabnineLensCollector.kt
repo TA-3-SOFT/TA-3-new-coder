@@ -11,6 +11,7 @@ import com.intellij.codeInsight.hints.presentation.InlayPresentation
 import com.intellij.codeInsight.hints.presentation.SequencePresentation
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.PopupStep
@@ -19,7 +20,6 @@ import com.intellij.openapi.util.IconLoader
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.startOffset
 import java.awt.Point
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
@@ -76,8 +76,13 @@ class TabnineLensCollector(
                                                 incrementFeatureCount(project, selectedValue)
                                             }
 
-                                            selectElementRange(editor, element)
-                                            sendCodeToChat(editor, selectedValue)
+                                            // 特殊处理"生成代码注释"操作，直接调用编辑方法而不是对话模式
+                                            if (selectedValue == "生成代码注释") {
+                                                handleGenerateCommentsInEditMode(editor, element)
+                                            } else {
+                                                selectElementRange(editor, element)
+                                                sendCodeToChat(editor, selectedValue)
+                                            }
                                             return FINAL_CHOICE
                                         }
                                     })
@@ -136,8 +141,13 @@ class TabnineLensCollector(
                             incrementFeatureCount(project, intent)
                         }
 
-                        selectElementRange(editor, element)
-                        sendCodeToChat(editor, intent)
+                        // 特殊处理"生成代码注释"操作，直接调用编辑方法而不是对话模式
+                        if (intent == "生成代码注释") {
+                            handleGenerateCommentsInEditMode(editor, element)
+                        } else {
+                            selectElementRange(editor, element)
+                            sendCodeToChat(editor, intent)
+                        }
                     }
                 },
             )
@@ -177,6 +187,11 @@ class TabnineLensCollector(
         val project = editor.project ?: return
         val continuePluginService = getContinuePluginService(project) ?: return
 
+        // 如果当前是 structured-agent 模式，则创建新会话
+        continuePluginService.sendToWebview("newSessionIfStructuredAgent", null)
+        // 先切换到智能体模式，再发送代码
+        continuePluginService.sendToWebview("setMode", "agent")
+
         // 聚焦到Continue输入框
         continuePluginService.continuePluginWindow?.content?.components?.get(0)?.requestFocus()
         continuePluginService.sendToWebview("focusContinueInputWithoutClear", null)
@@ -209,6 +224,68 @@ class TabnineLensCollector(
                 prompt = if (prompt.isNotEmpty()) prompt else null,
                 shouldRun = true  // 自动触发发送
             )
+        )
+    }
+
+    /**
+     * 直接调用编辑方法处理生成代码注释，而不是通过聊天对话框
+     */
+    private fun handleGenerateCommentsInEditMode(editor: Editor, element: PsiElement) {
+        // 选中代码元素
+        selectElementRange(editor, element)
+
+        val editorUtils = EditorUtils(editor)
+        val (prefix, highlighted, suffix) = editorUtils.getHighlightedRangeTriplet()
+
+        // 获取当前项目和插件服务
+        val project = editor.project ?: return
+        val continuePluginService = getContinuePluginService(project) ?: return
+
+        // 创建 DiffStreamHandler 来处理代码更改
+        val (startLine, endLine) = editorUtils.getHighlightedRIF()?.lines ?: return
+
+        val diffStreamHandler = com.github.continuedev.continueintellijextension.editor.DiffStreamHandler(
+            project,
+            editor,
+            startLine,
+            endLine,
+            onClose = {},
+            onFinish = {},
+            streamId = null,
+            toolCallId = null
+        )
+
+        // 获取用户选择的apply模型标题
+        var applyModelTitle = "default" // 默认使用default模型
+        continuePluginService.coreMessenger?.request("config/getSerializedProfileInfo", null, null) { response ->
+            try {
+                // 从响应中提取selectedModelByRole.apply.title
+                val content = (response as? Map<*, *>)?.get("content") as? Map<*, *>
+                val result = content?.get("result") as? Map<*, *>
+                val config = result?.get("config") as? Map<*, *>
+                val selectedModelByRole = config?.get("selectedModelByRole") as? Map<*, *>
+                val applyModel = selectedModelByRole?.get("apply") as? Map<*, *>
+                applyModelTitle = applyModel?.get("title") as? String ?: "default"
+            } catch (e: Exception) {
+                // 如果出现异常，使用默认模型
+                applyModelTitle = "default"
+            }
+        }
+
+        // 等待获取模型标题（设置超时）
+        val startTime = System.currentTimeMillis()
+        while (applyModelTitle == "default" && System.currentTimeMillis() - startTime < 1500) {
+            Thread.sleep(20)
+        }
+
+        // 直接调用streamDiffLines方法处理代码注释生成，使用用户选择的apply模型
+        diffStreamHandler.streamDiffLinesToEditor(
+            "请为以下代码添加详细注释",
+            prefix,
+            highlighted,
+            suffix,
+            applyModelTitle, // 使用用户选择的apply模型标题
+            true
         )
     }
 }

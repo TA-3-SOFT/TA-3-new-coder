@@ -7,6 +7,7 @@ import type {
   ContextProviderName,
   IndexingProgressUpdate,
   IndexingStatus,
+  MessageModes,
 } from "../index.js";
 
 export type ToWebviewFromIdeOrCoreProtocol = {
@@ -40,7 +41,10 @@ export type ToWebviewFromIdeOrCoreProtocol = {
   setTTSActive: [boolean, void];
   getWebviewHistoryLength: [undefined, number];
   getCurrentSessionId: [undefined, string];
+  getCurrentSessionMode: [undefined, MessageModes];
   "jetbrains/setColors": [Record<string, string | null | undefined>, void];
   sessionUpdate: [{ sessionInfo: ControlPlaneSessionInfo | undefined }, void];
   toolCallPartialOutput: [{ toolCallId: string; contextItems: any[] }, void];
+  setMode: [MessageModes, void];
+  newSessionIfStructuredAgent: [undefined, void];
 };
