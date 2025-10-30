@@ -176,7 +176,8 @@ function KnowledgeSection() {
         const redirectUrl = encodeURIComponent(
           `lowCodePlatformManagement.html#/appMenu/knowledgeManagement?appId=${generateTokenResult.appId}&productId=${generateTokenResult.productId}`,
         );
-        const url = `http://192.168.20.195:8080/aiSsoLogin.html?token=${generateTokenResult.token}&redirect=${redirectUrl}`;
+        // const url = `http://192.168.20.195:8080/aiSsoLogin.html?token=${generateTokenResult.token}&redirect=${redirectUrl}`;
+        const url = `https://lc.yinhaiyun.com/lcfront-test/aiSsoLogin.html?token=${generateTokenResult.token}&redirect=${redirectUrl}`;
         ideMessenger.post("openUrl", url);
       }
     } catch (err) {

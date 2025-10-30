@@ -21,7 +21,7 @@ const CONTINUE_GLOBAL_DIR = (() => {
       ? configPath
       : path.resolve(process.cwd(), configPath);
   }
-  return path.join(os.homedir(), ".continue");
+  return path.join(os.homedir(), ".ta3NewCoder");
 })();
 
 // export const DEFAULT_CONFIG_TS_CONTENTS = `import { Config } from "./types"\n\nexport function modifyConfig(config: Config): Config {
@@ -47,7 +47,7 @@ export function getContinueUtilsPath(): string {
 export function getGlobalContinueIgnorePath(): string {
   const continueIgnorePath = path.join(
     getContinueGlobalPath(),
-    ".continueignore",
+    ".ta3NewCoderignore",
   );
   if (!fs.existsSync(continueIgnorePath)) {
     fs.writeFileSync(continueIgnorePath, "");
@@ -56,7 +56,7 @@ export function getGlobalContinueIgnorePath(): string {
 }
 
 export function getContinueGlobalPath(): string {
-  // This is ~/.continue on mac/linux
+  // This is ~/.ta3NewCoder on mac/linux
   const continuePath = CONTINUE_GLOBAL_DIR;
   if (!fs.existsSync(continuePath)) {
     fs.mkdirSync(continuePath);
@@ -197,7 +197,7 @@ export function getTsConfigPath(): string {
 
 export function getContinueRcPath(): string {
   // Disable indexing of the config folder to prevent infinite loops
-  const continuercPath = path.join(getContinueGlobalPath(), ".continuerc.json");
+  const continuercPath = path.join(getContinueGlobalPath(), ".ta3NewCoderrc.json");
   if (!fs.existsSync(continuercPath)) {
     fs.writeFileSync(
       continuercPath,

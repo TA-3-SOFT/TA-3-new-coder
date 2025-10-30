@@ -10,6 +10,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
+import kotlinx.coroutines.cancel
 
 
 class AcceptDiffAction : AnAction() {
@@ -99,7 +100,7 @@ class OpenConfigAction : AnAction() {
 class OpenLogsAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val logFile = java.io.File(System.getProperty("user.home") + "/.continue/logs/core.log")
+        val logFile = java.io.File(System.getProperty("user.home") + "/.ta3NewCoder/logs/core.log")
         if (logFile.exists()) {
             val virtualFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance().findFileByIoFile(logFile)
             if (virtualFile != null) {
@@ -123,6 +124,48 @@ class SetBottomLeftAnchorAction : AnAction("定位下左"), DumbAware {
         val toolWindowManager = ToolWindowManager.getInstance(project)
         val toolWindow = toolWindowManager.getToolWindow("TA+3 牛码")
         toolWindow?.setAnchor(ToolWindowAnchor.BOTTOM, null)
+    }
+}
+
+class ReloadPluginAction : AnAction("重载插件"), DumbAware {
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        val continuePluginService = getContinuePluginService(project) ?: return
+
+        // 通知用户开始重载
+        com.intellij.notification.NotificationGroupManager.getInstance()
+            .getNotificationGroup("Continue")
+            .createNotification("正在重载插件...", com.intellij.notification.NotificationType.INFORMATION)
+            .notify(project)
+
+        // 在后台线程执行重载操作
+        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                continuePluginService.coreMessenger?.killSubProcessWithoutClearingCallbacks()
+
+                // 等待一小段时间确保进程完全停止
+                Thread.sleep(3000)
+
+
+                // 3. 重新加载 WebView
+                com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+                    continuePluginService.continuePluginWindow?.browser?.browser?.cefBrowser?.reload()
+
+                    // 通知用户重载完成
+                    com.intellij.notification.NotificationGroupManager.getInstance()
+                        .getNotificationGroup("Continue")
+                        .createNotification("插件重载完成", com.intellij.notification.NotificationType.INFORMATION)
+                        .notify(project)
+                }
+            } catch (ex: Exception) {
+                com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+                    com.intellij.notification.NotificationGroupManager.getInstance()
+                        .getNotificationGroup("Continue")
+                        .createNotification("重载失败: ${ex.message}", com.intellij.notification.NotificationType.ERROR)
+                        .notify(project)
+                }
+            }
+        }
     }
 }
 

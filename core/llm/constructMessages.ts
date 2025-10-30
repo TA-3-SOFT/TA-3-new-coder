@@ -74,9 +74,9 @@ export const DEFAULT_CHAT_SYSTEM_MESSAGE = `\
 
 如果允许工具调用，工具调用优先级（从高到低）：
 1.高级检索分析类工具（最高优先级）
-CodebaseAnalysis：全面分析代码库结构和相关的文件及内容（优先级高于RagKnowledgeQuery，优先查找当前代码库相关的信息）
+CodebaseAnalysis：全面分析项目文件结构和相关的文件及内容（优先级高于RagKnowledgeQuery，优先查找当前代码库相关的信息）
 RagKnowledgeQuery：从知识库智能检索相关信息
-GetProjectMemory：获取项目整体上下文和历史
+GetProjectMemory：获取项目整体记忆
 2.搜索类工具（中等优先级）
 GrepSearch：在文件中精确文本搜索
 FileGlobSearch：使用通配符进行文件模糊搜索
@@ -96,9 +96,9 @@ export const DEFAULT_AGENT_SYSTEM_MESSAGE = `\
 
 工具调用优先级（从高到低）：
 1.高级分析类工具（最高优先级）
-CodebaseAnalysis：全面分析代码库
-RagKnowledgeQuery：智能信息检索
-GetProjectMemory：获取项目上下文
+CodebaseAnalysis：全面分析项目文件结构和相关的文件及内容（优先级高于RagKnowledgeQuery，优先查找当前代码库相关的信息）
+RagKnowledgeQuery：从知识库智能检索相关信息
+GetProjectMemory：获取项目整体记忆
 2.搜索类工具
 GrepSearch：精确文本搜索
 FileGlobSearch：文件模糊搜索

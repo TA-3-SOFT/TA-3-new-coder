@@ -18,7 +18,7 @@ export class LocalPlatformClient implements PlatformClient {
   ) {}
 
   /**
-   * searches for the first valid secret file in order of ~/.continue/.env, <workspace>/.continue/.env, <workspace>/.env
+   * searches for the first valid secret file in order of ~/.ta3NewCoder/.env, <workspace>/.continue/.env, <workspace>/.env
    */
   private async findSecretInEnvFiles(
     fqsn: FQSN,
@@ -48,7 +48,7 @@ export class LocalPlatformClient implements PlatformClient {
       return dotEnv[fqsn.secretName];
     } catch (error) {
       console.warn(
-        `Error reading ~/.continue/.env file: ${error instanceof Error ? error.message : String(error)}`,
+        `Error reading ~/.ta3NewCoder/.env file: ${error instanceof Error ? error.message : String(error)}`,
       );
       return undefined;
     }

@@ -74,7 +74,7 @@ export function getDotContinueSubDirs(
     );
   }
 
-  // ~/.continue/<subDirName>
+  // ~/.ta3NewCoder/<subDirName>
   if (options.includeGlobal) {
     fullDirs.push(localPathToUri(getGlobalFolderWithName(subDirName)));
   }

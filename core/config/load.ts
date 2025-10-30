@@ -797,7 +797,7 @@ async function tryBuildConfigTs() {
     }
   } catch (e) {
     console.log(
-      `Build error. Please check your ~/.continue/config.ts file: ${e}`,
+      `Build error. Please check your ~/.ta3NewCoder/config.ts file: ${e}`,
     );
   }
 }

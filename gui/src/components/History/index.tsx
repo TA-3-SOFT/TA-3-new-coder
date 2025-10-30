@@ -203,7 +203,7 @@ export function History() {
         <i
           className=""
           data-testid="history-sessions-note"
-        >{`数据存储在 ${platform === "windows" ? "%USERPROFILE%/.continue" : "~/.continue/sessions"}`}</i>
+        >{`数据存储在 ${platform === "windows" ? "%USERPROFILE%/.ta3NewCoder" : "~/.ta3NewCoder/sessions"}`}</i>
         <span
           className="cursor-pointer text-xs text-gray-400 hover:underline"
           onClick={showClearSessionsDialog}

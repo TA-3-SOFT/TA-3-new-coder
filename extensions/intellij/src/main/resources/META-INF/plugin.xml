@@ -176,12 +176,21 @@
             <override-text place="GoToAction" text="Open Continue Logs"/>
         </action>
 
+        <action id="continue.reloadPlugin"
+                class="com.github.continuedev.continueintellijextension.actions.ReloadPluginAction"
+                icon="AllIcons.Actions.Refresh"
+                text="重载插件"
+                description="重载插件">
+            <override-text place="GoToAction" text="重载插件"/>
+        </action>
+
         <group id="ContinueSidebarActionsGroup">
             <reference ref="continue.newContinueSession"/>
             <reference ref="continue.viewHistory"/>
             <reference ref="continue.setTopRightAnchor"/>
             <reference ref="continue.setBottomLeftAnchor"/>
             <reference ref="continue.openConfigPage"/>
+            <reference ref="continue.reloadPlugin"/>
         </group>
 
         <action id="continue.focusContinueInput"

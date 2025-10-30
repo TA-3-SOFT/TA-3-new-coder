@@ -226,4 +226,11 @@ class CoreMessenger(
             process?.destroy()
         }
     }
+
+    // kill子进程但不清理exitCallbacks
+    fun killSubProcessWithoutClearingCallbacks() {
+        process?.isAlive?.let {
+            process?.destroy()
+        }
+    }
 }
