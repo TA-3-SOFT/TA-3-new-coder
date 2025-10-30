@@ -69,6 +69,7 @@ class MessageTypes {
             "sessionUpdate",
             "didCloseFiles",
             "toolCallPartialOutput",
+            "setMode",
         )
 
         // Note: If updating these values, make a corresponding update in
