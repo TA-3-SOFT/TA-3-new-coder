@@ -8,6 +8,7 @@ import { selectSelectedChatModel } from "../slices/configSlice";
 import {
   abortStream,
   addPromptCompletionPair,
+  setContextPercentage,
   setToolGenerated,
   streamUpdate,
   updateHistoryItemAtIndex,
@@ -46,6 +47,25 @@ export const streamNormalInput = createAsyncThunk<
         tools: activeTools,
       };
     }
+
+    const precompiledRes = await extra.ideMessenger.request("llm/compileChat", {
+      messages,
+      options: completionOptions,
+    });
+
+    if (precompiledRes.status === "error") {
+      if (precompiledRes.error.includes("Not enough context")) {
+        // dispatch(setInlineErrorMessage("out-of-context"));
+        // dispatch(setInactive());
+        return;
+      } else {
+        throw new Error(precompiledRes.error);
+      }
+    }
+
+    const { contextPercentage } = precompiledRes.content;
+
+    dispatch(setContextPercentage(contextPercentage));
 
     // Send request
     const gen = extra.ideMessenger.llmStreamChat(

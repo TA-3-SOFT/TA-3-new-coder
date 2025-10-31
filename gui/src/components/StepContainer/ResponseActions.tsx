@@ -3,6 +3,7 @@ import {
   PencilIcon,
   TrashIcon,
   ArrowUturnLeftIcon,
+  ArrowsPointingInIcon,
 } from "@heroicons/react/24/outline";
 import { ChatHistoryItem } from "core";
 import { renderChatMessage } from "core/util/messageContent";
@@ -15,6 +16,7 @@ import { EnterButton } from "../mainInput/InputToolbar/EnterButton";
 import { ToolTip } from "../gui/Tooltip";
 import { setDialogMessage, setShowDialog } from "../../redux/slices/uiSlice";
 import { useAppSelector } from "../../redux/hooks";
+import { useCompactConversation } from "../../util/compactConversation";
 
 export interface ResponseActionsProps {
   isTruncated: boolean;
@@ -42,6 +44,18 @@ export default function ResponseActions({
   const structuredAgentWorkflow = useAppSelector(
     (state) => state.session.structuredAgentWorkflow,
   );
+
+  const contextPercentage = useAppSelector(
+    (state) => state.session.contextPercentage,
+  );
+
+  const percent = Math.round((contextPercentage ?? 0) * 100);
+  const buttonColorClass =
+    isLast && percent > 80 ? "text-warning" : "text-description-muted";
+
+  const showLabel = isLast && percent >= 60;
+
+  const compactConversation = useCompactConversation();
 
   // 在流程化智能体模式下，只在最新的回答中显示确认和编辑按钮
   const shouldShowEditButtons =
@@ -117,6 +131,26 @@ export default function ResponseActions({
           <BarsArrowDownIcon className="h-3.5 w-3.5 text-gray-500" />
         </HeaderButtonWithToolTip>
       )}*/}
+
+      <HeaderButtonWithToolTip
+        testId={`compact-button-${index}`}
+        text={showLabel ? "将对话总结以减少上下文长度" : "压缩对话"}
+        tabIndex={-1}
+        onClick={() => compactConversation(index)}
+      >
+        <div className="flex items-center space-x-1">
+          <ArrowsPointingInIcon
+            className={`h-3.5 w-3.5 ${buttonColorClass || "text-description-muted"}`}
+          />
+          {showLabel && (
+            <span
+              className={`text-xs ${buttonColorClass || "text-description-muted"}`}
+            >
+              压缩对话
+            </span>
+          )}
+        </div>
+      </HeaderButtonWithToolTip>
 
       <HeaderButtonWithToolTip
         testId={`rollback-button-${index}`}

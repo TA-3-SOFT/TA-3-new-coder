@@ -106,8 +106,10 @@ class MessageTypes {
             "llm/complete",
             "llm/streamChat",
             "llm/listModels",
+            "llm/compileChat",
             "streamDiffLines",
             "chatDescriber/describe",
+            "conversation/compact",
             "stats/getTokensPerDay",
             "stats/getTokensPerModel",
             // Codebase

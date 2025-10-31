@@ -1,6 +1,12 @@
 import { Tiktoken, encodingForModel as _encodingForModel } from "js-tiktoken";
 
-import { ChatMessage, MessageContent, MessagePart, Tool } from "../index.js";
+import {
+  ChatMessage,
+  CompiledMessagesResult,
+  MessageContent,
+  MessagePart,
+  Tool,
+} from "../index.js";
 
 import { renderChatMessage } from "../util/messageContent.js";
 import {
@@ -344,7 +350,7 @@ function compileChatMessages({
   maxTokens: number;
   supportsImages: boolean;
   tools?: Tool[];
-}): ChatMessage[] {
+}): CompiledMessagesResult {
   let msgsCopy: ChatMessage[] = msgs.map((m) => ({ ...m }));
 
   // If images not supported, convert MessagePart[] to string
@@ -469,7 +475,17 @@ function compileChatMessages({
 
   // Flatten the messages (combines adjacent similar messages)
   const flattenedHistory = flattenMessages(reassembled);
-  return flattenedHistory;
+
+  const inputTokens =
+    currentTotal + systemMsgTokens + toolTokens + lastMessagesTokens;
+  const availableTokens =
+    contextLength - countingSafetyBuffer - minOutputTokens;
+  const contextPercentage = inputTokens / availableTokens;
+
+  return {
+    compiledChatMessages: flattenedHistory,
+    contextPercentage,
+  };
 }
 
 export {

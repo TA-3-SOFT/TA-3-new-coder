@@ -22,6 +22,7 @@ import {
 import {
   BrowserSerializedContinueConfig,
   ChatMessage,
+  CompiledMessagesResult,
   ContextItem,
   ContextItemWithId,
   ContextSubmenuItem,
@@ -156,9 +157,20 @@ export type ToCoreFromIdeOrWebviewProtocol = {
     AsyncGenerator<ChatMessage, PromptLog>,
   ];
   streamDiffLines: [StreamDiffLinesPayload, AsyncGenerator<DiffLine>];
+  "llm/compileChat": [
+    { messages: ChatMessage[]; options: LLMFullCompletionOptions },
+    CompiledMessagesResult,
+  ];
   "chatDescriber/describe": [
     {
       text: string;
+    },
+    string | undefined,
+  ];
+  "conversation/compact": [
+    {
+      index: number;
+      sessionId: string;
     },
     string | undefined,
   ];

@@ -22,6 +22,7 @@ import { useFontSize } from "../ui/font";
 import { EnterButton } from "./InputToolbar/EnterButton";
 import HoverItem from "./InputToolbar/HoverItem";
 import { useMainEditor } from "./TipTapEditor/MainEditorProvider";
+import ContextStatus from "./ContextStatus";
 
 export interface ToolbarOptions {
   hideUseCodebase?: boolean;
@@ -157,6 +158,7 @@ function InputToolbar(props: InputToolbarProps) {
             fontSize: tinyFont,
           }}
         >
+          {<ContextStatus />}
           {!props.toolbarOptions?.hideUseCodebase && !isInEdit && (
             <div
               className={`${toolsSupported ? "md:flex" : "int:flex"} hover:underline" hidden transition-colors duration-200`}

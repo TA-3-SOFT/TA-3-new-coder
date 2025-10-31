@@ -59,6 +59,8 @@ type SessionState = {
   fullyAutomaticEditModeMetadata: FullyAutomaticEditModeMetadataState;
   // showModifiedFilesList: boolean;
   // acceptHistoryIndex: number;
+  contextPercentage?: number;
+  compactionLoading: Record<number, boolean>; // Track compaction loading by message index
 };
 
 const initialState: SessionState = {
@@ -92,6 +94,7 @@ const initialState: SessionState = {
   },
   // showModifiedFilesList: true,
   // acceptHistoryIndex: 0,
+  compactionLoading: {},
 };
 
 export const sessionSlice = createSlice({
@@ -228,6 +231,17 @@ export const sessionSlice = createSlice({
     deleteMessage: (state, action: PayloadAction<number>) => {
       // Deletes the current assistant message and the previous user message
       state.history.splice(action.payload - 1, 2);
+      state.contextPercentage = undefined;
+    },
+    deleteCompaction: (state, action: PayloadAction<number>) => {
+      // Removes the conversation summary from the specified message
+      const historyItem = state.history[action.payload];
+      if (historyItem?.conversationSummary) {
+        state.history[action.payload] = {
+          ...historyItem,
+          conversationSummary: undefined,
+        };
+      }
     },
     editMessage: (
       state,
@@ -413,6 +427,7 @@ export const sessionSlice = createSlice({
 
       state.isStreaming = false;
       state.symbols = {};
+      state.contextPercentage = undefined;
 
       if (payload) {
         state.history = payload.history as any;
@@ -643,6 +658,20 @@ export const sessionSlice = createSlice({
     setIsInEdit: (state, action: PayloadAction<boolean>) => {
       state.isInEdit = action.payload;
     },
+    setCompactionLoading: (
+      state,
+      action: PayloadAction<{ index: number; loading: boolean }>,
+    ) => {
+      const { index, loading } = action.payload;
+      if (loading) {
+        state.compactionLoading[index] = true;
+      } else {
+        delete state.compactionLoading[index];
+      }
+    },
+    setContextPercentage: (state, action: PayloadAction<number>) => {
+      state.contextPercentage = action.payload;
+    },
     setNewestToolbarPreviewForInput: (
       state,
       {
@@ -806,6 +835,7 @@ export const {
   clearLastEmptyResponse,
   setMainEditorContentTrigger,
   deleteMessage,
+  deleteCompaction,
   editMessage,
   setIsGatheringContext,
   resetNextCodeBlockToApplyIndex,
@@ -834,6 +864,8 @@ export const {
   setAcceptHistoryIndex,
   setPendingConfirmFilesList,
   clearPendingConfirmFilesList,
+  setContextPercentage,
+  setCompactionLoading,
 } = sessionSlice.actions;
 
 export const { selectIsGatheringContext } = sessionSlice.selectors;

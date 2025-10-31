@@ -11,6 +11,7 @@ import { getFontSize } from "../../util";
 import { varWithFallback } from "../../styles/theme";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import StyledMarkdownPreview from "../StyledMarkdownPreview";
+import ConversationSummary from "./ConversationSummary";
 import Reasoning from "./Reasoning";
 import ResponseActions from "./ResponseActions";
 import ThinkingIndicator from "./ThinkingIndicator";
@@ -19,6 +20,7 @@ interface StepContainerProps {
   item: ChatHistoryItem;
   index: number;
   isLast: boolean;
+  latestSummaryIndex?: number;
 }
 
 const ContentDiv = styled.div<{ fontSize?: number }>`
@@ -144,6 +146,13 @@ export default function StepContainer(props: StepContainerProps) {
     historyItemAfterThis?.message.role === "thinking";
   const hideActions = hideActionSpace || (isStreaming && props.isLast);
 
+  // Calculate dimming and indicator state based on latest summary index
+  const latestSummaryIndex = props.latestSummaryIndex ?? -1;
+  const isBeforeLatestSummary =
+    latestSummaryIndex !== -1 && props.index <= latestSummaryIndex;
+  const isLatestSummary =
+    latestSummaryIndex !== -1 && props.index === latestSummaryIndex;
+
   useEffect(() => {
     if (!isStreaming) {
       const content = renderChatMessage(props.item.message).trim();
@@ -226,7 +235,7 @@ export default function StepContainer(props: StepContainerProps) {
 
   return (
     <div>
-      <ContentDiv>
+      <ContentDiv className={`${isBeforeLatestSummary ? "opacity-35" : ""}`}>
         {isEditing ? (
           <EditContainer>
             <EditTextarea
@@ -285,7 +294,9 @@ export default function StepContainer(props: StepContainerProps) {
       </ContentDiv>
       {/* We want to occupy space in the DOM regardless of whether the actions are visible to avoid jank on stream complete */}
       {!hideActionSpace && (
-        <div className={`mt-2 h-7 transition-opacity duration-300 ease-in-out`}>
+        <div
+          className={`mt-2 h-7 transition-opacity duration-300 ease-in-out ${isBeforeLatestSummary || isStreaming ? "opacity-35" : ""}`}
+        >
           {!hideActions && (
             <ResponseActions
               isTruncated={isTruncated}
@@ -305,6 +316,21 @@ export default function StepContainer(props: StepContainerProps) {
           )}
         </div>
       )}
+      {/* Show compaction indicator for the latest summary */}
+      {isLatestSummary && (
+        <div className="mx-1.5 my-5">
+          <div className="flex items-center">
+            <div className="border-border flex-1 border-t border-solid"></div>
+            <span className="text-description mx-3 text-xs">
+              之前的对话已压缩
+            </span>
+            <div className="border-border flex-1 border-t border-solid"></div>
+          </div>
+        </div>
+      )}
+
+      {/* ConversationSummary is outside the dimmed container so it's always at full opacity */}
+      <ConversationSummary item={props.item} index={props.index} />
     </div>
   );
 }

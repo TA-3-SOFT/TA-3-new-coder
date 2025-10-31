@@ -3,7 +3,7 @@ import {
   ChatBubbleOvalLeftIcon,
 } from "@heroicons/react/24/outline";
 import { Editor, JSONContent } from "@tiptap/react";
-import { InputModifiers } from "core";
+import { ChatHistoryItem, InputModifiers } from "core";
 import { streamResponse } from "core/llm/stream";
 import { renderChatMessage } from "core/util/messageContent";
 import { usePostHog } from "posthog-js/react";
@@ -57,6 +57,15 @@ import { ExploreDialogWatcher } from "./ExploreDialogWatcher";
 import { ToolCallDiv } from "./ToolCallDiv";
 import { useAutoScroll } from "./useAutoScroll";
 import AnswerIcon from "../../components/StepContainer/AnswerIcon";
+
+function findLatestSummaryIndex(history: ChatHistoryItem[]): number {
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].conversationSummary) {
+      return i;
+    }
+  }
+  return -1; // No summary found
+}
 
 const StepsDiv = styled.div`
   position: relative;
@@ -391,6 +400,7 @@ export function Chat() {
                       index={index}
                       isLast={index === history.length - 1}
                       item={item}
+                      latestSummaryIndex={findLatestSummaryIndex(history)}
                     />
                   </TimelineItem>
                 </div>

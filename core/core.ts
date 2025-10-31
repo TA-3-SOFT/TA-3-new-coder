@@ -65,6 +65,7 @@ import { llmStreamChat } from "./llm/streamChat";
 import type { FromCoreProtocol, ToCoreProtocol } from "./protocol";
 import type { IMessenger, Message } from "./protocol/messenger";
 import { StreamAbortManager } from "./util/abortManager";
+import { compactConversation } from "./util/conversationCompaction";
 
 export class Core {
   configHandler: ConfigHandler;
@@ -484,6 +485,18 @@ export class Core {
     });
     on("llm/listModels", this.handleListModels.bind(this));
 
+    on("llm/compileChat", async (msg) => {
+      const { messages, options } = msg.data;
+      const model = (await this.configHandler.loadConfig()).config
+        ?.selectedModelByRole.chat;
+
+      if (!model) {
+        throw new Error("No chat model selected");
+      }
+
+      return model.compileChatMessages(messages, options);
+    });
+
     // Provide messenger to utils so they can interact with GUI + state
     TTS.messenger = this.messenger;
     ChatDescriber.messenger = this.messenger;
@@ -501,6 +514,28 @@ export class Core {
       }
 
       return await ChatDescriber.describe(currentModel, {}, msg.data.text);
+    });
+
+    on("conversation/compact", async (msg) => {
+      const currentModel = (await this.configHandler.loadConfig()).config
+        ?.selectedModelByRole.longcontext;
+
+      if (!currentModel) {
+        throw new Error("No chat model selected");
+      }
+
+      try {
+        await compactConversation({
+          sessionId: msg.data.sessionId,
+          index: msg.data.index,
+          historyManager,
+          currentModel,
+        });
+        return undefined;
+      } catch (error) {
+        console.error(`Error compacting conversation: ${error}`);
+        return undefined;
+      }
     });
 
     // Autocomplete

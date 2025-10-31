@@ -125,6 +125,11 @@ export interface ILLM
     options?: LLMFullCompletionOptions,
   ): Promise<ChatMessage>;
 
+  compileChatMessages(
+    messages: ChatMessage[],
+    options: LLMFullCompletionOpeions,
+  ): CompiledChatMessagesReport;
+
   embed(chunks: string[]): Promise<number[][]>;
 
   rerank(query: string, chunks: Chunk[]): Promise<number[]>;
@@ -471,6 +476,7 @@ export interface ChatHistoryItem {
   isGatheringContext?: boolean;
   reasoning?: Reasoning;
   appliedRules?: RuleWithSource[];
+  conversationSummary?: string;
 }
 
 export interface LLMFullCompletionOptions extends BaseCompletionOptions {
@@ -1642,4 +1648,9 @@ export interface RuleWithSource {
   description?: string;
   ruleFile?: string;
   alwaysApply?: boolean;
+}
+
+export interface CompiledMessagesResult {
+  compiledChatMessages: ChatMessage[];
+  contextPercentage: number;
 }

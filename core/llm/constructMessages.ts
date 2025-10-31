@@ -154,9 +154,21 @@ export function constructMessages(
   config: BrowserSerializedContinueConfig, // 添加config参数
   dynamicSystemMessage?: string, // 添加动态系统消息参数
 ): ChatMessage[] {
-  const filteredHistory = history.filter(
+  let filteredHistory = history.filter(
     (item) => item.message.role !== "system",
   );
+
+  let summaryContent = "";
+  for (let i = history.length - 1; i >= 0; i--) {
+    const summary = history[i].conversationSummary;
+    if (summary) {
+      summaryContent = summary;
+      // Only include messages that come AFTER the message with the summary
+      filteredHistory = filteredHistory.slice(i + 1);
+      break;
+    }
+  }
+
   const msgs: ChatMessage[] = [];
 
   for (let i = 0; i < filteredHistory.length; i++) {
@@ -220,10 +232,18 @@ export function constructMessages(
     // systemMessage = dynamicSystemMessage;
   }
 
-  if (systemMessage.trim()) {
+  // Append conversation summary to system message if it exists
+  let finalSystemMessage = systemMessage;
+  if (summaryContent) {
+    finalSystemMessage = systemMessage
+      ? `${systemMessage}\n\nPrevious conversation summary:\n\n ${summaryContent}`
+      : `Previous conversation summary:\n\n ${summaryContent}`;
+  }
+
+  if (finalSystemMessage.trim()) {
     msgs.unshift({
       role: "system",
-      content: systemMessage,
+      content: finalSystemMessage,
     });
   }
 
